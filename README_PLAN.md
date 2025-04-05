@@ -127,6 +127,28 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ```
 
+### 2.4 Implementación del Sistema de Gestión de Usuarios Mejorado
+
+- [ ] Rediseñar la pantalla de gestión de usuarios con un TabBar categorizado por tipo de usuario
+- [ ] Implementar pestañas para Managers, Entrenadores, Atletas y Grupos
+- [ ] Crear sistema de búsqueda de usuarios por nombre/email
+- [ ] Implementar filtrado de usuarios mediante etiquetas
+- [ ] Añadir control de visibilidad basado en permisos del usuario
+- [ ] Crear sistema de invitación integrado en cada categoría
+
+**Pruebas y depuración:**
+```
+• Verificar que las pestañas se muestran correctamente según el rol del usuario
+• Comprobar funcionamiento de la búsqueda y filtros
+• Validar que los permisos de visualización se respetan correctamente
+• Probar el proceso de invitación desde cada categoría
+• Notas de problemas encontrados:
+
+
+
+
+```
+
 ## Fase 3: Navegación y Estructura Base de la App
 
 ### 3.1 Configuración de Router
@@ -188,6 +210,67 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 
 
+```
+
+### 3.4 Implementación de Elementos en AppBar
+
+- [x] Implementar icono de notificaciones en AppBar
+- [x] Crear indicador de notificaciones no leídas
+- [x] Implementar icono de chat en AppBar
+- [x] Añadir indicador de mensajes no leídos
+- [ ] Crear menú desplegable para configuraciones rápidas
+
+**Pruebas y depuración:**
+```
+• Verificar que los iconos se muestran correctamente en la AppBar
+• Comprobar actualización de indicadores en tiempo real
+• Validar navegación al pulsar en cada icono
+• Probar la experiencia en diferentes tamaños de pantalla
+• Notas de problemas encontrados:
+
+
+
+
+```
+
+### 3.5 Rediseño del Sistema de Navegación
+
+- [x] Simplificar el AppBar a mostrar solo el título de la aplicación
+- [x] Implementar navegación deslizable tipo Instagram
+- [x] Crear sistema de deslizamiento de izquierda a derecha para acceder al chat
+- [x] Implementar deslizamiento de derecha a izquierda para acceder a notificaciones
+- [x] Sustituir el Drawer por animaciones de deslizamiento
+
+**Pruebas y depuración:**
+```
+• Verificar fluidez de las animaciones de deslizamiento
+• Comprobar transiciones entre dashboard, chat y notificaciones
+• Validar respuesta táctil y comportamiento en distintos dispositivos
+• Probar comportamiento con gestos de navegación del sistema
+• Notas de problemas encontrados:
+  - Se detectó un problema inicial de desbordamiento (overflow) en la columna del panel de navegación.
+  - Solución: Reemplazar SizedBox con altura fija por Expanded y SingleChildScrollView para permitir desplazamiento.
+```
+
+### 3.6 Implementación de Bottom Navigation Bar Personalizable
+
+- [x] Crear sistema de BottomNavigationBar con botones tipo wrap
+- [x] Implementar visualización de solo 5 iconos principales
+- [x] Desarrollar panel expandible para mostrar botones adicionales
+- [x] Añadir sistema para fijar/personalizar botones favoritos
+- [x] Implementar persistencia de configuración de botones
+- [x] Añadir animaciones fluidas al expandir/contraer el panel
+
+**Pruebas y depuración:**
+```
+• Verificar funcionamiento del sistema wrap para los botones
+• Comprobar expansión/contracción del panel de navegación
+• Validar personalización y fijación de botones favoritos
+• Probar persistencia de la configuración entre sesiones
+• Verificar accesibilidad y facilidad de uso
+• Notas de problemas encontrados:
+  - Al expandir el panel completamente, inicialmente se presentaba desbordamiento de la UI.
+  - Solución: Implementar un sistema de ScrollView con altura dinámica y eliminar restricciones de altura fija.
 ```
 
 ## Fase 4: Gestión de Academias
@@ -447,6 +530,8 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 - [ ] Crear gestor de notificaciones
 - [ ] Implementar notificaciones personalizadas
 - [ ] Añadir preferencias de notificación
+- [ ] Implementar pantalla de centro de notificaciones
+- [ ] Añadir indicador de notificaciones no leídas en la AppBar
 
 **Pruebas y depuración:**
 ```
@@ -454,6 +539,8 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 • Comprobar visualización en primer y segundo plano
 • Validar acciones al interactuar con notificaciones
 • Probar configuración de preferencias
+• Verificar funcionamiento del indicador de notificaciones no leídas
+• Comprobar marcado de notificaciones como leídas
 • Notas de problemas encontrados:
 
 
@@ -467,6 +554,9 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 - [ ] Crear pantalla de chat individual
 - [ ] Implementar chats grupales
 - [ ] Añadir envío de archivos/imágenes
+- [ ] Implementar acceso al chat desde icono en AppBar
+- [ ] Añadir indicador de mensajes no leídos
+- [ ] Crear pantalla de listado de conversaciones
 
 **Pruebas y depuración:**
 ```
@@ -475,6 +565,8 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 • Validar chats grupales
 • Probar envío de archivos multimedia
 • Verificar notificaciones de nuevos mensajes
+• Comprobar funcionamiento del icono e indicador en AppBar
+• Verificar sistema de marcado de mensajes como leídos
 • Notas de problemas encontrados:
 
 

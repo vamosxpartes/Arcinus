@@ -8,7 +8,7 @@ Arcinus es una aplicación móvil desarrollada en Flutter para la gestión integ
 - **Gestión completa de academias deportivas**: Administración de equipos, entrenamientos, clases, asistencia y más.
 - **Seguimiento de rendimiento**: Evaluación y seguimiento del progreso de atletas.
 - **Sistema de pagos**: Control de mensualidades y pagos.
-- **Comunicación integrada**: Notificaciones y chat interno.
+- **Sistema de comunicación integrado**: Chat interno y notificaciones para mantener a todos los miembros informados.
 
 ## Esquema de Roles
 
@@ -43,6 +43,14 @@ Collection 'classes'
 
 Collection 'payments'
   |- Document '{paymentId}'
+
+Collection 'messages'
+  |- Document '{messageId}'
+      |- Field: senderId, receiverId, content, timestamp, read
+
+Collection 'notifications'
+  |- Document '{notificationId}'
+      |- Field: userId, title, body, type, read, timestamp, data
 ```
 
 ## Gestión de Cuentas (Sistema Jerárquico)
@@ -70,6 +78,49 @@ En Arcinus, implementamos un sistema jerárquico para la gestión de cuentas:
 3. **Vinculación de Cuentas**:
    - Los atletas pueden ser vinculados a múltiples entrenadores y grupos
    - Los padres/responsables pueden ser vinculados a múltiples atletas
+
+## Sistema de Gestión de Usuarios
+
+La gestión de usuarios se organiza por categorías:
+
+- **Tabbed Interface**: La pantalla de gestión de usuarios presenta pestañas para diferentes tipos de usuarios:
+  - Managers
+  - Entrenadores
+  - Atletas
+  - Grupos
+
+- **Visibility Control**: Las pestañas se muestran u ocultan según los permisos del usuario.
+
+- **User Search**: Cada categoría incluye un buscador y etiquetas para filtrar usuarios.
+
+## Sistema de Comunicación
+
+- **Chat Interno**: Permite la comunicación directa entre miembros de la academia.
+  - Chats individuales y grupales
+  - Accesible desde la barra de navegación superior y mediante deslizamiento lateral desde el dashboard
+
+- **Notificaciones**: Sistema de alertas para eventos importantes.
+  - Notificaciones de clases, pagos, mensajes y eventos
+  - Accesible desde el icono en la barra de navegación y mediante deslizamiento lateral desde el dashboard
+
+## Sistema de Navegación Mejorado
+
+- **Navegación Deslizable**: Inspirada en Instagram y los sistemas de notificaciones de Android.
+  - Deslizar de izquierda a derecha desde el dashboard para acceder a la pantalla de chat
+  - Deslizar de derecha a izquierda desde el dashboard para acceder a las notificaciones
+  - Experiencia fluida con transiciones animadas entre páginas
+
+- **Bottom Navigation Bar Personalizable**: 
+  - Barra de navegación inferior con 5 elementos visibles fijados por el usuario
+  - Panel expandible con accesos adicionales en formato wrap al deslizar hacia arriba
+  - Personalización de elementos favoritos mediante pulsación larga sobre cualquier icono
+  - Indicador visual de iconos fijados y elemento activo
+
+- **Panel Expandible Interactivo**:
+  - Deslizamiento suave con animaciones fluidas
+  - Detección inteligente de gestos para expandir o contraer el panel
+  - Organización automática de elementos no fijados
+  - Ajuste dinámico de contenido con desplazamiento adaptable
 
 ## Instalación y Configuración
 
@@ -110,6 +161,8 @@ lib/
 │   └── features/        # Características organizadas por módulos
 │       ├── auth/        # Autenticación
 │       ├── dashboard/
+│       ├── chat/        # Sistema de chat interno
+│       ├── notifications/ # Gestión de notificaciones
 │       ├── academy_management/
 │       └── ...
 ├── ux/                  # Capa de Lógica de Negocio
