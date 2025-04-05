@@ -1,5 +1,5 @@
 name: arcinus
-description: "A new Flutter project."
+description: "Aplicación para gestión de academias deportivas."
 publish_to: 'none'
 version: 0.1.0
 
@@ -9,11 +9,47 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+  
+  # Firebase
+  firebase_core: ^2.25.4
+  firebase_auth: ^4.17.4
+  cloud_firestore: ^4.15.4
+  firebase_analytics: ^10.8.5
+  
+  # Estado y DI
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+  
+  # Modelos
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  
+  # Navegación
+  go_router: ^13.2.0
+  
+  # Utilidades
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  logger: ^2.0.2+1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  
+  # Generadores de código
+  build_runner: ^2.4.8
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.3.9
+  hive_generator: ^2.0.1
 
 flutter:
   uses-material-design: true
+  generate: true
+  assets:
+    - assets/images/
+    - assets/icons/

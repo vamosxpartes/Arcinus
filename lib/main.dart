@@ -1,7 +1,25 @@
+import 'package:arcinus/config/firebase/analytics_service.dart';
+import 'package:arcinus/config/firebase/firebase_config.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
-  runApp(const MainApp());
+import 'app.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializar Firebase
+  await FirebaseConfig.initDevelopment();
+  
+  // Inicializar Analytics
+  final analyticsService = AnalyticsService();
+  analyticsService.init();
+  
+  runApp(
+    const ProviderScope(
+      child: ArcinusApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
