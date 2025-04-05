@@ -90,6 +90,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   }
   
   // Construir un botón de navegación
+  // ignore: unused_element
   Widget _buildNavigationButton(
     NavigationItem item, {
     required VoidCallback onTap,

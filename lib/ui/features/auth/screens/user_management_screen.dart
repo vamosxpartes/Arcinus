@@ -1,5 +1,6 @@
-import 'package:arcinus/shared/models/navigation_item.dart';
 import 'package:arcinus/shared/models/user.dart';
+import 'package:arcinus/shared/navigation/navigation_items.dart';
+import 'package:arcinus/shared/navigation/navigation_service.dart';
 import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
@@ -29,68 +30,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   bool _isLoading = false;
   bool _showInviteForm = false;
   
-  // Lista de botones de navegación
-  final List<NavigationItem> _allNavigationItems = [
-    NavigationItem(
-      icon: Icons.dashboard,
-      label: 'Inicio',
-      destination: '/dashboard',
-    ),
-    NavigationItem(
-      icon: Icons.group,
-      label: 'Usuarios',
-      destination: '/users-management',
-    ),
-    NavigationItem(
-      icon: Icons.sports,
-      label: 'Entrenamientos',
-      destination: '/trainings',
-    ),
-    NavigationItem(
-      icon: Icons.calendar_today,
-      label: 'Calendario',
-      destination: '/calendar',
-    ),
-    NavigationItem(
-      icon: Icons.bar_chart,
-      label: 'Estadísticas',
-      destination: '/stats',
-    ),
-    NavigationItem(
-      icon: Icons.settings,
-      label: 'Configuración',
-      destination: '/settings',
-    ),
-    NavigationItem(
-      icon: Icons.payments,
-      label: 'Pagos',
-      destination: '/payments',
-    ),
-    NavigationItem(
-      icon: Icons.school,
-      label: 'Academias',
-      destination: '/academies',
-    ),
-    NavigationItem(
-      icon: Icons.person,
-      label: 'Perfil',
-      destination: '/profile',
-    ),
-    NavigationItem(
-      icon: Icons.chat,
-      label: 'Chat',
-      destination: '/chats',
-    ),
-    NavigationItem(
-      icon: Icons.notifications,
-      label: 'Notificaciones',
-      destination: '/notifications',
-    ),
-  ];
+  // Instancia del servicio de navegación
+  final NavigationService _navigationService = NavigationService();
   
-  // Lista de botones fijados (inicialmente los primeros 5)
-  List<NavigationItem> _pinnedItems = [];
-
   @override
   void initState() {
     super.initState();
@@ -127,9 +69,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
         });
       }
     });
-    
-    // Inicialmente fijamos los primeros 5 elementos
-    _pinnedItems = _allNavigationItems.take(5).toList();
   }
 
   @override
@@ -158,38 +97,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     });
   }
 
-  // Método para navegar a una ruta
-  void _navigateToRoute(String route) {
-    // Si ya estamos en la pantalla actual, no hacemos nada
-    if (route == '/users-management' && ModalRoute.of(context)?.settings.name == '/users-management') {
-      return;
-    }
-    
-    Navigator.of(context).pushNamed(route);
-  }
-
-  // Fijar/soltar un elemento de navegación
-  void _togglePinItem(NavigationItem item) {
-    setState(() {
-      if (_pinnedItems.contains(item)) {
-        // Si ya está fijado y hay más de 1 elemento, lo quitamos
-        if (_pinnedItems.length > 1) {
-          _pinnedItems.remove(item);
-        }
-      } else {
-        // Si no está fijado y hay menos de 5, lo añadimos
-        if (_pinnedItems.length < 5) {
-          _pinnedItems.add(item);
-        } else {
-          // Si ya hay 5, mostramos un mensaje
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Solo puedes fijar 5 elementos. Quita uno primero.')),
-          );
-        }
-      }
-    });
-  }
-
   void _toggleInviteForm() {
     if (_showInviteForm) {
       _resetForm();
@@ -200,7 +107,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           _selectedRole = UserRole.manager;
           break;
         case 1:
-      _selectedRole = UserRole.coach;
+          _selectedRole = UserRole.coach;
           break;
         case 2:
           _selectedRole = UserRole.athlete;
@@ -321,9 +228,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final user = ref.watch(authStateProvider).valueOrNull;
-    final bool canManageAllUsers = user?.role == UserRole.owner || user?.role == UserRole.manager;
     
     return Scaffold(
       body: SafeArea(
@@ -377,11 +281,17 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
       ),
       // Usar el componente centralizado para la barra de navegación
       bottomNavigationBar: CustomNavigationBar(
-        pinnedItems: _pinnedItems,
-        allItems: _allNavigationItems,
+        pinnedItems: _navigationService.pinnedItems,
+        allItems: NavigationItems.allItems,
         activeRoute: '/users-management',
-        onItemTap: (item) => _navigateToRoute(item.destination),
-        onItemLongPress: (item) => _togglePinItem(item),
+        onItemTap: (item) => _navigationService.navigateToRoute(context, item.destination),
+        onItemLongPress: (item) {
+          if (_navigationService.togglePinItem(item, context: context)) {
+            setState(() {
+              // Actualizar la UI para reflejar cambios en elementos fijados
+            });
+          }
+        },
       ),
     );
   }
