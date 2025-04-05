@@ -70,6 +70,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
       label: 'Academias',
       destination: '/academies',
     ),
+    NavigationItem(
+      icon: Icons.person,
+      label: 'Perfil',
+      destination: '/profile',
+    ),
+    NavigationItem(
+      icon: Icons.chat,
+      label: 'Chat',
+      destination: '/chats',
+    ),
+    NavigationItem(
+      icon: Icons.notifications,
+      label: 'Notificaciones',
+      destination: '/notifications',
+    ),
   ];
   
   // Lista de botones fijados (inicialmente los primeros 5)
@@ -166,39 +181,41 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with SingleTi
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Arcinus'),
-      ),
       body: Stack(
         children: [
           // Contenido principal (PageView para navegación deslizable)
-          PageView(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPageIndex = index;
-              });
-            },
-            children: [
-              // Página de Notificaciones (índice 0) - Cambiado de posición
-              _buildNotificationsPage(),
-              
-              // Página Dashboard (índice 1)
-              userAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text('Error: $error')),
-                data: (user) {
-                  if (user == null) {
-                    return const Center(child: Text('No hay usuario autenticado'));
-                  }
-                  
-                  return _buildDashboardContent(context, user);
-                },
-              ),
-              
-              // Página de Chat (índice 2) - Cambiado de posición
-              _buildChatPage(),
-            ],
+          SafeArea(
+            // Solo aplicamos SafeArea en la parte superior, ya que la parte inferior
+            // está ocupada por nuestro panel de navegación personalizado
+            bottom: false,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPageIndex = index;
+                });
+              },
+              children: [
+                // Página de Notificaciones (índice 0) - Cambiado de posición
+                _buildNotificationsPage(),
+                
+                // Página Dashboard (índice 1)
+                userAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Center(child: Text('Error: $error')),
+                  data: (user) {
+                    if (user == null) {
+                      return const Center(child: Text('No hay usuario autenticado'));
+                    }
+                    
+                    return _buildDashboardContent(context, user);
+                  },
+                ),
+                
+                // Página de Chat (índice 2) - Cambiado de posición
+                _buildChatPage(),
+              ],
+            ),
           ),
           
           // Panel deslizable desde abajo (ahora como componente único)

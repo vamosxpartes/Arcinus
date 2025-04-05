@@ -135,34 +135,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userAsync = ref.watch(authStateProvider);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                setState(() {
-                  _isEditing = true;
-                });
-              },
-              tooltip: 'Editar perfil',
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                userAsync.whenData((user) {
-                  if (user != null) _loadUserData(user);
-                });
-                setState(() {
-                  _isEditing = false;
-                });
-              },
-              tooltip: 'Cancelar edición',
-            ),
-        ],
-      ),
       body: userAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('Error: $error')),
@@ -176,223 +148,260 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _loadUserData(user);
           }
           
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Avatar
-                Center(
-                  child: Stack(
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Botones de edición en la parte superior
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CircleAvatar(
-                        radius: 64,
-                        backgroundColor: theme.colorScheme.primary.withAlpha(30),
-                        backgroundImage: user.profileImageUrl != null
-                            ? NetworkImage(user.profileImageUrl!)
-                            : null,
-                        child: user.profileImageUrl == null
-                            ? Text(
-                                user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                                style: theme.textTheme.displayMedium?.copyWith(
-                                  color: theme.colorScheme.primary,
-                                ),
-                              )
-                            : null,
+                      Text(
+                        'Mi Perfil',
+                        style: theme.textTheme.headlineSmall,
                       ),
-                      if (_isEditing)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.camera_alt, color: Colors.white),
-                              onPressed: _showImageSourceDialog,
-                              tooltip: 'Cambiar foto',
-                              constraints: const BoxConstraints.tightFor(
-                                width: 32,
-                                height: 32,
-                              ),
-                            ),
-                          ),
+                      if (!_isEditing)
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () {
+                            setState(() {
+                              _isEditing = true;
+                            });
+                          },
+                          tooltip: 'Editar perfil',
+                        )
+                      else
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            userAsync.whenData((user) {
+                              if (user != null) _loadUserData(user);
+                            });
+                            setState(() {
+                              _isEditing = false;
+                            });
+                          },
+                          tooltip: 'Cancelar edición',
                         ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                 
-                // Información de usuario
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      // Nombre
-                      TextFormField(
-                        controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Nombre',
-                          prefixIcon: Icon(Icons.person_outline),
-                          border: OutlineInputBorder(),
-                        ),
-                        enabled: _isEditing,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor ingresa tu nombre';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Email
-                      TextFormField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(
-                          labelText: 'Correo electrónico',
-                          prefixIcon: Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        enabled: _isEditing,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Por favor ingresa tu correo electrónico';
-                          }
-                          if (!value.contains('@')) {
-                            return 'Por favor ingresa un correo electrónico válido';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Rol (solo lectura)
-                      TextFormField(
-                        initialValue: _getUserRoleText(user.role),
-                        decoration: const InputDecoration(
-                          labelText: 'Rol',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        enabled: false,
-                      ),
-                      const SizedBox(height: 32),
-                      
-                      // Botón de guardar (solo visible en modo edición)
-                      if (_isEditing)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const CircularProgressIndicator()
-                                : const Text(
-                                    'Guardar Cambios',
-                                    style: TextStyle(fontSize: 16),
+                  // Avatar
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 64,
+                          backgroundColor: theme.colorScheme.primary.withAlpha(30),
+                          backgroundImage: user.profileImageUrl != null
+                              ? NetworkImage(user.profileImageUrl!)
+                              : null,
+                          child: user.profileImageUrl == null
+                              ? Text(
+                                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                  style: theme.textTheme.displayMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
                                   ),
-                          ),
+                                )
+                              : null,
                         ),
-                    ],
+                        if (_isEditing)
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.camera_alt, color: Colors.white),
+                                onPressed: _showImageSourceDialog,
+                                tooltip: 'Cambiar foto',
+                                constraints: const BoxConstraints.tightFor(
+                                  width: 32,
+                                  height: 32,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                
-                const SizedBox(height: 32),
-                
-                // Sección de academias
-                if (user.academyIds.isNotEmpty) ...[
-                  Text(
-                    'Mis Academias',
-                    style: theme.textTheme.titleLarge,
+                  const SizedBox(height: 32),
+                  
+                  // Información de usuario
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        // Nombre
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nombre',
+                            prefixIcon: Icon(Icons.person_outline),
+                            border: OutlineInputBorder(),
+                          ),
+                          enabled: _isEditing,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa tu nombre';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Email
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Correo electrónico',
+                            prefixIcon: Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          enabled: _isEditing,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor ingresa tu correo electrónico';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Por favor ingresa un correo electrónico válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        // Rol (solo lectura)
+                        TextFormField(
+                          initialValue: _getUserRoleText(user.role),
+                          decoration: const InputDecoration(
+                            labelText: 'Rol',
+                            prefixIcon: Icon(Icons.badge_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          enabled: false,
+                        ),
+                        const SizedBox(height: 32),
+                        
+                        // Botón de guardar (solo visible en modo edición)
+                        if (_isEditing)
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _saveProfile,
+                              style: ElevatedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: _isLoading
+                                  ? const CircularProgressIndicator()
+                                  : const Text(
+                                      'Guardar Cambios',
+                                      style: TextStyle(fontSize: 16),
+                                    ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Sección de academias
+                  if (user.academyIds.isNotEmpty) ...[
+                    Text(
+                      'Mis Academias',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Aquí iría la lista de academias
+                    // Por ahora mostraremos un placerholder
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.school),
+                        title: const Text('Gestionar mis academias'),
+                        trailing: const Icon(Icons.arrow_forward_ios),
+                        onTap: () {
+                          // Navegar a la pantalla de academias
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Funcionalidad no implementada')),
+                          );
+                        },
+                      ),
+                    ),
+                  ] else if (user.role == UserRole.owner) ...[
+                    // Opción para crear academia si es propietario y no tiene academias
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.add_business, size: 48, color: Colors.blue),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Crea tu primera academia',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Comienza a gestionar tu academia deportiva con todas las herramientas que necesitas',
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                // Navegar a la pantalla de creación de academia
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Funcionalidad no implementada')),
+                                );
+                              },
+                              child: const Text('Crear Academia'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Opción para cambiar contraseña
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      // Navegar a la pantalla de cambio de contraseña
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Funcionalidad no implementada')),
+                      );
+                    },
+                    icon: const Icon(Icons.lock_outline),
+                    label: const Text('Cambiar contraseña'),
                   ),
                   const SizedBox(height: 16),
                   
-                  // Aquí iría la lista de academias
-                  // Por ahora mostraremos un placerholder
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.school),
-                      title: const Text('Gestionar mis academias'),
-                      trailing: const Icon(Icons.arrow_forward_ios),
-                      onTap: () {
-                        // Navegar a la pantalla de academias
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Funcionalidad no implementada')),
-                        );
-                      },
-                    ),
-                  ),
-                ] else if (user.role == UserRole.owner) ...[
-                  // Opción para crear academia si es propietario y no tiene academias
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          const Icon(Icons.add_business, size: 48, color: Colors.blue),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Crea tu primera academia',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Comienza a gestionar tu academia deportiva con todas las herramientas que necesitas',
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Navegar a la pantalla de creación de academia
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Funcionalidad no implementada')),
-                              );
-                            },
-                            child: const Text('Crear Academia'),
-                          ),
-                        ],
-                      ),
+                  // Botón de cerrar sesión
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      await ref.read(authStateProvider.notifier).signOut();
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Cerrar sesión'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
                     ),
                   ),
                 ],
-                
-                const SizedBox(height: 32),
-                
-                // Opción para cambiar contraseña
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // Navegar a la pantalla de cambio de contraseña
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Funcionalidad no implementada')),
-                    );
-                  },
-                  icon: const Icon(Icons.lock_outline),
-                  label: const Text('Cambiar contraseña'),
-                ),
-                const SizedBox(height: 16),
-                
-                // Botón de cerrar sesión
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await ref.read(authStateProvider.notifier).signOut();
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Cerrar sesión'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },

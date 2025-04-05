@@ -36,6 +36,7 @@ dependencies:
   logger: ^2.0.2+1
   firebase_storage: ^11.7.7
   image_picker: ^1.1.2
+  flutter_launcher_icons: ^0.14.3
 
 dev_dependencies:
   flutter_test:
@@ -55,3 +56,10 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/Logo_black.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/Logo_black.png"

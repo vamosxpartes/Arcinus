@@ -1,3 +1,5 @@
+import 'package:arcinus/shared/models/navigation_item.dart';
+import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,12 +11,31 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  
+  // Lista de botones fijados para el login
+  final List<NavigationItem> _pinnedItems = [
+    NavigationItem(
+      icon: Icons.login,
+      label: 'Iniciar Sesión',
+      destination: '/login',
+    ),
+    NavigationItem(
+      icon: Icons.app_registration,
+      label: 'Registrarse',
+      destination: '/register',
+    ),
+    NavigationItem(
+      icon: Icons.help_outline,
+      label: 'Ayuda',
+      destination: '/help',
+    ),
+  ];
 
   @override
   void dispose() {
@@ -27,6 +48,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() {
       _obscurePassword = !_obscurePassword;
     });
+  }
+  
+  // Método para navegar a una ruta
+  void _navigateToRoute(String route) {
+    // No navegamos si ya estamos en la ruta actual
+    if (route == '/login' && ModalRoute.of(context)?.settings.name == '/login') {
+      return;
+    }
+    
+    Navigator.of(context).pushNamed(route);
   }
 
   Future<void> _signIn() async {
@@ -57,6 +88,63 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     }
   }
+  
+  // Construir un botón de navegación
+  Widget _buildNavigationButton(
+    NavigationItem item, {
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    final theme = Theme.of(context);
+    
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 64,
+        height: 64,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icono con fondo
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? theme.colorScheme.primaryContainer
+                    : theme.colorScheme.surfaceContainerHighest.withAlpha(170),
+                borderRadius: BorderRadius.circular(12),
+                border: isActive
+                    ? Border.all(color: theme.colorScheme.primary, width: 2)
+                    : null,
+              ),
+              child: Center(
+                child: Icon(
+                  item.icon,
+                  color: isActive
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurface,
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Etiqueta con elipsis
+            Text(
+              item.label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                color: isActive ? theme.colorScheme.primary : null,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,14 +152,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      body: SafeArea(
+      body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 48),
-              
               // Logo según el tema
               Center(
                 child: Image.asset(
@@ -81,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const Icon(Icons.sports, size: 120),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
               
               Text(
                 'Bienvenido a Arcinus',
@@ -95,7 +182,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: theme.textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               
               // Formulario
               Form(
@@ -165,15 +252,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     SizedBox(
                       width: double.infinity,
                       height: 50,
-                      child: ElevatedButton(
+                      child: FilledButton(
                         onPressed: _isLoading ? null : _signIn,
-                        style: ElevatedButton.styleFrom(
+                        style: FilledButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
                         child: _isLoading
-                            ? const CircularProgressIndicator()
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.0,
+                                ),
+                              )
                             : const Text(
                                 'Iniciar Sesión',
                                 style: TextStyle(fontSize: 16),
@@ -202,6 +296,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ],
           ),
         ),
+      ),
+      // Barra de navegación inferior
+      bottomNavigationBar: CustomNavigationBar(
+        pinnedItems: _pinnedItems,
+        activeRoute: '/login',
+        onItemTap: (item) => _navigateToRoute(item.destination),
       ),
     );
   }

@@ -129,12 +129,12 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 2.4 Implementación del Sistema de Gestión de Usuarios Mejorado
 
-- [ ] Rediseñar la pantalla de gestión de usuarios con un TabBar categorizado por tipo de usuario
-- [ ] Implementar pestañas para Managers, Entrenadores, Atletas y Grupos
-- [ ] Crear sistema de búsqueda de usuarios por nombre/email
-- [ ] Implementar filtrado de usuarios mediante etiquetas
-- [ ] Añadir control de visibilidad basado en permisos del usuario
-- [ ] Crear sistema de invitación integrado en cada categoría
+- [x] Rediseñar la pantalla de gestión de usuarios con un TabBar categorizado por tipo de usuario
+- [x] Implementar pestañas para Managers, Entrenadores, Atletas y Grupos
+- [x] Crear sistema de búsqueda de usuarios por nombre/email
+- [x] Implementar filtrado de usuarios mediante etiquetas
+- [x] Añadir control de visibilidad basado en permisos del usuario
+- [x] Crear sistema de invitación integrado en cada categoría
 
 **Pruebas y depuración:**
 ```
@@ -143,10 +143,8 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 • Validar que los permisos de visualización se respetan correctamente
 • Probar el proceso de invitación desde cada categoría
 • Notas de problemas encontrados:
-
-
-
-
+  - Se identificaron problemas con el AppBar que han sido resueltos con la implementación del nuevo diseño sin barras superiores
+  - Se ha mejorado la experiencia de usuario siguiendo el diseño del sistema de navegación actualizado
 ```
 
 ## Fase 3: Navegación y Estructura Base de la App
@@ -212,20 +210,19 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ```
 
-### 3.4 Implementación de Elementos en AppBar
+### 3.4 Simplificación de la Interfaz de Usuario 
 
-- [x] Implementar icono de notificaciones en AppBar
-- [x] Crear indicador de notificaciones no leídas
-- [x] Implementar icono de chat en AppBar
-- [x] Añadir indicador de mensajes no leídos
-- [ ] Crear menú desplegable para configuraciones rápidas
+- [x] Eliminar completamente el AppBar de todas las pantallas
+- [x] Adaptar el diseño para aprovechar el espacio adicional
+- [x] Asegurar que la navegación funcione correctamente sin AppBar
+- [x] Ajustar el diseño de las pantallas individuales para mayor coherencia
 
 **Pruebas y depuración:**
 ```
-• Verificar que los iconos se muestran correctamente en la AppBar
-• Comprobar actualización de indicadores en tiempo real
-• Validar navegación al pulsar en cada icono
-• Probar la experiencia en diferentes tamaños de pantalla
+• Verificar que todas las pantallas mantienen su funcionalidad sin AppBar
+• Comprobar que el diseño se ajusta correctamente en diferentes tamaños de pantalla
+• Validar que los usuarios pueden navegar intuitivamente sin la barra superior
+• Probar la experiencia en dispositivos de diferentes tamaños
 • Notas de problemas encontrados:
 
 
@@ -235,11 +232,11 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 3.5 Rediseño del Sistema de Navegación
 
-- [x] Simplificar el AppBar a mostrar solo el título de la aplicación
 - [x] Implementar navegación deslizable tipo Instagram
 - [x] Crear sistema de deslizamiento de izquierda a derecha para acceder al chat
 - [x] Implementar deslizamiento de derecha a izquierda para acceder a notificaciones
 - [x] Sustituir el Drawer por animaciones de deslizamiento
+- [x] Agregar botones de Perfil, Chat y Notificaciones al BottomNavigationBar
 
 **Pruebas y depuración:**
 ```
@@ -247,6 +244,7 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 • Comprobar transiciones entre dashboard, chat y notificaciones
 • Validar respuesta táctil y comportamiento en distintos dispositivos
 • Probar comportamiento con gestos de navegación del sistema
+• Verificar acceso rápido a Perfil, Chat y Notificaciones desde el BottomNavigationBar
 • Notas de problemas encontrados:
   - Se detectó un problema inicial de desbordamiento (overflow) en la columna del panel de navegación.
   - Solución: Reemplazar SizedBox con altura fija por Expanded y SingleChildScrollView para permitir desplazamiento.

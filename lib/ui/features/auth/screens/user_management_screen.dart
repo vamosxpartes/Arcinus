@@ -1,4 +1,6 @@
+import 'package:arcinus/shared/models/navigation_item.dart';
 import 'package:arcinus/shared/models/user.dart';
+import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +12,7 @@ class UserManagementScreen extends ConsumerStatefulWidget {
   ConsumerState<UserManagementScreen> createState() => _UserManagementScreenState();
 }
 
-class _UserManagementScreenState extends ConsumerState<UserManagementScreen> with SingleTickerProviderStateMixin {
+class _UserManagementScreenState extends ConsumerState<UserManagementScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -26,6 +28,68 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _showInviteForm = false;
+  
+  // Lista de botones de navegación
+  final List<NavigationItem> _allNavigationItems = [
+    NavigationItem(
+      icon: Icons.dashboard,
+      label: 'Inicio',
+      destination: '/dashboard',
+    ),
+    NavigationItem(
+      icon: Icons.group,
+      label: 'Usuarios',
+      destination: '/users-management',
+    ),
+    NavigationItem(
+      icon: Icons.sports,
+      label: 'Entrenamientos',
+      destination: '/trainings',
+    ),
+    NavigationItem(
+      icon: Icons.calendar_today,
+      label: 'Calendario',
+      destination: '/calendar',
+    ),
+    NavigationItem(
+      icon: Icons.bar_chart,
+      label: 'Estadísticas',
+      destination: '/stats',
+    ),
+    NavigationItem(
+      icon: Icons.settings,
+      label: 'Configuración',
+      destination: '/settings',
+    ),
+    NavigationItem(
+      icon: Icons.payments,
+      label: 'Pagos',
+      destination: '/payments',
+    ),
+    NavigationItem(
+      icon: Icons.school,
+      label: 'Academias',
+      destination: '/academies',
+    ),
+    NavigationItem(
+      icon: Icons.person,
+      label: 'Perfil',
+      destination: '/profile',
+    ),
+    NavigationItem(
+      icon: Icons.chat,
+      label: 'Chat',
+      destination: '/chats',
+    ),
+    NavigationItem(
+      icon: Icons.notifications,
+      label: 'Notificaciones',
+      destination: '/notifications',
+    ),
+  ];
+  
+  // Lista de botones fijados (inicialmente los primeros 5)
+  List<NavigationItem> _pinnedItems = [];
 
   @override
   void initState() {
@@ -63,6 +127,9 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
         });
       }
     });
+    
+    // Inicialmente fijamos los primeros 5 elementos
+    _pinnedItems = _allNavigationItems.take(5).toList();
   }
 
   @override
@@ -88,6 +155,38 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     setState(() {
       _currentFormStep = 0;
       _birthDate = null;
+    });
+  }
+
+  // Método para navegar a una ruta
+  void _navigateToRoute(String route) {
+    // Si ya estamos en la pantalla actual, no hacemos nada
+    if (route == '/users-management' && ModalRoute.of(context)?.settings.name == '/users-management') {
+      return;
+    }
+    
+    Navigator.of(context).pushNamed(route);
+  }
+
+  // Fijar/soltar un elemento de navegación
+  void _togglePinItem(NavigationItem item) {
+    setState(() {
+      if (_pinnedItems.contains(item)) {
+        // Si ya está fijado y hay más de 1 elemento, lo quitamos
+        if (_pinnedItems.length > 1) {
+          _pinnedItems.remove(item);
+        }
+      } else {
+        // Si no está fijado y hay menos de 5, lo añadimos
+        if (_pinnedItems.length < 5) {
+          _pinnedItems.add(item);
+        } else {
+          // Si ya hay 5, mostramos un mensaje
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Solo puedes fijar 5 elementos. Quita uno primero.')),
+          );
+        }
+      }
     });
   }
 
@@ -227,42 +326,62 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     final bool canManageAllUsers = user?.role == UserRole.owner || user?.role == UserRole.manager;
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestión de Usuarios'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: const [
-            Tab(text: 'Managers'),
-            Tab(text: 'Entrenadores'),
-            Tab(text: 'Atletas'),
-            Tab(text: 'Grupos'),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [            
+            // TabBar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabs: const [
+                  Tab(text: 'Managers'),
+                  Tab(text: 'Entrenadores'),
+                  Tab(text: 'Atletas'),
+                  Tab(text: 'Grupos'),
+                ],
+              ),
+            ),
+            
+            // Contenido principal
+            Expanded(
+              child: Stack(
+                children: [
+                  TabBarView(
+                    controller: _tabController,
+                    children: [
+                      // Tab de Managers
+                      _buildUserCategoryTab(UserRole.manager),
+                      
+                      // Tab de Coaches
+                      _buildUserCategoryTab(UserRole.coach),
+                      
+                      // Tab de Atletas
+                      _buildUserCategoryTab(UserRole.athlete),
+                      
+                      // Tab de Grupos
+                      _buildGroupsTab(),
+                    ],
+                  ),
+                  
+                  // Formulario de invitación deslizable
+                  if (_showInviteForm)
+                    _buildInvitationForm(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-      body: Stack(
-        children: [
-          TabBarView(
-            controller: _tabController,
-            children: [
-              // Tab de Managers
-              _buildUserCategoryTab(UserRole.manager),
-              
-              // Tab de Entrenadores
-              _buildUserCategoryTab(UserRole.coach),
-              
-              // Tab de Atletas
-              _buildUserCategoryTab(UserRole.athlete),
-              
-              // Tab de Grupos
-              _buildGroupsTab(),
-            ],
-          ),
-          
-          // Formulario de invitación por etapas
-          if (_showInviteForm)
-            _buildMultiStepForm(theme, canManageAllUsers),
-        ],
+      // Usar el componente centralizado para la barra de navegación
+      bottomNavigationBar: CustomNavigationBar(
+        pinnedItems: _pinnedItems,
+        allItems: _allNavigationItems,
+        activeRoute: '/users-management',
+        onItemTap: (item) => _navigateToRoute(item.destination),
+        onItemLongPress: (item) => _togglePinItem(item),
       ),
     );
   }
@@ -469,7 +588,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     );
   }
   
-  Widget _buildMultiStepForm(ThemeData theme, bool canManageAllUsers) {
+  Widget _buildInvitationForm() {
+    final theme = Theme.of(context);
+    final user = ref.watch(authStateProvider).valueOrNull;
+    final bool canManageAllUsers = user?.role == UserRole.owner || user?.role == UserRole.manager;
+    
     return Container(
       color: theme.scaffoldBackgroundColor,
       child: Column(
@@ -477,13 +600,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           // Encabezado con pasos
           Container(
             padding: const EdgeInsets.all(16.0),
-            color: theme.colorScheme.surface,
+            color: Theme.of(context).colorScheme.surface,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
                   'Crear nuevo ${_getRoleName(_selectedRole)}',
-                  style: theme.textTheme.titleLarge,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -494,8 +617,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                         height: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         color: index <= _currentFormStep
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.surfaceContainerHighest,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.surfaceContainerHighest,
                       ),
                     ),
                   ),
@@ -503,7 +626,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
             const SizedBox(height: 8),
             Text(
                   _getStepTitle(_currentFormStep),
-                  style: theme.textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
             ),
@@ -515,7 +638,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
               padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
-                child: _buildCurrentStepContent(theme, canManageAllUsers),
+                child: _buildCurrentStepContent(Theme.of(context), canManageAllUsers),
               ),
             ),
           ),
@@ -524,7 +647,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
               boxShadow: [
                 BoxShadow(

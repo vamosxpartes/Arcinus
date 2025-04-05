@@ -110,10 +110,16 @@ La gestión de usuarios se organiza por categorías:
   - Deslizar de derecha a izquierda desde el dashboard para acceder a las notificaciones
   - Experiencia fluida con transiciones animadas entre páginas
 
+- **Interfaz Sin AppBar**: 
+  - Diseño limpio sin barra superior tradicional
+  - Mayor espacio para el contenido principal
+  - Navegación completa basada en el BottomNavigationBar y gestos
+
 - **Bottom Navigation Bar Personalizable**: 
   - Barra de navegación inferior con 5 elementos visibles fijados por el usuario
   - Panel expandible con accesos adicionales en formato wrap al deslizar hacia arriba
   - Personalización de elementos favoritos mediante pulsación larga sobre cualquier icono
+  - Acceso rápido a funciones clave: Perfil, Chat y Notificaciones
   - Indicador visual de iconos fijados y elemento activo
 
 - **Panel Expandible Interactivo**:

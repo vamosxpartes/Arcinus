@@ -127,21 +127,23 @@ class LoadingScreen extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo
-            Image.asset(
-              isDarkMode ? 'assets/icons/Logo_white.png' : 'assets/icons/Logo_black.png',
-              height: 120,
-              errorBuilder: (context, error, stackTrace) => 
-                const Icon(Icons.sports, size: 120),
-            ),
-            const SizedBox(height: 32),
-            // Indicador de carga
-            const CircularProgressIndicator(),
-          ],
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              Image.asset(
+                isDarkMode ? 'assets/icons/Logo_white.png' : 'assets/icons/Logo_black.png',
+                height: 120,
+                errorBuilder: (context, error, stackTrace) => 
+                  const Icon(Icons.sports, size: 120),
+              ),
+              const SizedBox(height: 32),
+              // Indicador de carga
+              const CircularProgressIndicator(),
+            ],
+          ),
         ),
       ),
     );
@@ -155,56 +157,55 @@ class ChatListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chats'),
-      ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: 10,  // Chats de ejemplo
-        separatorBuilder: (context, index) => const Divider(),
-        itemBuilder: (context, index) {
-          return ListTile(
-            leading: CircleAvatar(
-              child: Text('${index + 1}'),
-            ),
-            title: Text('Chat ${index + 1}'),
-            subtitle: Text(index % 2 == 0 
-                ? 'Último mensaje recibido' 
-                : 'Tú: Último mensaje enviado'),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '12:${index * 5}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                const SizedBox(height: 4),
-                if (index % 3 == 0)
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
+      body: SafeArea(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: 10,  // Chats de ejemplo
+          separatorBuilder: (context, index) => const Divider(),
+          itemBuilder: (context, index) {
+            return ListTile(
+              leading: CircleAvatar(
+                child: Text('${index + 1}'),
+              ),
+              title: Text('Chat ${index + 1}'),
+              subtitle: Text(index % 2 == 0 
+                  ? 'Último mensaje recibido' 
+                  : 'Tú: Último mensaje enviado'),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '12:${index * 5}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  if (index % 3 == 0)
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            onTap: () {
-              // Navegación a chat individual
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Chat individual en desarrollo')),
-              );
-            },
-          );
-        },
+                ],
+              ),
+              onTap: () {
+                // Navegación a chat individual
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Chat individual en desarrollo')),
+                );
+              },
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -228,91 +229,79 @@ class NotificationsScreen extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notificaciones'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Marcar todas como leídas')),
-              );
-            },
-            tooltip: 'Marcar todas como leídas',
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(8),
-        itemCount: 15, // Notificaciones de ejemplo
-        itemBuilder: (context, index) {
-          // Alternamos tipos de notificaciones para el ejemplo
-          final notificationType = index % 4;
-          IconData icon;
-          Color color;
-          String title;
-          String time = '${index + 1}h';
-          
-          switch (notificationType) {
-            case 0:
-              icon = Icons.calendar_today;
-              color = Colors.blue;
-              title = 'Nueva clase programada';
-              break;
-            case 1:
-              icon = Icons.person_add;
-              color = Colors.green;
-              title = 'Nuevo usuario registrado';
-              break;
-            case 2:
-              icon = Icons.money;
-              color = Colors.orange;
-              title = 'Pago registrado';
-              break;
-            default:
-              icon = Icons.announcement;
-              color = Colors.red;
-              title = 'Anuncio importante';
-          }
-          
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: color.withAlpha(60),
-                child: Icon(icon, color: color),
-              ),
-              title: Text(title),
-              subtitle: Text('Detalles de la notificación ${index + 1}'),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Hace $time',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 4),
-                  if (index < 5)
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
+      body: SafeArea(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(8),
+          itemCount: 15, // Notificaciones de ejemplo
+          itemBuilder: (context, index) {
+            // Alternamos tipos de notificaciones para el ejemplo
+            final notificationType = index % 4;
+            IconData icon;
+            Color color;
+            String title;
+            String time = '${index + 1}h';
+            
+            switch (notificationType) {
+              case 0:
+                icon = Icons.calendar_today;
+                color = Colors.blue;
+                title = 'Nueva clase programada';
+                break;
+              case 1:
+                icon = Icons.person_add;
+                color = Colors.green;
+                title = 'Nuevo usuario registrado';
+                break;
+              case 2:
+                icon = Icons.money;
+                color = Colors.orange;
+                title = 'Pago registrado';
+                break;
+              default:
+                icon = Icons.announcement;
+                color = Colors.red;
+                title = 'Anuncio importante';
+            }
+            
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: color.withAlpha(60),
+                  child: Icon(icon, color: color),
+                ),
+                title: Text(title),
+                subtitle: Text('Detalles de la notificación ${index + 1}'),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Hace $time',
+                      style: theme.textTheme.bodySmall,
                     ),
-                ],
+                    const SizedBox(height: 4),
+                    if (index < 5)
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                  ],
+                ),
+                onTap: () {
+                  // Acción al pulsar en la notificación
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Abrir notificación $index')),
+                  );
+                },
               ),
-              onTap: () {
-                // Acción al pulsar en la notificación
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Abrir notificación $index')),
-                );
-              },
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -329,39 +318,40 @@ class UnderDevelopmentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.construction,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'En desarrollo',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Text(
-                'Esta funcionalidad se encuentra actualmente en desarrollo. ¡Vuelve pronto!',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.construction,
+                size: 80,
+                color: theme.colorScheme.primary,
               ),
-            ),
-            const SizedBox(height: 32),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Volver'),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                'En desarrollo',
+                style: theme.textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Text(
+                  'Esta funcionalidad se encuentra actualmente en desarrollo. ¡Vuelve pronto!',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge,
+                ),
+              ),
+              const SizedBox(height: 32),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Volver'),
+              ),
+            ],
+          ),
         ),
       ),
     );
