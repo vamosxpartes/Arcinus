@@ -23,6 +23,7 @@ class User with _$User {
     required Map<String, bool> permissions,
     @Default([]) List<String> academyIds,
     required DateTime createdAt,
+    String? profileImageUrl,
   }) = _User;
   
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -77,6 +79,28 @@ class AuthState extends _$AuthState {
       final updatedUser = await ref.read(authRepositoryProvider).updateUser(user);
       state = AsyncValue.data(updatedUser);
       return updatedUser;
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+      rethrow;
+    }
+  }
+  
+  /// Actualiza la imagen de perfil del usuario
+  Future<User> updateProfileImage(File imageFile) async {
+    try {
+      final user = await ref.read(authStateProvider.future);
+      if (user == null) {
+        throw Exception('No hay usuario autenticado');
+      }
+      
+      final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(imageFile, user.id);
+      
+      // Actualizar el usuario con la nueva URL de imagen
+      final updatedUser = user.copyWith(
+        profileImageUrl: imageUrl,
+      );
+      
+      return await updateUser(updatedUser);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
       rethrow;

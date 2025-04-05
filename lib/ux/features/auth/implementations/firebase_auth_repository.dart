@@ -1,20 +1,28 @@
+import 'dart:io';
+
 import 'package:arcinus/shared/constants/permissions.dart';
 import 'package:arcinus/shared/models/user.dart' as app;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+// ignore: depend_on_referenced_packages
+import 'package:path/path.dart' as path;
 import '../repositories/auth_repository.dart';
 
 /// Implementación de Firebase para el repositorio de autenticación
 class FirebaseAuthRepository implements AuthRepository {
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage;
   
   FirebaseAuthRepository({
     firebase_auth.FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
+    FirebaseStorage? storage,
   }) : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
-       _firestore = firestore ?? FirebaseFirestore.instance;
+       _firestore = firestore ?? FirebaseFirestore.instance,
+       _storage = storage ?? FirebaseStorage.instance;
   
   @override
   Future<app.User?> currentUser() async {
@@ -127,6 +135,36 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
   
+  @override
+  Future<String> uploadProfileImage(File imageFile, String userId) async {
+    try {
+      // Generar un nombre único para la imagen
+      final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
+      
+      // Referencia a donde se guardará la imagen
+      final storageRef = _storage.ref().child('profile_images/$userId/$fileName');
+      
+      // Subir la imagen
+      final uploadTask = storageRef.putFile(imageFile);
+      
+      // Esperar a que se complete la subida
+      final snapshot = await uploadTask;
+      
+      // Obtener la URL de descarga
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      // Actualizar el documento del usuario con la URL de la imagen
+      await _firestore.collection('users').doc(userId).update({
+        'profileImageUrl': downloadUrl,
+      });
+      
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('Error al subir imagen de perfil: $e');
+      rethrow;
+    }
+  }
+  
   // Helpers
   
   /// Obtiene los datos de un usuario de Firestore
@@ -160,12 +198,13 @@ class FirebaseAuthRepository implements AuthRepository {
       permissions: Map<String, bool>.from(data['permissions'] as Map<dynamic, dynamic>),
       academyIds: List<String>.from(data['academyIds'] as List<dynamic>? ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
+      profileImageUrl: data['profileImageUrl'] as String?,
     );
   }
   
   /// Convierte un objeto User a un Map para Firestore
   Map<String, dynamic> _userToJson(app.User user) {
-    return {
+    final map = {
       'email': user.email,
       'name': user.name,
       'role': user.role.toString(),
@@ -173,6 +212,12 @@ class FirebaseAuthRepository implements AuthRepository {
       'academyIds': user.academyIds,
       'createdAt': Timestamp.fromDate(user.createdAt),
     };
+    
+    if (user.profileImageUrl != null) {
+      map['profileImageUrl'] = user.profileImageUrl!;
+    }
+    
+    return map;
   }
   
   /// Maneja las excepciones de Firebase Auth

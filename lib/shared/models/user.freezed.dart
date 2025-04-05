@@ -27,6 +27,7 @@ mixin _$User {
   Map<String, bool> get permissions => throw _privateConstructorUsedError;
   List<String> get academyIds => throw _privateConstructorUsedError;
   DateTime get createdAt => throw _privateConstructorUsedError;
+  String? get profileImageUrl => throw _privateConstructorUsedError;
 
   /// Serializes this User to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -49,7 +50,8 @@ abstract class $UserCopyWith<$Res> {
       UserRole role,
       Map<String, bool> permissions,
       List<String> academyIds,
-      DateTime createdAt});
+      DateTime createdAt,
+      String? profileImageUrl});
 }
 
 /// @nodoc
@@ -74,6 +76,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? permissions = null,
     Object? academyIds = null,
     Object? createdAt = null,
+    Object? profileImageUrl = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -104,6 +107,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      profileImageUrl: freezed == profileImageUrl
+          ? _value.profileImageUrl
+          : profileImageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -122,7 +129,8 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       UserRole role,
       Map<String, bool> permissions,
       List<String> academyIds,
-      DateTime createdAt});
+      DateTime createdAt,
+      String? profileImageUrl});
 }
 
 /// @nodoc
@@ -144,6 +152,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? permissions = null,
     Object? academyIds = null,
     Object? createdAt = null,
+    Object? profileImageUrl = freezed,
   }) {
     return _then(_$UserImpl(
       id: null == id
@@ -174,6 +183,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      profileImageUrl: freezed == profileImageUrl
+          ? _value.profileImageUrl
+          : profileImageUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -188,7 +201,8 @@ class _$UserImpl implements _User {
       required this.role,
       required final Map<String, bool> permissions,
       final List<String> academyIds = const [],
-      required this.createdAt})
+      required this.createdAt,
+      this.profileImageUrl})
       : _permissions = permissions,
         _academyIds = academyIds;
 
@@ -222,10 +236,12 @@ class _$UserImpl implements _User {
 
   @override
   final DateTime createdAt;
+  @override
+  final String? profileImageUrl;
 
   @override
   String toString() {
-    return 'User(id: $id, email: $email, name: $name, role: $role, permissions: $permissions, academyIds: $academyIds, createdAt: $createdAt)';
+    return 'User(id: $id, email: $email, name: $name, role: $role, permissions: $permissions, academyIds: $academyIds, createdAt: $createdAt, profileImageUrl: $profileImageUrl)';
   }
 
   @override
@@ -242,7 +258,9 @@ class _$UserImpl implements _User {
             const DeepCollectionEquality()
                 .equals(other._academyIds, _academyIds) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.profileImageUrl, profileImageUrl) ||
+                other.profileImageUrl == profileImageUrl));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -255,7 +273,8 @@ class _$UserImpl implements _User {
       role,
       const DeepCollectionEquality().hash(_permissions),
       const DeepCollectionEquality().hash(_academyIds),
-      createdAt);
+      createdAt,
+      profileImageUrl);
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.
@@ -281,7 +300,8 @@ abstract class _User implements User {
       required final UserRole role,
       required final Map<String, bool> permissions,
       final List<String> academyIds,
-      required final DateTime createdAt}) = _$UserImpl;
+      required final DateTime createdAt,
+      final String? profileImageUrl}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -299,6 +319,8 @@ abstract class _User implements User {
   List<String> get academyIds;
   @override
   DateTime get createdAt;
+  @override
+  String? get profileImageUrl;
 
   /// Create a copy of User
   /// with the given fields replaced by the non-null parameter values.

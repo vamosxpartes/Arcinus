@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../../../../shared/models/user.dart';
 
 /// Interfaz para el repositorio de autenticación
@@ -22,4 +24,7 @@ abstract class AuthRepository {
   
   /// Actualiza la información de un usuario
   Future<User> updateUser(User user);
+  
+  /// Sube una imagen de perfil a Firebase Storage y devuelve la URL
+  Future<String> uploadProfileImage(File imageFile, String userId);
 } 

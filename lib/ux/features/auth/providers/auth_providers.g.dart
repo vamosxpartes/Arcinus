@@ -6,7 +6,7 @@ part of 'auth_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authRepositoryHash() => r'22f0b4b198bb3b96967bde140f2ff7a7c7061c8a';
+String _$authRepositoryHash() => r'3a723e34e8f0950a5e5ba88000eacf0b61082153';
 
 /// Provider del repositorio de autenticación
 ///
@@ -25,7 +25,7 @@ final authRepositoryProvider = AutoDisposeProvider<AuthRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthRepositoryRef = AutoDisposeProviderRef<AuthRepository>;
-String _$authStateChangesHash() => r'2b7cdea91185426216b913040c54b42cca155f4c';
+String _$authStateChangesHash() => r'f95512f3016c4609549bf37ef775d5ac547a7179';
 
 /// Provider para el stream de autenticación
 ///
@@ -44,7 +44,7 @@ final authStateChangesProvider = AutoDisposeStreamProvider<User?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStateChangesRef = AutoDisposeStreamProviderRef<User?>;
-String _$authStateHash() => r'dab6fac90421f4de576550e36d9c1afa0dc30aed';
+String _$authStateHash() => r'7d295fc937654d3b9efe1efaec3ddb8150239df6';
 
 /// Provider de estado de autenticación
 ///

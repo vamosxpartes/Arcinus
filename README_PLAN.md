@@ -63,19 +63,21 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 2.1 Implementación de Autenticación
 
-- [ ] Diseñar pantalla de login
-- [ ] Implementar login con email/password
-- [ ] Implementar registro de usuario
-- [ ] Implementar recuperación de contraseña
-- [ ] Añadir autenticación con Google/Apple (opcional)
+- [x] Diseñar pantalla de login con logo adaptable según tema claro/oscuro
+- [x] Implementar inicio de sesión con email/password
+- [x] Implementar pantalla de splash animada con logo
+- [x] Diseñar pantalla de registro que permita solo crear cuentas de propietarios
+- [x] Implementar recuperación de contraseña
+- [x] Manejar correctamente la navegación basada en el estado de autenticación
 
 **Pruebas y depuración:**
 ```
 • Probar flujo completo de login con credenciales válidas e inválidas
-• Verificar validaciones de formularios
+• Verificar que el splash se muestra correctamente y tiene la duración adecuada
+• Verificar que el logo se muestra correctamente según el tema (blanco/negro)
+• Verificar que solo se pueden registrar propietarios de academias
 • Comprobar persistencia de sesión entre reinicios de la app
 • Validar flujo de recuperación de contraseña
-• Validar registro de usuario nuevo
 • Notas de problemas encontrados:
 
 
@@ -85,17 +87,18 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 2.2 Gestión de Perfiles de Usuario
 
-- [ ] Implementar pantalla de perfil de usuario
-- [ ] Implementar edición de perfil
-- [ ] Implementar subida de imagen de perfil
-- [ ] Crear provider para gestión de perfil
+- [x] Implementar pantalla de perfil de usuario
+- [x] Implementar edición de perfil
+- [x] Implementar subida de imagen de perfil
+- [x] Crear provider para gestión de perfil
 
 **Pruebas y depuración:**
 ```
 • Verificar carga correcta de datos de perfil
 • Comprobar actualización de datos en Firestore
-• Validar subida y recuperación de imágenes
 • Validar restricciones y validaciones de datos
+• Comprobar que se muestra correctamente el avatar según la inicial del nombre
+• Verificar que el propietario puede ver la opción de crear academia
 • Notas de problemas encontrados:
 
 
@@ -103,19 +106,20 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ```
 
-### 2.3 Sistema de Roles y Permisos
+### 2.3 Sistema de Roles y Permisos Jerárquico
 
-- [ ] Implementar modelo de permisos
-- [ ] Crear lógica para asignación de permisos por rol
-- [ ] Implementar verificación de permisos en UI
-- [ ] Crear pantalla de gestión de permisos (para rol admin)
+- [x] Implementar modelo de permisos según jerarquía
+- [x] Asegurar que solo propietarios pueden registrarse directamente
+- [x] Crear pantalla para que propietarios inviten a nuevos usuarios
+- [x] Implementar verificación de permisos en UI
+- [x] Crear pantalla de gestión de permisos para propietarios y managers
 
 **Pruebas y depuración:**
 ```
-• Validar asignación correcta de permisos al crear usuarios
+• Validar que solo se pueden crear propietarios en el registro directo
 • Comprobar restricciones de UI basadas en permisos
 • Verificar persistencia de permisos en Firestore
-• Probar modificación de permisos por usuario admin
+• Validar sistema de invitación de usuarios y roles asignados
 • Notas de problemas encontrados:
 
 
@@ -128,9 +132,9 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 ### 3.1 Configuración de Router
 
 - [ ] Implementar GoRouter
-- [ ] Definir rutas principales
-- [ ] Implementar guardias de navegación por rol/permiso
-- [ ] Crear scaffold base para diferentes layouts
+- [x] Definir rutas principales
+- [x] Implementar guardias de navegación por rol/permiso
+- [x] Crear scaffold base para diferentes layouts
 
 **Pruebas y depuración:**
 ```
@@ -147,11 +151,11 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 3.2 Pantallas Base por Rol
 
-- [ ] Implementar dashboard para propietario
-- [ ] Implementar dashboard para manager
-- [ ] Implementar dashboard para coach
-- [ ] Implementar dashboard para atleta
-- [ ] Implementar dashboard para padre/responsable
+- [x] Implementar dashboard para propietario
+- [x] Implementar dashboard para manager
+- [x] Implementar dashboard para coach
+- [x] Implementar dashboard para atleta
+- [x] Implementar dashboard para padre/responsable
 
 **Pruebas y depuración:**
 ```
