@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/config/firebase/analytics_service.dart';
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/ui/features/academy/screens/academy_list_screen.dart';
@@ -97,18 +99,18 @@ class ArcinusApp extends ConsumerWidget {
                 
                 return needsAcademyCreation.when(
                   data: (needsCreation) {
-                    print('DEBUG: Usuario autenticado, rol: ${user.role}, necesita crear academia: $needsCreation');
+                    developer.log('DEBUG: Usuario autenticado, rol: ${user.role}, necesita crear academia: $needsCreation');
                     if (user.role == UserRole.owner && needsCreation) {
-                      print('DEBUG: Redirigiendo a crear academia');
+                      developer.log('DEBUG: Redirigiendo a crear academia');
                       return const CreateAcademyScreen();
                     } else {
-                      print('DEBUG: Redirigiendo a dashboard');
+                      developer.log('DEBUG: Redirigiendo a dashboard');
                       return const DashboardScreen();
                     }
                   },
                   loading: () => const LoadingScreen(),
                   error: (error, stack) {
-                    print('DEBUG: Error verificando si necesita crear academia: $error');
+                    developer.log('DEBUG: Error verificando si necesita crear academia: $error');
                     return const DashboardScreen();
                   },
                 );

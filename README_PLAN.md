@@ -11,59 +11,77 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 - ✅ Autenticación y gestión de usuarios
 - ✅ Sistema de navegación y estructura base
 - ✅ Implementación parcial de la gestión de academias
+- ✅ Migración a arquitectura basada en permisos
 
 **En progreso**:
 - 🔄 Completar gestión de academias
-- 🔄 Mejoras arquitectónicas
+- 🔄 Implementación de gestión de grupos/equipos
 
-## Mejoras Arquitectónicas Planificadas
+## Mejoras Arquitectónicas Implementadas
 
-Para optimizar la calidad del código y la escalabilidad del proyecto, se han identificado las siguientes mejoras arquitectónicas prioritarias:
+Durante el desarrollo del proyecto, se han implementado las siguientes mejoras arquitectónicas para optimizar la calidad del código y la escalabilidad:
 
-### 1. Centralización de Componentes de Navegación
+### 1. Centralización de Componentes de Navegación ✅
 
-**Objetivo**: Extraer la lógica de navegación del Dashboard y otras pantallas a un componente centralizado.
+**Estado**: Completado
 
-**Beneficios**:
-- Eliminación de código duplicado en múltiples pantallas
-- Mantenimiento simplificado de la navegación
-- Consistencia garantizada en la experiencia de usuario a través de la aplicación
+**Logros**:
+- Se creó un servicio de navegación centralizado (`NavigationService`) que gestiona los estados y configuraciones de la barra
+- Se desarrolló un widget abstracto (`CustomNavigationBar`) que consume este servicio
+- Se refactorizaron las pantallas existentes para utilizar el nuevo componente
+- Se redujo significativamente la duplicación de código
 
-**Implementación**:
-- Crear un servicio de navegación centralizado que gestione los estados y configuraciones de la barra
-- Desarrollar un widget abstracto que consuma este servicio
-- Refactorizar pantallas existentes para utilizar el nuevo componente
+### 2. Modularización de Widgets ✅
 
-### 2. Modularización de Widgets
+**Estado**: Completado
 
-**Objetivo**: Externalizar widgets y métodos reutilizables de las pantallas actuales.
+**Logros**:
+- Se identificaron y extrajeron componentes utilizados en múltiples lugares
+- Se crearon widgets reutilizables con interfaces claras
+- Se refactorizaron las pantallas existentes para utilizar los componentes compartidos
+- Se redujo la complejidad de los archivos principales
 
-**Beneficios**:
-- Reducción significativa de la complejidad de archivos principales
-- Mejora en la capacidad de testing individual de componentes
-- Facilidad de colaboración en el desarrollo
+### 3. Evolución a Arquitectura Basada en Permisos ✅
 
-**Implementación**:
-- Identificar componentes utilizados en múltiples lugares
-- Extraer estos componentes a archivos dedicados en carpetas compartidas
-- Implementar interfaces claras para los widgets extraídos
-- Refactorizar pantallas existentes para utilizar los componentes compartidos
+**Estado**: Completado
 
-### 3. Evolución a Arquitectura Basada en Permisos
+**Logros**:
+- Se definió un catálogo completo de permisos para todas las acciones del sistema
+- Se asociaron conjuntos de permisos a los roles existentes
+- Se modificó la lógica de renderizado condicional para depender de permisos, no de roles
+- Se adaptaron los guardias de navegación para verificar permisos específicos
+- Se creó un servicio centralizado (`PermissionService`) para verificar permisos
+- Se implementaron métodos de verificación granular (hasPermission, hasAllPermissions, hasAnyPermission)
+- Se refactorizó el dashboard para mostrar contenido basado en permisos
 
-**Objetivo**: Migrar del sistema actual basado en roles a uno fundamentado en permisos específicos.
-
-**Beneficios**:
-- Mayor granularidad en el control de acceso a funcionalidades
+**Beneficios obtenidos**:
+- Mayor granularidad en el control de acceso
 - Flexibilidad para personalizar permisos sin modificar roles predefinidos
-- Capacidad de implementar roles personalizados con combinaciones específicas de permisos
+- Consistencia en la interfaz de usuario
+- Escalabilidad mejorada para añadir nuevas funcionalidades
+- Mejor mantenibilidad del código
 
-**Implementación**:
-- Definir un catálogo completo de permisos para todas las acciones del sistema
-- Asociar conjuntos de permisos a los roles existentes
-- Modificar la lógica de renderizado condicional para depender de permisos, no de roles
-- Adaptar guardias de navegación para verificar permisos específicos
-- Implementar gestión granular de permisos para administradores
+## Próximas Mejoras Arquitectónicas
+
+Para continuar mejorando la arquitectura del proyecto, se han identificado las siguientes oportunidades:
+
+### 1. Interfaz de Administración de Permisos
+
+**Objetivo**: Crear una interfaz visual para que propietarios y managers puedan gestionar los permisos de los usuarios.
+
+**Implementación planificada**:
+- Diseñar una pantalla de administración de permisos con matriz de usuarios/permisos
+- Implementar funcionalidad de edición de permisos con actualización en tiempo real
+- Crear sistema de previsualización de cambios antes de confirmar
+
+### 2. Sistema de Roles Personalizados
+
+**Objetivo**: Permitir la creación y gestión de roles personalizados con combinaciones específicas de permisos.
+
+**Implementación planificada**:
+- Desarrollar modelo para roles personalizados
+- Implementar interfaz para crear y editar roles
+- Adaptar el sistema de asignación de permisos para trabajar con roles personalizados
 
 ## Fase 1: Configuración del Proyecto e Infraestructura Base
 
@@ -748,12 +766,13 @@ Para optimizar la calidad del código y la escalabilidad del proyecto, se han id
 ### Registro de Decisiones Técnicas
 
 ```
-Fecha | Decisión | Motivación | Alternativas Consideradas
------ | -------- | ---------- | -------------------------
-05/04/2023 | Migrar a sistema basado en permisos | Mayor flexibilidad y granularidad | Mantener sistema basado en roles con verificaciones específicas
-05/04/2023 | Centralizar componentes de navegación | Reducir duplicación de código | Mantener implementación actual con duplicación controlada
-05/04/2023 | Externalizar widgets reutilizables | Mejorar mantenibilidad y testabilidad | Continuar con enfoque monolítico por pantalla
-
+Fecha | Decisión | Motivación | Alternativas Consideradas | Estado
+----- | -------- | ---------- | ------------------------- | ------
+05/04/2023 | Migrar a sistema basado en permisos | Mayor flexibilidad y granularidad | Mantener sistema basado en roles con verificaciones específicas | ✅ Completado
+05/04/2023 | Centralizar componentes de navegación | Reducir duplicación de código | Mantener implementación actual con duplicación controlada | ✅ Completado
+05/04/2023 | Externalizar widgets reutilizables | Mejorar mantenibilidad y testabilidad | Continuar con enfoque monolítico por pantalla | ✅ Completado
+06/04/2023 | Implementar interfaz de administración de permisos | Facilitar gestión de permisos por propietarios | Limitar la administración de permisos solo a código | 🔄 En progreso
+06/04/2023 | Desarrollar sistema de roles personalizados | Permitir flexibilidad en organización de equipos | Mantener roles predefinidos únicamente | 📅 Planificado
 ```
 
 ## Apéndice: Comandos y Scripts Útiles

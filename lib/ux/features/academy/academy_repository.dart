@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:arcinus/shared/models/academy.dart';
@@ -128,7 +129,7 @@ class AcademyRepository {
       
       return downloadUrl;
     } catch (e) {
-      print('Error al subir logo de academia: $e');
+      developer.log('Error al subir logo de academia: $e');
       rethrow;
     }
   }

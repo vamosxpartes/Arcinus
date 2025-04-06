@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +55,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      print('DEBUG: Iniciando registro de usuario: ${_emailController.text.trim()} con rol: $_userRole');
+      developer.log('DEBUG: Iniciando registro de usuario: ${_emailController.text.trim()} con rol: $_userRole');
       
       // Aseguramos que siempre sea propietario
       const userRole = UserRole.owner;
@@ -65,7 +67,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         userRole, // Usamos explícitamente UserRole.owner
       );
       
-      print('DEBUG: Registro exitoso, navegando a pantalla de creación de academia');
+      developer.log('DEBUG: Registro exitoso, navegando a pantalla de creación de academia');
       
       if (!mounted) return;
       
@@ -74,9 +76,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
       
       // Navegar directamente a la pantalla de creación de academia
-      Navigator.of(context).pushNamedAndRemoveUntil('/create-academy', (route) => false);
+      await Navigator.of(context).pushNamedAndRemoveUntil('/create-academy', (route) => false);
     } catch (e) {
-      print('DEBUG: Error en registro: $e');
+      developer.log('DEBUG: Error en registro: $e');
       
       if (!mounted) return;
       

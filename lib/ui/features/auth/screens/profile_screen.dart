@@ -394,7 +394,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     onPressed: () async {
                       await ref.read(authStateProvider.notifier).signOut();
                       if (mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                        await Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                       }
                     },
                     icon: const Icon(Icons.logout),

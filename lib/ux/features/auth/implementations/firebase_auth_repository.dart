@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:arcinus/shared/constants/permissions.dart';
@@ -66,7 +67,7 @@ class FirebaseAuthRepository implements AuthRepository {
     app.UserRole role,
   ) async {
     try {
-      print('DEBUG: Firebase - Registrando usuario: $email con rol: $role');
+      developer.log('DEBUG: Firebase - Registrando usuario: $email con rol: $role');
       // Crear usuario en Firebase Auth
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -78,7 +79,7 @@ class FirebaseAuthRepository implements AuthRepository {
       // Por seguridad, verificamos que solo se puedan registrar propietarios directamente
       final effectiveRole = role == app.UserRole.owner ? app.UserRole.owner : app.UserRole.guest;
       
-      print('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $effectiveRole');
+      developer.log('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $effectiveRole');
       
       // Crear documento de usuario en Firestore
       final user = app.User(
@@ -93,10 +94,10 @@ class FirebaseAuthRepository implements AuthRepository {
       
       await _firestore.collection('users').doc(uid).set(_userToJson(user));
       
-      print('DEBUG: Firebase - Documento de usuario creado en Firestore');
+      developer.log('DEBUG: Firebase - Documento de usuario creado en Firestore');
       return user;
     } catch (e) {
-      print('DEBUG: Firebase - Error al registrar usuario: $e');
+      developer.log('DEBUG: Firebase - Error al registrar usuario: $e');
       throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al registrar usuario: $e'));
     }
   }

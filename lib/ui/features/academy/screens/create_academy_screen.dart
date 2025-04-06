@@ -127,7 +127,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
           
           // Redirigir al dashboard donde verá su academia existente
           Navigator.of(context).popUntil((route) => route.isFirst);
-          Navigator.pushReplacementNamed(context, '/dashboard');
+          await Navigator.pushReplacementNamed(context, '/dashboard');
         } else {
           // Para otros errores
           ScaffoldMessenger.of(context).showSnackBar(

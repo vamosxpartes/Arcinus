@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/shared/models/academy.dart';
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/ux/features/academy/academy_repository.dart';
@@ -22,33 +24,33 @@ final userAcademiesProvider = FutureProvider<List<Academy>>((ref) async {
 final needsAcademyCreationProvider = FutureProvider<bool>((ref) async {
   final userAsync = ref.watch(authStateProvider);
   
-  print('DEBUG: Estado de autenticación en needsAcademyCreationProvider: ${userAsync.toString().substring(0, 50)}...');
+  developer.log('DEBUG: Estado de autenticación en needsAcademyCreationProvider: ${userAsync.toString().substring(0, 50)}...');
   
   // Si no hay usuario o está cargando, no necesita crear academia
   if (userAsync is! AsyncData || userAsync.value == null) {
-    print('DEBUG: No hay usuario autenticado o está cargando');
+    developer.log('DEBUG: No hay usuario autenticado o está cargando');
     return false;
   }
   
   final user = userAsync.value!;
-  print('DEBUG: Usuario en needsAcademyCreationProvider: ${user.email}, rol: ${user.role}');
+  developer.log('DEBUG: Usuario en needsAcademyCreationProvider: ${user.email}, rol: ${user.role}');
   
   // Solo los propietarios necesitan crear academia
   if (user.role != UserRole.owner) {
-    print('DEBUG: El usuario no es propietario, no necesita crear academia');
+    developer.log('DEBUG: El usuario no es propietario, no necesita crear academia');
     return false;
   }
   
   try {
     // Verificar si ya tiene academias
-    print('DEBUG: Verificando academias del propietario: ${user.id}');
+    developer.log('DEBUG: Verificando academias del propietario: ${user.id}');
     final academyRepository = ref.read(academyRepositoryProvider);
     final academies = await academyRepository.getAcademiesByOwner(user.id);
-    print('DEBUG: Propietario tiene ${academies.length} academias');
+    developer.log('DEBUG: Propietario tiene ${academies.length} academias');
     
     return academies.isEmpty;
   } catch (e) {
-    print('DEBUG: Error al verificar academias: $e');
+    developer.log('DEBUG: Error al verificar academias: $e');
     rethrow;
   }
 });

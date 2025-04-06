@@ -67,9 +67,10 @@ class NavigationItems {
     return allItems.take(5).toList();
   }
   
-  /// Obtiene elementos de navegación filtrados por rol (para posible uso futuro)
+  /// Método deprecado - Reemplazado por filtrado basado en permisos
+  @Deprecated('Use getItemsByPermissions from PermissionService instead')
   static List<NavigationItem> getItemsByRole(String role) {
-    // Implementar lógica específica por rol en el futuro si es necesario
+    // Este método ahora está obsoleto, se debe usar getItemsByPermissions del PermissionService
     return allItems;
   }
 } 

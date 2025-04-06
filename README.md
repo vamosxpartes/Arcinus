@@ -9,13 +9,13 @@ El proyecto se encuentra en fase activa de desarrollo con los siguientes compone
 - ✅ **Autenticación y gestión de usuarios** completa
 - ✅ **Sistema de navegación personalizado** sin AppBar, con gestos deslizables y barra inferior configurable
 - ✅ **Gestión de academias** con creación, listado y detalles básicos
-- ✅ **Dashboards específicos por rol** con estadísticas y métricas relevantes
-- ✅ **Sistema de permisos jerárquico** para acceso a funcionalidades
+- ✅ **Dashboards dinámicos basados en permisos** con estadísticas y métricas relevantes
+- ✅ **Sistema de permisos granular** para control de acceso a funcionalidades
 
 Actualmente trabajando en:
 - 🔄 Optimización del flujo de creación de academias
 - 🔄 Mejora del sistema de métricas en el dashboard
-- 🔄 Refinamiento de la arquitectura del proyecto
+- 🔄 Implementación de gestión de grupos/equipos
 
 ## Características Principales
 
@@ -24,27 +24,33 @@ Actualmente trabajando en:
 - **Seguimiento de rendimiento**: Evaluación y seguimiento del progreso de atletas.
 - **Sistema de pagos**: Control de mensualidades y pagos.
 - **Sistema de comunicación integrado**: Chat interno y notificaciones para mantener a todos los miembros informados.
+- **Control de acceso basado en permisos**: Sistema granular que permite control preciso sobre cada funcionalidad.
 
-## Mejoras Planificadas
+## Mejoras Planificadas e Implementadas
 
-Como parte de nuestra estrategia de mejora continua, se han identificado las siguientes áreas para optimización:
+Como parte de nuestra estrategia de mejora continua, se han identificado e implementado las siguientes mejoras arquitectónicas:
 
-### 1. Optimización de Componentes de Navegación
-Se planea centralizar la gestión del BottomNavigationBar en un componente dedicado, reduciendo la duplicación de código actualmente presente en diversas pantallas, especialmente en el Dashboard. Esto mejorará la mantenibilidad y asegurará consistencia en la experiencia de navegación.
+### 1. Optimización de Componentes de Navegación ✅
+Se ha centralizado la gestión del BottomNavigationBar en un componente dedicado, reduciendo la duplicación de código en diversas pantallas. Esto ha mejorado la mantenibilidad y asegurado consistencia en la experiencia de navegación.
 
-### 2. Refactorización de Widgets
-Se implementará una estrategia de modularización más rigurosa para externalizar widgets y métodos reutilizables en las diferentes pantallas. Esto permitirá:
-- Reducir la complejidad de los archivos principales
-- Mejorar la capacidad de testing individual de componentes
-- Facilitar la colaboración en el desarrollo del proyecto
+### 2. Refactorización de Widgets ✅
+Se ha implementado una estrategia de modularización rigurosa para externalizar widgets y métodos reutilizables en las diferentes pantallas, permitiendo:
+- Reducción significativa de la complejidad de archivos principales
+- Mejor capacidad de testing individual de componentes
+- Mayor facilidad de colaboración en el desarrollo del proyecto
 
-### 3. Migración a Arquitectura Basada en Permisos
-Se evolucionará el sistema actual basado en roles hacia uno fundamentado en permisos específicos. Esta arquitectura permitirá:
+### 3. Migración a Arquitectura Basada en Permisos ✅
+Se ha completado la evolución del sistema basado en roles hacia uno fundamentado en permisos específicos, logrando:
 - Mayor granularidad en el control de acceso a funcionalidades
 - Flexibilidad para personalizar permisos sin alterar roles predefinidos
 - Renderización condicional de UI basada en permisos individuales en lugar de roles completos
+- Navegación y visualización de contenido adaptada a los permisos específicos de cada usuario
 
-Por ejemplo, la visualización de elementos de interfaz como botones de edición o secciones de gestión dependerá de permisos específicos como "editarAcademia" o "gestionarUsuarios", en lugar de basarse únicamente en el rol del usuario.
+### Próximas Mejoras Planificadas
+
+1. **Interfaz de Administración de Permisos**: Crear una interfaz visual para que propietarios y managers puedan administrar permisos de usuarios.
+2. **Sistema de Roles Personalizados**: Permitir la creación de roles personalizados con combinaciones específicas de permisos.
+3. **Optimización de Rendimiento**: Mejorar la eficiencia de las consultas a Firestore y la gestión de estado.
 
 ## Esquema de Roles
 
