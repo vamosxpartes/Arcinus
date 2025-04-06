@@ -53,12 +53,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
+      print('DEBUG: Iniciando registro de usuario: ${_emailController.text.trim()} con rol: $_userRole');
+      
+      // Aseguramos que siempre sea propietario
+      const userRole = UserRole.owner;
+      
       await ref.read(authStateProvider.notifier).signUp(
         _emailController.text.trim(),
         _passwordController.text,
         _nameController.text.trim(),
-        _userRole, // Siempre usamos el rol de propietario
+        userRole, // Usamos explícitamente UserRole.owner
       );
+      
+      print('DEBUG: Registro exitoso, navegando a pantalla de creación de academia');
       
       if (!mounted) return;
       
@@ -66,8 +73,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SnackBar(content: Text('Registro exitoso')),
       );
       
-      // La navegación se maneja automáticamente en ArcinusApp
+      // Navegar directamente a la pantalla de creación de academia
+      Navigator.of(context).pushNamedAndRemoveUntil('/create-academy', (route) => false);
     } catch (e) {
+      print('DEBUG: Error en registro: $e');
+      
       if (!mounted) return;
       
       ScaffoldMessenger.of(context).showSnackBar(

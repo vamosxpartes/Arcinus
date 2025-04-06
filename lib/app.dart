@@ -1,9 +1,13 @@
 import 'package:arcinus/config/firebase/analytics_service.dart';
+import 'package:arcinus/shared/models/user.dart';
+import 'package:arcinus/ui/features/academy/screens/academy_list_screen.dart';
+import 'package:arcinus/ui/features/academy/screens/create_academy_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/auth_screens.dart';
 import 'package:arcinus/ui/features/chat/screens/chat_screen.dart';
 import 'package:arcinus/ui/features/chat/screens/chats_list_screen.dart';
 import 'package:arcinus/ui/features/dashboard/screens/dashboard_screens.dart';
 import 'package:arcinus/ui/features/splash/splash_screen.dart';
+import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -86,7 +90,30 @@ class ArcinusApp extends ConsumerWidget {
           if (user == null) {
             return const LoginScreen();
           } else {
-            return const DashboardScreen();
+            // Verificar si el usuario es propietario y necesita crear academia
+            return Consumer(
+              builder: (context, ref, child) {
+                final needsAcademyCreation = ref.watch(needsAcademyCreationProvider);
+                
+                return needsAcademyCreation.when(
+                  data: (needsCreation) {
+                    print('DEBUG: Usuario autenticado, rol: ${user.role}, necesita crear academia: $needsCreation');
+                    if (user.role == UserRole.owner && needsCreation) {
+                      print('DEBUG: Redirigiendo a crear academia');
+                      return const CreateAcademyScreen();
+                    } else {
+                      print('DEBUG: Redirigiendo a dashboard');
+                      return const DashboardScreen();
+                    }
+                  },
+                  loading: () => const LoadingScreen(),
+                  error: (error, stack) {
+                    print('DEBUG: Error verificando si necesita crear academia: $error');
+                    return const DashboardScreen();
+                  },
+                );
+              },
+            );
           }
         },
       ),
@@ -105,7 +132,9 @@ class ArcinusApp extends ConsumerWidget {
         '/stats': (context) => const UnderDevelopmentScreen(title: 'Estadísticas'),
         '/settings': (context) => const UnderDevelopmentScreen(title: 'Configuración'),
         '/payments': (context) => const UnderDevelopmentScreen(title: 'Pagos'),
-        '/academies': (context) => const UnderDevelopmentScreen(title: 'Academias'),
+        '/academies': (context) => const AcademyListScreen(),
+        '/create-academy': (context) => const CreateAcademyScreen(),
+        '/academy-details': (context) => const UnderDevelopmentScreen(title: 'Detalles de Academia'),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(

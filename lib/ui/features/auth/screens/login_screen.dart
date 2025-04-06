@@ -1,5 +1,4 @@
 import 'package:arcinus/shared/models/navigation_item.dart';
-import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,25 +16,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-  
-  // Lista de botones fijados para el login
-  final List<NavigationItem> _pinnedItems = [
-    NavigationItem(
-      icon: Icons.login,
-      label: 'Iniciar Sesión',
-      destination: '/login',
-    ),
-    NavigationItem(
-      icon: Icons.app_registration,
-      label: 'Registrarse',
-      destination: '/register',
-    ),
-    NavigationItem(
-      icon: Icons.help_outline,
-      label: 'Ayuda',
-      destination: '/help',
-    ),
-  ];
 
   @override
   void dispose() {
@@ -48,16 +28,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
     setState(() {
       _obscurePassword = !_obscurePassword;
     });
-  }
-  
-  // Método para navegar a una ruta
-  void _navigateToRoute(String route) {
-    // No navegamos si ya estamos en la ruta actual
-    if (route == '/login' && ModalRoute.of(context)?.settings.name == '/login') {
-      return;
-    }
-    
-    Navigator.of(context).pushNamed(route);
   }
 
   Future<void> _signIn() async {
@@ -297,12 +267,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
             ],
           ),
         ),
-      ),
-      // Barra de navegación inferior
-      bottomNavigationBar: CustomNavigationBar(
-        pinnedItems: _pinnedItems,
-        activeRoute: '/login',
-        onItemTap: (item) => _navigateToRoute(item.destination),
       ),
     );
   }

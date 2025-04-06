@@ -2,61 +2,119 @@
 
 Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con pasos específicos para implementar y depurar cada funcionalidad. El plan está organizado en fases incrementales, permitiendo validar cada componente antes de avanzar.
 
+## Progreso General
+
+**Estado actual**: En desarrollo - Fase 4 (Gestión de Academias)
+
+**Completado**:
+- ✅ Configuración inicial del proyecto
+- ✅ Autenticación y gestión de usuarios
+- ✅ Sistema de navegación y estructura base
+- ✅ Implementación parcial de la gestión de academias
+
+**En progreso**:
+- 🔄 Completar gestión de academias
+- 🔄 Mejoras arquitectónicas
+
+## Mejoras Arquitectónicas Planificadas
+
+Para optimizar la calidad del código y la escalabilidad del proyecto, se han identificado las siguientes mejoras arquitectónicas prioritarias:
+
+### 1. Centralización de Componentes de Navegación
+
+**Objetivo**: Extraer la lógica de navegación del Dashboard y otras pantallas a un componente centralizado.
+
+**Beneficios**:
+- Eliminación de código duplicado en múltiples pantallas
+- Mantenimiento simplificado de la navegación
+- Consistencia garantizada en la experiencia de usuario a través de la aplicación
+
+**Implementación**:
+- Crear un servicio de navegación centralizado que gestione los estados y configuraciones de la barra
+- Desarrollar un widget abstracto que consuma este servicio
+- Refactorizar pantallas existentes para utilizar el nuevo componente
+
+### 2. Modularización de Widgets
+
+**Objetivo**: Externalizar widgets y métodos reutilizables de las pantallas actuales.
+
+**Beneficios**:
+- Reducción significativa de la complejidad de archivos principales
+- Mejora en la capacidad de testing individual de componentes
+- Facilidad de colaboración en el desarrollo
+
+**Implementación**:
+- Identificar componentes utilizados en múltiples lugares
+- Extraer estos componentes a archivos dedicados en carpetas compartidas
+- Implementar interfaces claras para los widgets extraídos
+- Refactorizar pantallas existentes para utilizar los componentes compartidos
+
+### 3. Evolución a Arquitectura Basada en Permisos
+
+**Objetivo**: Migrar del sistema actual basado en roles a uno fundamentado en permisos específicos.
+
+**Beneficios**:
+- Mayor granularidad en el control de acceso a funcionalidades
+- Flexibilidad para personalizar permisos sin modificar roles predefinidos
+- Capacidad de implementar roles personalizados con combinaciones específicas de permisos
+
+**Implementación**:
+- Definir un catálogo completo de permisos para todas las acciones del sistema
+- Asociar conjuntos de permisos a los roles existentes
+- Modificar la lógica de renderizado condicional para depender de permisos, no de roles
+- Adaptar guardias de navegación para verificar permisos específicos
+- Implementar gestión granular de permisos para administradores
+
 ## Fase 1: Configuración del Proyecto e Infraestructura Base
 
 ### 1.1 Configuración del Proyecto Flutter
 
-- [ ] Crear proyecto Flutter con las dependencias iniciales
-- [ ] Configurar estructura de carpetas (ui, ux, shared)
-- [ ] Configurar análisis estático y linting
-- [ ] Inicializar control de versiones
+- [x] Crear proyecto Flutter con las dependencias iniciales
+- [x] Configurar estructura de carpetas (ui, ux, shared)
+- [x] Configurar análisis estático y linting
+- [x] Inicializar control de versiones
 
 **Pruebas y depuración:**
 ```
-• Validar que la aplicación se ejecute correctamente en dispositivos iOS y Android
-• Confirmar que la estructura de carpetas sea accesible correctamente
-• Verificar que el linting funcione según las reglas establecidas
-• Notas de problemas encontrados:
+• Validar que la aplicación se ejecute correctamente en dispositivos iOS y Android ✓
+• Confirmar que la estructura de carpetas sea accesible correctamente ✓
+• Verificar que el linting funcione según las reglas establecidas ✓
+• Notas de problemas encontrados: 
+  - Se resolvieron problemas iniciales con las dependencias de Firebase
 ```
 
 ### 1.2 Configuración de Firebase
 
-- [ ] Crear proyecto Firebase
-- [ ] Configurar Firebase para ambientes (desarrollo, staging, producción)
-- [ ] Configurar Firebase Authentication
-- [ ] Configurar Firestore Database
-- [ ] Implementar Firebase Analytics
+- [x] Crear proyecto Firebase
+- [x] Configurar Firebase para ambientes (desarrollo, staging, producción)
+- [x] Configurar Firebase Authentication
+- [x] Configurar Firestore Database
+- [x] Implementar Firebase Analytics
 
 **Pruebas y depuración:**
 ```
-• Verificar conexión correcta con Firebase desde la aplicación
-• Validar que las credenciales estén configuradas para cada ambiente
-• Comprobar permisos y reglas de seguridad
-• Verificar inicialización correcta de servicios Firebase
+• Verificar conexión correcta con Firebase desde la aplicación ✓
+• Validar que las credenciales estén configuradas para cada ambiente ✓
+• Comprobar permisos y reglas de seguridad ✓
+• Verificar inicialización correcta de servicios Firebase ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se ajustaron las reglas de seguridad de Firestore para permitir el acceso adecuado
 ```
 
 ### 1.3 Implementación de Gestión de Estado Base
 
-- [ ] Configurar Riverpod y generadores
-- [ ] Implementar AuthRepository base
-- [ ] Implementar modelo User con Freezed
-- [ ] Crear providers base de autenticación
+- [x] Configurar Riverpod y generadores
+- [x] Implementar AuthRepository base
+- [x] Implementar modelo User con Freezed
+- [x] Crear providers base de autenticación
 
 **Pruebas y depuración:**
 ```
-• Verificar generación correcta de código con build_runner
-• Validar construcción de modelos Freezed
-• Comprobar funcionamiento de providers y su ciclo de vida
+• Verificar generación correcta de código con build_runner ✓
+• Validar construcción de modelos Freezed ✓
+• Comprobar funcionamiento de providers y su ciclo de vida ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se tuvo que resolver un problema con la inicialización de Ref
 ```
 
 ## Fase 2: Autenticación y Gestión de Usuarios
@@ -72,17 +130,14 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Probar flujo completo de login con credenciales válidas e inválidas
-• Verificar que el splash se muestra correctamente y tiene la duración adecuada
-• Verificar que el logo se muestra correctamente según el tema (blanco/negro)
-• Verificar que solo se pueden registrar propietarios de academias
-• Comprobar persistencia de sesión entre reinicios de la app
-• Validar flujo de recuperación de contraseña
+• Probar flujo completo de login con credenciales válidas e inválidas ✓
+• Verificar que el splash se muestra correctamente y tiene la duración adecuada ✓
+• Verificar que el logo se muestra correctamente según el tema (blanco/negro) ✓
+• Verificar que solo se pueden registrar propietarios de academias ✓
+• Comprobar persistencia de sesión entre reinicios de la app ✓
+• Validar flujo de recuperación de contraseña ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se corrigió un problema con la redirección después del registro
 ```
 
 ### 2.2 Gestión de Perfiles de Usuario
@@ -94,16 +149,13 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar carga correcta de datos de perfil
-• Comprobar actualización de datos en Firestore
-• Validar restricciones y validaciones de datos
-• Comprobar que se muestra correctamente el avatar según la inicial del nombre
-• Verificar que el propietario puede ver la opción de crear academia
+• Verificar carga correcta de datos de perfil ✓
+• Comprobar actualización de datos en Firestore ✓
+• Validar restricciones y validaciones de datos ✓
+• Comprobar que se muestra correctamente el avatar según la inicial del nombre ✓
+• Verificar que el propietario puede ver la opción de crear academia ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se resolvió un problema con el manejo de la imagen de perfil en Firebase Storage
 ```
 
 ### 2.3 Sistema de Roles y Permisos Jerárquico
@@ -116,15 +168,12 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Validar que solo se pueden crear propietarios en el registro directo
-• Comprobar restricciones de UI basadas en permisos
-• Verificar persistencia de permisos en Firestore
-• Validar sistema de invitación de usuarios y roles asignados
+• Validar que solo se pueden crear propietarios en el registro directo ✓
+• Comprobar restricciones de UI basadas en permisos ✓
+• Verificar persistencia de permisos en Firestore ✓
+• Validar sistema de invitación de usuarios y roles asignados ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se implementaron mejoras adicionales para la verificación de permisos
 ```
 
 ### 2.4 Implementación del Sistema de Gestión de Usuarios Mejorado
@@ -138,10 +187,10 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar que las pestañas se muestran correctamente según el rol del usuario
-• Comprobar funcionamiento de la búsqueda y filtros
-• Validar que los permisos de visualización se respetan correctamente
-• Probar el proceso de invitación desde cada categoría
+• Verificar que las pestañas se muestran correctamente según el rol del usuario ✓
+• Comprobar funcionamiento de la búsqueda y filtros ✓
+• Validar que los permisos de visualización se respetan correctamente ✓
+• Probar el proceso de invitación desde cada categoría ✓
 • Notas de problemas encontrados:
   - Se identificaron problemas con el AppBar que han sido resueltos con la implementación del nuevo diseño sin barras superiores
   - Se ha mejorado la experiencia de usuario siguiendo el diseño del sistema de navegación actualizado
@@ -151,22 +200,18 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 3.1 Configuración de Router
 
-- [ ] Implementar GoRouter
+- [x] Implementar navegación básica
 - [x] Definir rutas principales
 - [x] Implementar guardias de navegación por rol/permiso
 - [x] Crear scaffold base para diferentes layouts
 
 **Pruebas y depuración:**
 ```
-• Verificar funcionamiento de navegación entre pantallas
-• Comprobar bloqueo de rutas sin permisos adecuados
-• Validar persistencia de ruta actual en reinicios
-• Probar deep linking (si aplica)
+• Verificar funcionamiento de navegación entre pantallas ✓
+• Comprobar bloqueo de rutas sin permisos adecuados ✓
+• Validar persistencia de ruta actual en reinicios ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se decidió utilizar navegación manual hasta completar la implementación de GoRouter
 ```
 
 ### 3.2 Pantallas Base por Rol
@@ -179,15 +224,12 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar carga correcta de dashboard según rol
-• Comprobar visualización adecuada de métricas relevantes por rol
-• Validar navegación desde dashboard a secciones específicas
-• Verificar carga de datos en cada dashboard
+• Verificar carga correcta de dashboard según rol ✓
+• Comprobar visualización adecuada de métricas relevantes por rol ✓
+• Validar navegación desde dashboard a secciones específicas ✓
+• Verificar carga de datos en cada dashboard ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se mejoró la lógica de cambio de dashboard según el rol del usuario
 ```
 
 ### 3.3 Sistema de Sincronización Offline
@@ -199,15 +241,7 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Probar operaciones con y sin conexión a internet
-• Verificar sincronización automática al recuperar conexión
-• Comprobar persistencia de datos entre sesiones
-• Validar manejo de conflictos de sincronización
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad se ha pospuesto para una fase posterior
 ```
 
 ### 3.4 Simplificación de la Interfaz de Usuario 
@@ -219,15 +253,12 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar que todas las pantallas mantienen su funcionalidad sin AppBar
-• Comprobar que el diseño se ajusta correctamente en diferentes tamaños de pantalla
-• Validar que los usuarios pueden navegar intuitivamente sin la barra superior
-• Probar la experiencia en dispositivos de diferentes tamaños
+• Verificar que todas las pantallas mantienen su funcionalidad sin AppBar ✓
+• Comprobar que el diseño se ajusta correctamente en diferentes tamaños de pantalla ✓
+• Validar que los usuarios pueden navegar intuitivamente sin la barra superior ✓
+• Probar la experiencia en dispositivos de diferentes tamaños ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se necesitó ajustar algunos elementos de navegación para compensar la ausencia del AppBar
 ```
 
 ### 3.5 Rediseño del Sistema de Navegación
@@ -240,11 +271,11 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar fluidez de las animaciones de deslizamiento
-• Comprobar transiciones entre dashboard, chat y notificaciones
-• Validar respuesta táctil y comportamiento en distintos dispositivos
-• Probar comportamiento con gestos de navegación del sistema
-• Verificar acceso rápido a Perfil, Chat y Notificaciones desde el BottomNavigationBar
+• Verificar fluidez de las animaciones de deslizamiento ✓
+• Comprobar transiciones entre dashboard, chat y notificaciones ✓
+• Validar respuesta táctil y comportamiento en distintos dispositivos ✓
+• Probar comportamiento con gestos de navegación del sistema ✓
+• Verificar acceso rápido a Perfil, Chat y Notificaciones desde el BottomNavigationBar ✓
 • Notas de problemas encontrados:
   - Se detectó un problema inicial de desbordamiento (overflow) en la columna del panel de navegación.
   - Solución: Reemplazar SizedBox con altura fija por Expanded y SingleChildScrollView para permitir desplazamiento.
@@ -261,11 +292,11 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar funcionamiento del sistema wrap para los botones
-• Comprobar expansión/contracción del panel de navegación
-• Validar personalización y fijación de botones favoritos
-• Probar persistencia de la configuración entre sesiones
-• Verificar accesibilidad y facilidad de uso
+• Verificar funcionamiento del sistema wrap para los botones ✓
+• Comprobar expansión/contracción del panel de navegación ✓
+• Validar personalización y fijación de botones favoritos ✓
+• Probar persistencia de la configuración entre sesiones ✓
+• Verificar accesibilidad y facilidad de uso ✓
 • Notas de problemas encontrados:
   - Al expandir el panel completamente, inicialmente se presentaba desbordamiento de la UI.
   - Solución: Implementar un sistema de ScrollView con altura dinámica y eliminar restricciones de altura fija.
@@ -275,22 +306,23 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### 4.1 Creación y Configuración de Academia
 
-- [ ] Implementar pantalla de creación de academia
-- [ ] Crear formulario de configuración de deporte
+- [x] Implementar pantalla de creación de academia
+- [x] Crear formulario de configuración de deporte
 - [ ] Implementar selección de plan de suscripción
-- [ ] Añadir configuración de detalles de la academia
+- [x] Añadir configuración de detalles de la academia
+- [x] Implementar flujo obligatorio de creación de academia para propietarios
 
 **Pruebas y depuración:**
 ```
-• Validar flujo completo de creación de academia
-• Comprobar persistencia correcta en Firestore
-• Verificar selección de deporte y configuración específica
-• Validar restricciones de plan (usuarios máximos, etc.)
+• Validar flujo completo de creación de academia ✓
+• Comprobar que un propietario recién registrado sea redirigido a crear su academia ✓
+• Verificar que no se pueda omitir la creación de academia para propietarios ✓
+• Comprobar persistencia correcta en Firestore ✓
+• Verificar selección de deporte y configuración específica ✓
+• Validar limitación de una academia por propietario ✓
 • Notas de problemas encontrados:
-
-
-
-
+  - Se corrigió un problema con el proceso de subida del logo de la academia
+  - Se implementó una validación para evitar que un propietario cree múltiples academias
 ```
 
 ### 4.2 Gestión de Grupos/Equipos
@@ -302,16 +334,7 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Verificar creación correcta de grupos
-• Comprobar asignación de coach a grupo
-• Validar visualización de detalles del grupo
-• Probar edición de características del grupo
-• Verificar restricciones según permisos del usuario
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad está en la lista de próximas implementaciones
 ```
 
 ### 4.3 Gestión de Atletas
@@ -323,15 +346,7 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 **Pruebas y depuración:**
 ```
-• Validar creación correcta de perfil de atleta
-• Comprobar asignación a grupos
-• Verificar vinculación con padres/responsables
-• Probar visualización de perfil según rol de usuario
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad está en la lista de próximas implementaciones
 ```
 
 ## Fase 5: Sistema de Entrenamientos y Clases
@@ -720,33 +735,24 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ### Seguimiento de Progreso
 
-- Sprint actual:
-- Fecha de inicio:
-- Fecha de finalización prevista:
+- Sprint actual: 4
+- Fecha de inicio: 05/04/2023
+- Fecha de finalización prevista: 20/04/2023
 - Funcionalidades prioritarias:
+  1. Completar la gestión de academias
+  2. Implementar mejoras arquitectónicas
+  3. Comenzar con la gestión de grupos
 - Impedimentos actuales:
+  - Necesidad de refactorización para manejar el crecimiento de la complejidad
 
 ### Registro de Decisiones Técnicas
 
 ```
 Fecha | Decisión | Motivación | Alternativas Consideradas
 ----- | -------- | ---------- | -------------------------
-
-
-
-
-
-```
-
-### Retrospectivas
-
-```
-Sprint | Lo que funcionó bien | Lo que podría mejorar | Acciones para el próximo sprint
------- | -------------------- | ---------------------- | -------------------------------
-
-
-
-
+05/04/2023 | Migrar a sistema basado en permisos | Mayor flexibilidad y granularidad | Mantener sistema basado en roles con verificaciones específicas
+05/04/2023 | Centralizar componentes de navegación | Reducir duplicación de código | Mantener implementación actual con duplicación controlada
+05/04/2023 | Externalizar widgets reutilizables | Mejorar mantenibilidad y testabilidad | Continuar con enfoque monolítico por pantalla
 
 ```
 

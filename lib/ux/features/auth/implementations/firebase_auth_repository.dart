@@ -60,38 +60,44 @@ class FirebaseAuthRepository implements AuthRepository {
   
   @override
   Future<app.User> signUpWithEmailAndPassword(
-    String email, 
-    String password, 
-    String name, 
-    app.UserRole role
+    String email,
+    String password,
+    String name,
+    app.UserRole role,
   ) async {
     try {
-      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
+      print('DEBUG: Firebase - Registrando usuario: $email con rol: $role');
+      // Crear usuario en Firebase Auth
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
       
-      final user = credential.user;
-      if (user == null) {
-        throw Exception('Error al registrar usuario: Usuario no creado');
-      }
+      final uid = userCredential.user!.uid;
       
-      // Crear el usuario en Firestore
-      final newUser = app.User(
-        id: user.uid,
+      // Por seguridad, verificamos que solo se puedan registrar propietarios directamente
+      final effectiveRole = role == app.UserRole.owner ? app.UserRole.owner : app.UserRole.guest;
+      
+      print('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $effectiveRole');
+      
+      // Crear documento de usuario en Firestore
+      final user = app.User(
+        id: uid,
         email: email,
         name: name,
-        role: role,
-        permissions: Permissions.getDefaultPermissions(role),
+        role: effectiveRole, // Usar el rol efectivo
+        permissions: Permissions.getDefaultPermissions(effectiveRole),
         academyIds: [],
         createdAt: DateTime.now(),
       );
       
-      await _firestore.collection('users').doc(user.uid).set(_userToJson(newUser));
+      await _firestore.collection('users').doc(uid).set(_userToJson(user));
       
-      return newUser;
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      throw _handleAuthException(e);
+      print('DEBUG: Firebase - Documento de usuario creado en Firestore');
+      return user;
+    } catch (e) {
+      print('DEBUG: Firebase - Error al registrar usuario: $e');
+      throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al registrar usuario: $e'));
     }
   }
   

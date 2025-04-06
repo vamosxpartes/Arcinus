@@ -2,6 +2,21 @@
 
 Arcinus es una aplicación móvil desarrollada en Flutter para la gestión integral de academias deportivas. Permite administrar entrenadores, atletas, grupos, entrenamientos, clases, asistencia, pagos y comunicaciones.
 
+## Estado Actual del Desarrollo
+
+El proyecto se encuentra en fase activa de desarrollo con los siguientes componentes implementados:
+
+- ✅ **Autenticación y gestión de usuarios** completa
+- ✅ **Sistema de navegación personalizado** sin AppBar, con gestos deslizables y barra inferior configurable
+- ✅ **Gestión de academias** con creación, listado y detalles básicos
+- ✅ **Dashboards específicos por rol** con estadísticas y métricas relevantes
+- ✅ **Sistema de permisos jerárquico** para acceso a funcionalidades
+
+Actualmente trabajando en:
+- 🔄 Optimización del flujo de creación de academias
+- 🔄 Mejora del sistema de métricas en el dashboard
+- 🔄 Refinamiento de la arquitectura del proyecto
+
 ## Características Principales
 
 - **Registro jerárquico de usuarios**: Sólo los propietarios pueden registrarse directamente. Los propietarios gestionan la creación de cuentas para entrenadores, atletas y padres/responsables.
@@ -9,6 +24,27 @@ Arcinus es una aplicación móvil desarrollada en Flutter para la gestión integ
 - **Seguimiento de rendimiento**: Evaluación y seguimiento del progreso de atletas.
 - **Sistema de pagos**: Control de mensualidades y pagos.
 - **Sistema de comunicación integrado**: Chat interno y notificaciones para mantener a todos los miembros informados.
+
+## Mejoras Planificadas
+
+Como parte de nuestra estrategia de mejora continua, se han identificado las siguientes áreas para optimización:
+
+### 1. Optimización de Componentes de Navegación
+Se planea centralizar la gestión del BottomNavigationBar en un componente dedicado, reduciendo la duplicación de código actualmente presente en diversas pantallas, especialmente en el Dashboard. Esto mejorará la mantenibilidad y asegurará consistencia en la experiencia de navegación.
+
+### 2. Refactorización de Widgets
+Se implementará una estrategia de modularización más rigurosa para externalizar widgets y métodos reutilizables en las diferentes pantallas. Esto permitirá:
+- Reducir la complejidad de los archivos principales
+- Mejorar la capacidad de testing individual de componentes
+- Facilitar la colaboración en el desarrollo del proyecto
+
+### 3. Migración a Arquitectura Basada en Permisos
+Se evolucionará el sistema actual basado en roles hacia uno fundamentado en permisos específicos. Esta arquitectura permitirá:
+- Mayor granularidad en el control de acceso a funcionalidades
+- Flexibilidad para personalizar permisos sin alterar roles predefinidos
+- Renderización condicional de UI basada en permisos individuales en lugar de roles completos
+
+Por ejemplo, la visualización de elementos de interfaz como botones de edición o secciones de gestión dependerá de permisos específicos como "editarAcademia" o "gestionarUsuarios", en lugar de basarse únicamente en el rol del usuario.
 
 ## Esquema de Roles
 
@@ -59,7 +95,12 @@ En Arcinus, implementamos un sistema jerárquico para la gestión de cuentas:
 
 1. **Registro Inicial**: Solo los propietarios de academias pueden registrarse directamente en la aplicación.
 
-2. **Creación de Cuentas**:
+2. **Flujo de Inicio para Propietarios**:
+   - Después del registro, un propietario debe crear su academia obligatoriamente
+   - No podrá acceder al dashboard hasta completar la creación de la academia
+   - Si cierra la aplicación durante este proceso, al volver a iniciar sesión continuará en la pantalla de creación
+
+3. **Creación de Cuentas**:
    - Los **Propietarios** pueden crear cuentas para:
      - Managers
      - Entrenadores
@@ -75,7 +116,7 @@ En Arcinus, implementamos un sistema jerárquico para la gestión de cuentas:
      - Atletas
      - Padres/Responsables
 
-3. **Vinculación de Cuentas**:
+4. **Vinculación de Cuentas**:
    - Los atletas pueden ser vinculados a múltiples entrenadores y grupos
    - Los padres/responsables pueden ser vinculados a múltiples atletas
 
