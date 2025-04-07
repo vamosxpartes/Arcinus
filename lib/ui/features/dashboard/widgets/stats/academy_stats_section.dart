@@ -110,26 +110,26 @@ class _AcademyStatsSectionState extends State<AcademyStatsSection> {
     final periodText = PeriodSelector.getPeriodText(_selectedPeriod);
     
     // Simulación de gráfico
-    final chartWidget = PlaceholderChart(
+    final chartWidget = const PlaceholderChart(
       chartType: ChartType.pie,
       label: 'Gráfico de pagos',
     );
     
     // Métricas para mostrar
     final metrics = [
-      MetricData(
+      const MetricData(
         title: 'Pagados',
         value: '78%',
         icon: Icons.check_circle,
         color: Colors.green,
       ),
-      MetricData(
+      const MetricData(
         title: 'Pendientes',
         value: '15%',
         icon: Icons.warning_amber,
         color: Colors.amber,
       ),
-      MetricData(
+      const MetricData(
         title: 'Atrasados',
         value: '7%',
         icon: Icons.error_outline,

@@ -4,7 +4,7 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 
 ## Progreso General
 
-**Estado actual**: En desarrollo - Fase 4 (Gestión de Academias)
+**Estado actual**: En desarrollo - Fase 7 (Sistema de Evaluación y Seguimiento)
 
 **Completado**:
 - ✅ Configuración inicial del proyecto
@@ -12,10 +12,18 @@ Este documento detalla el proceso de desarrollo de la aplicación Arcinus, con p
 - ✅ Sistema de navegación y estructura base
 - ✅ Implementación parcial de la gestión de academias
 - ✅ Migración a arquitectura basada en permisos
+- ✅ Optimización del sistema de permisos (caché y rendimiento)
+- ✅ Implementación de sistema de roles personalizados
+- ✅ Desarrollo de interfaz para administración de permisos
+- ✅ Corrección de errores en modelos de datos generados con Freezed
+- ✅ Implementación de CRUD completo para atletas, entrenadores y gerentes
+- ✅ Implementación de gestión completa de grupos/equipos
+- ✅ Implementación de gestión de entrenamientos y sesiones
 
 **En progreso**:
-- 🔄 Completar gestión de academias
-- 🔄 Implementación de gestión de grupos/equipos
+- 🔄 Desarrollo del sistema de evaluación y seguimiento de atletas
+- 🔄 Integración de calendario y programación de actividades
+- 🔄 Implementación del sistema de comunicación y notificaciones
 
 ## Mejoras Arquitectónicas Implementadas
 
@@ -61,27 +69,168 @@ Durante el desarrollo del proyecto, se han implementado las siguientes mejoras a
 - Escalabilidad mejorada para añadir nuevas funcionalidades
 - Mejor mantenibilidad del código
 
-## Próximas Mejoras Arquitectónicas
+### 4. Optimización de Verificación de Permisos ✅
 
-Para continuar mejorando la arquitectura del proyecto, se han identificado las siguientes oportunidades:
+**Estado**: Completado
 
-### 1. Interfaz de Administración de Permisos
+**Logros**:
+- Se implementó un sistema de caché de permisos (`PermissionCacheService`) para mejorar el rendimiento
+- Se añadió invalidación inteligente de caché con ventana de tiempo configurable
+- Se desarrolló un sistema de verificación por lotes para reducir el número de operaciones
+- Se crearon widgets optimizados (`PermissionBuilder`, `PermissionGate`, `PermissionSwitch`) para minimizar reconstrucciones innecesarias
+- Se implementó un proveedor para obtener lotes de permisos precalculados (`permissionBatchProvider`)
 
-**Objetivo**: Crear una interfaz visual para que propietarios y managers puedan gestionar los permisos de los usuarios.
+**Beneficios obtenidos**:
+- Reducción significativa de operaciones de verificación de permisos
+- Mejor rendimiento en interfaces con múltiples componentes basados en permisos
+- Menor consumo de recursos en dispositivos
+- Experiencia de usuario más fluida
 
-**Implementación planificada**:
-- Diseñar una pantalla de administración de permisos con matriz de usuarios/permisos
-- Implementar funcionalidad de edición de permisos con actualización en tiempo real
-- Crear sistema de previsualización de cambios antes de confirmar
+### 5. Sistema de Roles Personalizados ✅
 
-### 2. Sistema de Roles Personalizados
+**Estado**: Completado
 
-**Objetivo**: Permitir la creación y gestión de roles personalizados con combinaciones específicas de permisos.
+**Logros**:
+- Se desarrolló un modelo completo para roles personalizados (`CustomRole`)
+- Se implementó un servicio para gestionar roles personalizados (`CustomRoleService`)
+- Se crearon operaciones CRUD para roles personalizados (crear, leer, actualizar, eliminar)
+- Se añadió funcionalidad para asignar/quitar roles a usuarios
+- Se implementó sistema de recálculo de permisos al modificar roles
+- Se construyó una interfaz para crear y editar roles personalizados
 
-**Implementación planificada**:
-- Desarrollar modelo para roles personalizados
-- Implementar interfaz para crear y editar roles
-- Adaptar el sistema de asignación de permisos para trabajar con roles personalizados
+**Beneficios obtenidos**:
+- Mayor flexibilidad para definir roles según necesidades específicas
+- Capacidad de crear plantillas de permisos adaptadas a cada academia
+- Simplificación del proceso de asignación de permisos a múltiples usuarios
+- Mayor organización jerárquica de permisos
+
+### 6. Interfaz de Administración de Permisos ✅
+
+**Estado**: Completado
+
+**Logros**:
+- Se desarrolló una interfaz completa para gestionar permisos (`PermissionsManagementScreen`)
+- Se implementó un sistema de pestañas para diferentes modos de gestión (individual, por rol, por lotes)
+- Se añadió funcionalidad de búsqueda y filtrado de usuarios
+- Se creó una interfaz de edición de permisos con soporte para estado tri-estado (activar, desactivar, sin cambios)
+- Se implementó un sistema visual para gestionar permisos predeterminados por rol
+
+**Beneficios obtenidos**:
+- Interfaz intuitiva para gestionar permisos sin necesidad de conocimientos técnicos
+- Mayor control para propietarios y managers sobre los permisos de su equipo
+- Capacidad de realizar cambios masivos de permisos de forma eficiente
+- Visualización clara del estado actual de permisos
+
+### 7. Depuración de Errores en Modelos con Freezed ✅
+
+**Estado**: Completado
+
+**Logros**:
+- Se identificaron y corrigieron errores de null safety en el modelo `CustomRole`
+- Se implementó el manejo adecuado de campos potencialmente nulos en la interfaz de usuario
+- Se actualizaron las operaciones de conversión de datos en `CustomRoleService` para manejar diversos tipos de datos
+- Se ejecutó correctamente el generador de código para asegurar la integridad de los modelos
+- Se realizaron pruebas exhaustivas de la pantalla de gestión de roles para validar las correcciones
+
+**Beneficios obtenidos**:
+- Mayor estabilidad en la gestión de roles personalizados
+- Eliminación de errores en tiempo de ejecución relacionados con valores nulos
+- Mejora en la robustez del código frente a datos inconsistentes
+- Mejor experiencia de usuario al eliminar errores visuales
+- Documentación de buenas prácticas para el uso de Freezed en el proyecto
+
+• Verificar mejora de rendimiento en verificación de permisos ✓
+• Comprobar funcionamiento correcto de la caché con invalidación automática ✓
+• Validar flujo completo de creación y asignación de roles personalizados ✓
+• Probar la interfaz de gestión de permisos con diferentes tipos de usuarios ✓
+• Verificar que las operaciones por lotes funcionan correctamente ✓
+• Notas de problemas encontrados:
+  - Se encontraron errores con la generación de código Freezed para CustomRole que requirieron ejecutar build_runner
+  - Se detectaron problemas de tipo en las conversiones de listas en el servicio CustomRoleService que fueron corregidos
+  - La pantalla CustomRolesScreen presentaba errores de null safety que se resolvieron con comprobaciones adicionales
+  - Se actualizó el manejo de operadores de acceso nulo (?) en la interfaz para cumplir con las reglas de linting
+  - Se recomendó actualizar los comandos de generación de código a 'dart run build_runner' en lugar de 'flutter pub run'
+
+### 8. Sistema de Gestión de Grupos ✅
+
+**Estado**: Completado
+
+**Logros**:
+- Se desarrolló un modelo completo para grupos (`Group`) con soporte para relaciones
+- Se implementó un servicio completo para la gestión de grupos (`GroupService`)
+- Se crearon pantallas para listar, crear, editar y eliminar grupos
+- Se desarrolló una interfaz para asignar entrenadores y atletas a grupos
+- Se integró la gestión de grupos en la navegación principal
+- Se implementó un widget de carga compartido para mejorar la UX durante operaciones
+- Se diseñó una interfaz intuitiva con búsqueda y filtrado de grupos
+- Se creó una estructura de navegación basada en pestañas con acceso directo a grupos
+
+**Beneficios obtenidos**:
+- Gestión completa de grupos deportivos dentro de cada academia
+- Capacidad para organizar atletas en equipos específicos
+- Asignación eficiente de entrenadores a grupos
+- Interfaz amigable para la gestión de relaciones
+- Mayor organización y claridad en la estructura deportiva
+- Base sólida para implementar entrenamientos y evaluaciones
+
+## Fase 6: Sistema de Entrenamientos y Sesiones
+
+**Estado**: Completado ✅
+
+**Logros**:
+- Se desarrolló el modelo `Training` con soporte para plantillas y recurrencia
+- Se implementó el servicio completo para gestión de entrenamientos (`TrainingService`)
+- Se creó el modelo `Session` para instancias específicas de entrenamientos
+- Se implementó un sistema flexible de recurrencia (diaria, semanal, mensual)
+- Se desarrolló la interfaz para crear y gestionar entrenamientos y plantillas
+- Se implementó la pantalla para gestionar sesiones de un entrenamiento
+- Se creó el sistema de registro de asistencia para sesiones
+- Se integró con el sistema de grupos existente
+- Se añadió soporte para evaluación de rendimiento
+
+**Beneficios obtenidos**:
+- Gestión completa del ciclo de entrenamientos
+- Planificación eficiente mediante el sistema de plantillas y recurrencia
+- Seguimiento detallado de asistencia
+- Base sólida para implementar el sistema de evaluación y seguimiento de atletas
+
+**Pruebas y depuración**:
+```
+• Verificar creación de entrenamientos y plantillas ✓
+• Comprobar generación de sesiones recurrentes ✓
+• Validar registro y guardado de asistencia ✓
+• Probar integración con los grupos existentes ✓
+• Verificar creación de sesiones individuales ✓
+• Notas de problemas encontrados:
+  - Se requirió la generación de código Freezed para los nuevos modelos
+  - Se ajustó la interfaz para mejorar la experiencia en tablets
+```
+
+## Fase 7: Sistema de Evaluación y Seguimiento
+
+**Objetivo**: Crear un sistema para evaluar y hacer seguimiento del progreso de los atletas.
+
+**Tareas planificadas**:
+- Desarrollar modelo `Evaluation` con métricas configurables
+- Implementar servicio para gestionar evaluaciones de atletas
+- Crear interfaz para registrar y visualizar evaluaciones
+- Diseñar gráficos y estadísticas de progreso
+- Implementar sistema de objetivos personalizados
+- Desarrollar comparativas entre atletas del mismo grupo
+- Implementar exportación de datos para análisis externos
+
+### Fase 8: Integración de Calendario
+
+**Objetivo**: Implementar un sistema de calendario para visualizar y programar actividades.
+
+**Tareas planificadas**:
+- Desarrollar vista de calendario con diferentes modos (mes, semana, día)
+- Implementar integración con entrenamientos y sesiones
+- Crear sistema de eventos personalizados
+- Implementar recordatorios y notificaciones
+- Desarrollar sincronización con calendarios externos (Google, Apple)
+- Diseñar interfaz para gestionar disponibilidad de entrenadores
+- Implementar reserva de instalaciones y recursos
 
 ## Fase 1: Configuración del Proyecto e Infraestructura Base
 
@@ -214,6 +363,30 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
   - Se ha mejorado la experiencia de usuario siguiendo el diseño del sistema de navegación actualizado
 ```
 
+### 2.5 Optimización del Sistema de Permisos e Implementación de Roles Personalizados
+
+- [x] Implementar sistema de caché para verificación de permisos
+- [x] Desarrollar modelo y servicio para roles personalizados
+- [x] Crear componentes UI optimizados para permisos
+- [x] Implementar pantalla de gestión de roles personalizados
+- [x] Desarrollar interfaz de administración de permisos
+- [x] Corregir errores de null safety en modelos Freezed
+
+**Pruebas y depuración:**
+```
+• Verificar mejora de rendimiento en verificación de permisos ✓
+• Comprobar funcionamiento correcto de la caché con invalidación automática ✓
+• Validar flujo completo de creación y asignación de roles personalizados ✓
+• Probar la interfaz de gestión de permisos con diferentes tipos de usuarios ✓
+• Verificar que las operaciones por lotes funcionan correctamente ✓
+• Notas de problemas encontrados:
+  - Se encontraron errores con la generación de código Freezed para CustomRole que requirieron ejecutar build_runner
+  - Se detectaron problemas de tipo en las conversiones de listas en el servicio CustomRoleService que fueron corregidos
+  - La pantalla CustomRolesScreen presentaba errores de null safety que se resolvieron con comprobaciones adicionales
+  - Se actualizó el manejo de operadores de acceso nulo (?) en la interfaz para cumplir con las reglas de linting
+  - Se recomendó actualizar los comandos de generación de código a 'dart run build_runner' en lugar de 'flutter pub run'
+```
+
 ## Fase 3: Navegación y Estructura Base de la App
 
 ### 3.1 Configuración de Router
@@ -326,7 +499,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 
 - [x] Implementar pantalla de creación de academia
 - [x] Crear formulario de configuración de deporte
-- [ ] Implementar selección de plan de suscripción
 - [x] Añadir configuración de detalles de la academia
 - [x] Implementar flujo obligatorio de creación de academia para propietarios
 
@@ -343,7 +515,21 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
   - Se implementó una validación para evitar que un propietario cree múltiples academias
 ```
 
-### 4.2 Gestión de Grupos/Equipos
+### 4.2 CRUD Completo de Usuarios por Tipo
+
+- [ ] Implementar pantallas de creación y edición para managers
+- [ ] Implementar pantallas de creación y edición para coaches
+- [ ] Implementar pantallas de creación y edición para atletas
+- [ ] Implementar pantallas de creación y edición para padres/responsables
+- [ ] Crear flujos de edición de perfiles específicos por rol
+- [ ] Implementar eliminación segura de usuarios con confirmación
+
+**Pruebas y depuración:**
+```
+• Esta funcionalidad está en implementación prioritaria
+```
+
+### 4.3 Gestión de Grupos/Equipos
 
 - [ ] Implementar pantalla de listado de grupos
 - [ ] Crear pantalla de detalle de grupo
@@ -355,7 +541,7 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Esta funcionalidad está en la lista de próximas implementaciones
 ```
 
-### 4.3 Gestión de Atletas
+### 4.4 Gestión de Atletas
 
 - [ ] Implementar registro de atletas
 - [ ] Crear pantalla de perfil de atleta
@@ -364,7 +550,7 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 
 **Pruebas y depuración:**
 ```
-• Esta funcionalidad está en la lista de próximas implementaciones
+• Esta funcionalidad está en implementación prioritaria
 ```
 
 ## Fase 5: Sistema de Entrenamientos y Clases
@@ -384,9 +570,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Probar edición y actualización de entrenamientos
 • Notas de problemas encontrados:
 
-
-
-
 ```
 
 ### 5.2 Programación de Clases
@@ -403,9 +586,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Validar asignación de entrenamiento, grupo y coach
 • Probar envío de notificaciones a participantes
 • Notas de problemas encontrados:
-
-
-
 
 ```
 
@@ -424,133 +604,58 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Probar generación de estadísticas de asistencia
 • Notas de problemas encontrados:
 
-
-
-
 ```
 
-## Fase 6: Seguimiento de Rendimiento
+## Fase 6: Análisis y Métricas (Trasladado de fases anteriores)
 
-### 6.1 Evaluación de Atletas
+### 6.1 Dashboard de Métricas
 
-- [ ] Implementar modelo de rendimiento por deporte
-- [ ] Crear pantalla de evaluación
-- [ ] Implementar registro de métricas específicas
-- [ ] Añadir notas y comentarios
+- [ ] Implementar métricas específicas por rol
+- [ ] Crear visualizaciones de datos en el dashboard
+- [ ] Implementar filtros temporales para métricas
+- [ ] Añadir gráficos interactivos
 
 **Pruebas y depuración:**
 ```
-• Verificar registro de métricas de rendimiento
-• Comprobar adaptación según deporte seleccionado
-• Validar persistencia de evaluaciones en Firestore
-• Probar visualización de historial de evaluaciones
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad ha sido pospuesta para una fase posterior
 ```
 
-### 6.2 Visualización de Progreso
+### 6.2 Reportes Analíticos
 
-- [ ] Implementar gráficos de progreso
-- [ ] Crear dashboard de rendimiento para atletas
-- [ ] Implementar comparativas entre atletas (para coaches)
-- [ ] Añadir informes descargables
+- [ ] Implementar sistema de reportes personalizados
+- [ ] Crear exportación de datos estadísticos
+- [ ] Implementar comparativas de rendimiento
+- [ ] Añadir proyecciones y tendencias
 
 **Pruebas y depuración:**
 ```
-• Verificar visualización correcta de datos en gráficos
-• Comprobar cálculo de tendencias y progresos
-• Validar comparativas entre periodos
-• Probar generación y descarga de informes
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad ha sido pospuesta para una fase posterior
 ```
 
-### 6.3 Sistema de Objetivos
+## Fase 7: Análisis y Métricas (Trasladado de fases anteriores)
 
-- [ ] Implementar definición de objetivos
-- [ ] Crear seguimiento de objetivos
-- [ ] Implementar notificaciones de logros
-- [ ] Añadir celebración de hitos alcanzados
+### 7.1 Dashboard de Métricas
+
+- [ ] Implementar métricas específicas por rol
+- [ ] Crear visualizaciones de datos en el dashboard
+- [ ] Implementar filtros temporales para métricas
+- [ ] Añadir gráficos interactivos
 
 **Pruebas y depuración:**
 ```
-• Verificar creación de objetivos personalizados
-• Comprobar seguimiento automático de progreso
-• Validar notificaciones al alcanzar objetivos
-• Probar visualización de objetivos por rol
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad ha sido pospuesta para una fase posterior
 ```
 
-## Fase 7: Gestión Financiera
+### 7.2 Reportes Analíticos
 
-### 7.1 Sistema de Pagos
-
-- [ ] Implementar registro de pagos
-- [ ] Crear pantalla de historial de pagos
-- [ ] Implementar recordatorios de pago
-- [ ] Añadir generación de comprobantes
+- [ ] Implementar sistema de reportes personalizados
+- [ ] Crear exportación de datos estadísticos
+- [ ] Implementar comparativas de rendimiento
+- [ ] Añadir proyecciones y tendencias
 
 **Pruebas y depuración:**
 ```
-• Verificar registro correcto de pagos
-• Comprobar cálculo de saldos pendientes
-• Validar envío de recordatorios
-• Probar generación de comprobantes
-• Notas de problemas encontrados:
-
-
-
-
-```
-
-### 7.2 Gestión de Suscripciones
-
-- [ ] Implementar modelos de planes de suscripción
-- [ ] Crear pantalla de gestión de suscripción
-- [ ] Implementar cambio de plan
-- [ ] Añadir renovación automática
-
-**Pruebas y depuración:**
-```
-• Verificar visualización de detalles de suscripción actual
-• Comprobar proceso de cambio de plan
-• Validar limitaciones según plan seleccionado
-• Probar proceso de renovación
-• Notas de problemas encontrados:
-
-
-
-
-```
-
-### 7.3 Reportes Financieros
-
-- [ ] Implementar cálculo de ingresos
-- [ ] Crear dashboard financiero
-- [ ] Implementar reportes por período
-- [ ] Añadir exportación de datos
-
-**Pruebas y depuración:**
-```
-• Verificar cálculos correctos de ingresos
-• Comprobar generación de reportes por periodo
-• Validar filtros y agrupaciones
-• Probar exportación en diferentes formatos
-• Notas de problemas encontrados:
-
-
-
-
+• Esta funcionalidad ha sido pospuesta para una fase posterior
 ```
 
 ## Fase 8: Comunicación y Notificaciones
@@ -573,9 +678,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Verificar funcionamiento del indicador de notificaciones no leídas
 • Comprobar marcado de notificaciones como leídas
 • Notas de problemas encontrados:
-
-
-
 
 ```
 
@@ -600,9 +702,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Verificar sistema de marcado de mensajes como leídos
 • Notas de problemas encontrados:
 
-
-
-
 ```
 
 ### 8.3 Anuncios y Eventos
@@ -619,9 +718,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Validar proceso de confirmación de asistencia
 • Probar envío de recordatorios
 • Notas de problemas encontrados:
-
-
-
 
 ```
 
@@ -642,9 +738,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Probar filtros y búsquedas
 • Notas de problemas encontrados:
 
-
-
-
 ```
 
 ### 9.2 Gestión de Planes
@@ -661,9 +754,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Validar asignación de características por plan
 • Probar impacto en academias existentes
 • Notas de problemas encontrados:
-
-
-
 
 ```
 
@@ -682,12 +772,9 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Probar herramientas de diagnóstico y solución
 • Notas de problemas encontrados:
 
-
-
-
 ```
 
-## Fase 10: Pulido Final e Internacionalización
+## Fase 10: Pulido Final, Internacionalización y Monetización
 
 ### 10.1 Internacionalización
 
@@ -703,9 +790,6 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Validar formatos regionales (fechas, números)
 • Probar soporte RTL en idiomas que lo requieran
 • Notas de problemas encontrados:
-
-
-
 
 ```
 
@@ -724,12 +808,22 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Probar comportamiento con grandes volúmenes de datos
 • Notas de problemas encontrados:
 
-
-
-
 ```
 
-### 10.3 Pruebas Finales
+### 10.3 Sistema de Pagos y Suscripciones
+
+- [ ] Implementar modelos de planes de suscripción
+- [ ] Crear pantalla de gestión de suscripción para propietarios
+- [ ] Implementar integración con pasarela de pagos
+- [ ] Añadir sistema de facturación y comprobantes
+- [ ] Implementar gestión de pagos de usuarios a academias
+
+**Pruebas y depuración:**
+```
+• Esta funcionalidad ha sido pospuesta para la fase final
+```
+
+### 10.4 Pruebas Finales
 
 - [ ] Realizar pruebas de aceptación de usuario
 - [ ] Ejecutar pruebas de regresión
@@ -744,24 +838,21 @@ Para continuar mejorando la arquitectura del proyecto, se han identificado las s
 • Documentar cualquier problema pendiente
 • Notas finales:
 
-
-
-
 ```
 
 ## Administración del Proyecto
 
 ### Seguimiento de Progreso
 
-- Sprint actual: 4
-- Fecha de inicio: 05/04/2023
-- Fecha de finalización prevista: 20/04/2023
+- Sprint actual: 5
+- Fecha de inicio: 06/04/2023
+- Fecha de finalización prevista: 27/04/2023
 - Funcionalidades prioritarias:
   1. Completar la gestión de academias
-  2. Implementar mejoras arquitectónicas
+  2. Implementar mejoras en el sistema de permisos
   3. Comenzar con la gestión de grupos
 - Impedimentos actuales:
-  - Necesidad de refactorización para manejar el crecimiento de la complejidad
+  - Necesidad de ejecutar build_runner para generar archivos Freezed faltantes
 
 ### Registro de Decisiones Técnicas
 
@@ -771,8 +862,10 @@ Fecha | Decisión | Motivación | Alternativas Consideradas | Estado
 05/04/2023 | Migrar a sistema basado en permisos | Mayor flexibilidad y granularidad | Mantener sistema basado en roles con verificaciones específicas | ✅ Completado
 05/04/2023 | Centralizar componentes de navegación | Reducir duplicación de código | Mantener implementación actual con duplicación controlada | ✅ Completado
 05/04/2023 | Externalizar widgets reutilizables | Mejorar mantenibilidad y testabilidad | Continuar con enfoque monolítico por pantalla | ✅ Completado
-06/04/2023 | Implementar interfaz de administración de permisos | Facilitar gestión de permisos por propietarios | Limitar la administración de permisos solo a código | 🔄 En progreso
-06/04/2023 | Desarrollar sistema de roles personalizados | Permitir flexibilidad en organización de equipos | Mantener roles predefinidos únicamente | 📅 Planificado
+06/04/2023 | Implementar sistema de caché para permisos | Mejorar rendimiento de verificaciones | Mantener verificación directa sin caché | ✅ Completado
+06/04/2023 | Desarrollar sistema de roles personalizados | Permitir flexibilidad en organización de equipos | Mantener roles predefinidos únicamente | ✅ Completado
+06/04/2023 | Crear interfaz de administración de permisos | Facilitar gestión visual de permisos | Limitar modificación de permisos a nivel de código | ✅ Completado
+06/04/2023 | Actualizar comandos de generación de código | Seguir recomendaciones de Dart 3.0 | Mantener comandos antiguos | ✅ Completado
 ```
 
 ## Apéndice: Comandos y Scripts Útiles
@@ -780,7 +873,7 @@ Fecha | Decisión | Motivación | Alternativas Consideradas | Estado
 ### Comandos para Desarrollo
 ```bash
 # Generación de código
-flutter pub run build_runner build --delete-conflicting-outputs
+dart run build_runner build --delete-conflicting-outputs
 
 # Análisis estático
 flutter analyze

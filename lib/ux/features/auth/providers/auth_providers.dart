@@ -44,8 +44,8 @@ class AuthState extends _$AuthState {
     state = const AsyncValue.loading();
     
     try {
-      final user = await ref.read(authRepositoryProvider)
-          .signUpWithEmailAndPassword(email, password, name, role);
+      final authRepo = ref.read(authRepositoryProvider);
+      final user = await authRepo.signUpWithEmailAndPassword(email, password, name, role);
       
       state = AsyncValue.data(user);
       return user;

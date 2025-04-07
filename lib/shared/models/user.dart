@@ -22,6 +22,7 @@ class User with _$User {
     required UserRole role,
     required Map<String, bool> permissions,
     @Default([]) List<String> academyIds,
+    @Default([]) List<String> customRoleIds, // IDs de roles personalizados asignados
     required DateTime createdAt,
     String? profileImageUrl,
   }) = _User;
@@ -35,6 +36,7 @@ class User with _$User {
     role: UserRole.guest,
     permissions: {},
     academyIds: [],
+    customRoleIds: [],
     createdAt: DateTime.now(),
   );
 } 

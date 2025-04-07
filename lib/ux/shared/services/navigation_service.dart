@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/shared/models/navigation_item.dart';
 import 'package:arcinus/shared/navigation/navigation_items.dart';
 import 'package:arcinus/ux/features/permission/providers/permission_providers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Proveedor para el servicio de navegación
 final navigationServiceProvider = Provider<NavigationService>((ref) {

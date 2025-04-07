@@ -1,7 +1,14 @@
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/shared/navigation/navigation_items.dart';
 import 'package:arcinus/shared/navigation/navigation_service.dart';
+import 'package:arcinus/ui/features/auth/screens/athlete_form_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/athlete_list_screen.dart' show athletesProvider;
+import 'package:arcinus/ui/features/auth/screens/coach_form_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/coach_list_screen.dart' show coachesProvider;
+import 'package:arcinus/ui/features/auth/screens/manager_form_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/manager_list_screen.dart' show managersProvider;
 import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
+import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,8 +43,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   @override
   void initState() {
     super.initState();
-    // Inicialmente creamos 4 tabs: Managers, Coaches, Atletas, Grupos
-    _tabController = TabController(length: 4, vsync: this);
+    // Verificar si el usuario es superAdmin para determinar el número de tabs
+    final user = ref.read(authStateProvider).valueOrNull;
+    final isSuperAdmin = user?.role == UserRole.superAdmin;
+    
+    // Tabs: Managers, Coaches, Atletas, Grupos, Padres, (Owners solo para superAdmin)
+    _tabController = TabController(
+      length: isSuperAdmin ? 6 : 5, 
+      vsync: this
+    );
     
     // Escuchar cambios en las pestañas
     _tabController.addListener(() {
@@ -62,8 +76,16 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
             case 2:
               _selectedRole = UserRole.athlete;
               break;
+            case 3:
+              // Grupos - no tiene rol asociado
+              break;
+            case 4:
+              _selectedRole = UserRole.parent;
+              break;
+            case 5:
+              _selectedRole = UserRole.owner;
+              break;
             default:
-              // La pestaña de grupos no tiene un rol asociado directamente
               break;
           }
         });
@@ -226,8 +248,47 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     }
   }
 
+  void _onSearchChanged(String query) {
+    setState(() {
+      // Actualizar para forzar la reconstrucción y el filtrado
+    });
+  }
+
+  // Método para refrescar la lista de managers
+  void _refreshManagers() {
+    ref.invalidate(managersProvider);
+  }
+
+  // Método para refrescar la lista de coaches
+  void _refreshCoaches() {
+    ref.invalidate(coachesProvider);
+  }
+
+  // Método para refrescar la lista de atletas
+  void _refreshAthletes() {
+    ref.invalidate(athletesProvider);
+  }
+
+  // Método para refrescar la lista de padres
+  void _refreshParents() {
+    // Implementar cuando tengamos el provider de padres
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Funcionalidad en desarrollo')),
+    );
+  }
+
+  // Método para refrescar la lista de owners
+  void _refreshOwners() {
+    // Implementar cuando tengamos el provider de owners
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Funcionalidad en desarrollo')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authStateProvider).valueOrNull;
+    final isSuperAdmin = user?.role == UserRole.superAdmin;
     
     return Scaffold(
       body: SafeArea(
@@ -240,11 +301,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
               child: TabBar(
                 controller: _tabController,
                 isScrollable: true,
-                tabs: const [
-                  Tab(text: 'Managers'),
-                  Tab(text: 'Entrenadores'),
-                  Tab(text: 'Atletas'),
-                  Tab(text: 'Grupos'),
+                tabs: [
+                  const Tab(text: 'Managers'),
+                  const Tab(text: 'Entrenadores'),
+                  const Tab(text: 'Atletas'),
+                  const Tab(text: 'Grupos'),
+                  const Tab(text: 'Padres'),
+                  if (isSuperAdmin) const Tab(text: 'Owners'),
                 ],
               ),
             ),
@@ -267,6 +330,12 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                       
                       // Tab de Grupos
                       _buildGroupsTab(),
+                      
+                      // Tab de Padres
+                      _buildUserCategoryTab(UserRole.parent),
+                      
+                      // Tab de Owners (condicional)
+                      if (isSuperAdmin) _buildUserCategoryTab(UserRole.owner),
                     ],
                   ),
                   
@@ -297,92 +366,19 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   }
 
   Widget _buildUserCategoryTab(UserRole role) {
-    return Column(
-      children: [
-        // Barra de búsqueda con botón de agregar
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              // Barra de búsqueda
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar ${_getRoleName(role).toLowerCase()}...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      // ignore: avoid_redundant_argument_values
-                      vertical: 0.0,
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Botón de agregar usuario
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: IconButton(
-                  onPressed: _toggleInviteForm,
-                  icon: Icon(
-                    _showInviteForm ? Icons.close : Icons.person_add,
-                    color: Theme.of(context).colorScheme.onPrimary,
-                  ),
-                  tooltip: _showInviteForm 
-                      ? 'Cancelar' 
-                      : 'Agregar ${_getRoleName(role)}',
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // Etiquetas para filtrado
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildFilterChip('Todos'),
-                _buildFilterChip('Activos'),
-                _buildFilterChip('Inactivos'),
-                if (role == UserRole.coach) _buildFilterChip('Con grupos'),
-                if (role == UserRole.athlete) _buildFilterChip('Sin grupo'),
-              ],
-            ),
-          ),
-        ),
-        
-        const Divider(),
-        
-        // Lista de usuarios (simulada)
-        Expanded(
-          child: _buildPlaceholderUserList(role),
-        ),
-      ],
-    );
+    return role == UserRole.athlete
+      ? _buildAthleteTab()
+      : role == UserRole.coach
+        ? _buildCoachTab()
+        : role == UserRole.manager
+          ? _buildManagerTab()
+          : role == UserRole.parent
+            ? _buildParentTab()
+            : role == UserRole.owner
+              ? _buildOwnerTab()
+              : _buildPlaceholderUserList(role);
   }
 
-  Widget _buildFilterChip(String label) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(label),
-        onSelected: (bool selected) {
-          // Implementar filtrado
-        },
-      ),
-    );
-  }
 
   Widget _buildPlaceholderUserList(UserRole role) {
     return Center(
@@ -431,6 +427,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                       vertical: 0.0,
                     ),
                   ),
+                  onChanged: _onSearchChanged,
                 ),
               ),
               
@@ -443,6 +440,15 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                 ),
                 child: IconButton(
                   onPressed: () {
+                    final currentAcademy = ref.read(currentAcademyProvider);
+                    if (currentAcademy == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No hay academia seleccionada')),
+                      );
+                      return;
+                    }
+                    
+                    // Aquí iría la navegación al formulario de creación de grupo
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Crear grupo en desarrollo')),
                     );
@@ -458,40 +464,79 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           ),
         ),
         
-        // Etiquetas para filtrado
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildFilterChip('Todos'),
-                _buildFilterChip('Activos'),
-                _buildFilterChip('Inactivos'),
-              ],
-            ),
-          ),
-        ),
-        
         const Divider(),
         
-        // Lista de grupos (simulada)
-        const Expanded(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.groups, size: 64, color: Colors.green),
-                SizedBox(height: 16),
-                Text(
-                  'Gestión de Grupos en desarrollo',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 8),
-                Text('La gestión de grupos se implementará próximamente.'),
-              ],
-            ),
+        // Lista de grupos simulada con datos de ejemplo
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final currentAcademy = ref.watch(currentAcademyProvider);
+              
+              if (currentAcademy == null) {
+                return const Center(
+                  child: Text('No hay academia seleccionada'),
+                );
+              }
+              
+              // Ejemplo de grupos (simulados)
+              final List<Map<String, String>> groups = [
+                {'id': '1', 'name': 'Grupo A - Principiantes', 'members': '8', 'coach': 'Carlos Rodriguez'},
+                {'id': '2', 'name': 'Grupo B - Intermedios', 'members': '12', 'coach': 'Laura Gómez'},
+                {'id': '3', 'name': 'Grupo C - Avanzados', 'members': '6', 'coach': 'Miguel Sanchez'},
+                {'id': '4', 'name': 'Elite - Competición', 'members': '4', 'coach': 'Ana Martinez'},
+              ];
+              
+              // Filtrar grupos según búsqueda
+              final filteredGroups = groups.where((group) => 
+                  (group['name'] ?? '').toLowerCase().contains(_searchController.text.toLowerCase())).toList();
+              
+              if (filteredGroups.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.groups, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? 'No hay grupos registrados'
+                            : 'No se encontraron grupos con esa búsqueda',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
+              return ListView.builder(
+                itemCount: filteredGroups.length,
+                itemBuilder: (context, index) {
+                  final group = filteredGroups[index];
+                  final name = group['name'] ?? 'Grupo sin nombre';
+                  final members = group['members'] ?? '0';
+                  final coach = group['coach'] ?? 'Sin entrenador asignado';
+                  
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Colors.green,
+                        child: Icon(Icons.group, color: Colors.white),
+                      ),
+                      title: Text(name),
+                      subtitle: Text('$members miembros • Entrenador: $coach'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        // Navegación a detalle o edición de grupo
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Detalle de grupo en desarrollo')),
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
@@ -1046,6 +1091,8 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
         return 'Atleta';
       case UserRole.parent:
         return 'Padre/Responsable';
+      case UserRole.owner:
+        return 'Owner';
       default:
         return '';
     }
@@ -1062,8 +1109,759 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
         return 'Puede ver sus entrenamientos, clases y evaluaciones de rendimiento.';
       case UserRole.parent:
         return 'Puede ver información de sus atletas vinculados, incluyendo asistencia, pagos y rendimiento.';
+      case UserRole.owner:
+        return 'Puede gestionar todos los aspectos de la academia, incluyendo usuarios, grupos, pagos y configuraciones.';
       default:
         return '';
     }
+  }
+
+  Widget _buildAthleteTab() {
+    return Column(
+      children: [
+        // Barra de búsqueda con botón de agregar atleta
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Barra de búsqueda
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar atletas...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      // ignore: avoid_redundant_argument_values
+                      vertical: 0.0,
+                    ),
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+              ),
+              
+              // Botón de agregar atleta
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    final currentAcademy = ref.read(currentAcademyProvider);
+                    if (currentAcademy == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No hay academia seleccionada')),
+                      );
+                      return;
+                    }
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AthleteFormScreen(
+                          mode: AthleteFormMode.create,
+                          academyId: currentAcademy.id,
+                        ),
+                      ),
+                    ).then((result) {
+                      if (result == true) {
+                        // Refrescar datos
+                        _refreshAthletes();
+                      }
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Agregar Atleta',
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const Divider(),
+        
+        // Lista de atletas
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final currentAcademy = ref.watch(currentAcademyProvider);
+              
+              if (currentAcademy == null) {
+                return const Center(
+                  child: Text('No hay academia seleccionada'),
+                );
+              }
+              
+              final athletesData = ref.watch(athletesProvider(currentAcademy.id));
+              
+              return athletesData.when(
+                data: (athletes) {
+                  // Filtrar atletas según búsqueda
+                  final filteredAthletes = athletes.where((athlete) => 
+                      athlete.name.toLowerCase().contains(_searchController.text.toLowerCase())).toList();
+                  
+                  if (filteredAthletes.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.fitness_center, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'No hay atletas registrados'
+                                : 'No se encontraron atletas con esa búsqueda',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    itemCount: filteredAthletes.length,
+                    itemBuilder: (context, index) {
+                      final athlete = filteredAthletes[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blueGrey,
+                            child: athlete.profileImageUrl != null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      athlete.profileImageUrl!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(Icons.fitness_center, color: Colors.white),
+                          ),
+                          title: Text(athlete.name),
+                          subtitle: Text(athlete.email),
+                          onTap: () {
+                            // Navegación a detalle o edición
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AthleteFormScreen(
+                                  mode: AthleteFormMode.edit,
+                                  userId: athlete.id,
+                                  academyId: currentAcademy.id,
+                                ),
+                              ),
+                            ).then((result) {
+                              if (result == true) {
+                                // Refrescar datos
+                                _refreshAthletes();
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Error: $error'),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCoachTab() {
+    return Column(
+      children: [
+        // Barra de búsqueda con botón de agregar entrenador
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Barra de búsqueda
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar entrenadores...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      // ignore: avoid_redundant_argument_values
+                      vertical: 0.0,
+                    ),
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+              ),
+              
+              // Botón de agregar entrenador
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    final currentAcademy = ref.read(currentAcademyProvider);
+                    if (currentAcademy == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No hay academia seleccionada')),
+                      );
+                      return;
+                    }
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CoachFormScreen(
+                          mode: CoachFormMode.create,
+                          academyId: currentAcademy.id,
+                        ),
+                      ),
+                    ).then((result) {
+                      if (result == true) {
+                        // Refrescar datos
+                        _refreshCoaches();
+                      }
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Agregar Entrenador',
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const Divider(),
+        
+        // Lista de entrenadores
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final currentAcademy = ref.watch(currentAcademyProvider);
+              
+              if (currentAcademy == null) {
+                return const Center(
+                  child: Text('No hay academia seleccionada'),
+                );
+              }
+              
+              final coachesData = ref.watch(coachesProvider(currentAcademy.id));
+              
+              return coachesData.when(
+                data: (coaches) {
+                  // Filtrar entrenadores según búsqueda
+                  final filteredCoaches = coaches.where((coach) => 
+                      coach.name.toLowerCase().contains(_searchController.text.toLowerCase())).toList();
+                  
+                  if (filteredCoaches.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.sports, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'No hay entrenadores registrados'
+                                : 'No se encontraron entrenadores con esa búsqueda',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    itemCount: filteredCoaches.length,
+                    itemBuilder: (context, index) {
+                      final coach = filteredCoaches[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blueGrey,
+                            child: coach.profileImageUrl != null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      coach.profileImageUrl!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(Icons.sports, color: Colors.white),
+                          ),
+                          title: Text(coach.name),
+                          subtitle: Text(coach.email),
+                          onTap: () {
+                            // Navegación a detalle o edición
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CoachFormScreen(
+                                  mode: CoachFormMode.edit,
+                                  userId: coach.id,
+                                  academyId: currentAcademy.id,
+                                ),
+                              ),
+                            ).then((result) {
+                              if (result == true) {
+                                // Refrescar datos
+                                _refreshCoaches();
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Error: $error'),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildManagerTab() {
+    return Column(
+      children: [
+        // Barra de búsqueda con botón de agregar manager
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Barra de búsqueda
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar gerentes...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      // ignore: avoid_redundant_argument_values
+                      vertical: 0.0,
+                    ),
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+              ),
+              
+              // Botón de agregar manager
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    final currentAcademy = ref.read(currentAcademyProvider);
+                    if (currentAcademy == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No hay academia seleccionada')),
+                      );
+                      return;
+                    }
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ManagerFormScreen(
+                          mode: ManagerFormMode.create,
+                          academyId: currentAcademy.id,
+                        ),
+                      ),
+                    ).then((result) {
+                      if (result == true) {
+                        // Refrescar datos
+                        _refreshManagers();
+                      }
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Agregar Gerente',
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const Divider(),
+        
+        // Lista de gerentes
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final currentAcademy = ref.watch(currentAcademyProvider);
+              
+              if (currentAcademy == null) {
+                return const Center(
+                  child: Text('No hay academia seleccionada'),
+                );
+              }
+              
+              final managersData = ref.watch(managersProvider(currentAcademy.id));
+              
+              return managersData.when(
+                data: (managers) {
+                  // Filtrar gerentes según búsqueda
+                  final filteredManagers = managers.where((manager) => 
+                      manager.name.toLowerCase().contains(_searchController.text.toLowerCase())).toList();
+                  
+                  if (filteredManagers.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.admin_panel_settings, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchController.text.isEmpty
+                                ? 'No hay gerentes registrados'
+                                : 'No se encontraron gerentes con esa búsqueda',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  
+                  return ListView.builder(
+                    itemCount: filteredManagers.length,
+                    itemBuilder: (context, index) {
+                      final manager = filteredManagers[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blueGrey,
+                            child: manager.profileImageUrl != null
+                                ? ClipOval(
+                                    child: Image.network(
+                                      manager.profileImageUrl!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(Icons.admin_panel_settings, color: Colors.white),
+                          ),
+                          title: Text(manager.name),
+                          subtitle: Text(manager.email),
+                          onTap: () {
+                            // Navegación a detalle o edición
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ManagerFormScreen(
+                                  mode: ManagerFormMode.edit,
+                                  userId: manager.id,
+                                  academyId: currentAcademy.id,
+                                ),
+                              ),
+                            ).then((result) {
+                              if (result == true) {
+                                // Refrescar datos
+                                _refreshManagers();
+                              }
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Error: $error'),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildParentTab() {
+    return Column(
+      children: [
+        // Barra de búsqueda con botón de agregar padre
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Barra de búsqueda
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar padres/responsables...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      // ignore: avoid_redundant_argument_values
+                      vertical: 0.0,
+                    ),
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+              ),
+              
+              // Botón de agregar padre
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    final currentAcademy = ref.read(currentAcademyProvider);
+                    if (currentAcademy == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No hay academia seleccionada')),
+                      );
+                      return;
+                    }
+                    
+                    // Acción temporal mientras se desarrolla la pantalla de formulario
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Funcionalidad en desarrollo')),
+                    );
+                    _refreshParents();
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Agregar Padre/Responsable',
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const Divider(),
+        
+        // Lista de padres con datos de ejemplo
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final currentAcademy = ref.watch(currentAcademyProvider);
+              
+              if (currentAcademy == null) {
+                return const Center(
+                  child: Text('No hay academia seleccionada'),
+                );
+              }
+              
+              // Ejemplo de padres/responsables (simulados)
+              final List<Map<String, String>> parents = [
+                {'id': '1', 'name': 'Ana García', 'email': 'ana.garcia@ejemplo.com', 'children': '2', 'phone': '555-123-4567'},
+                {'id': '2', 'name': 'Juan Pérez', 'email': 'juan.perez@ejemplo.com', 'children': '1', 'phone': '555-987-6543'},
+                {'id': '3', 'name': 'María Rodríguez', 'email': 'maria.rodriguez@ejemplo.com', 'children': '3', 'phone': '555-456-7890'},
+                {'id': '4', 'name': 'Carlos Martínez', 'email': 'carlos.martinez@ejemplo.com', 'children': '1', 'phone': '555-789-0123'},
+              ];
+              
+              // Filtrar padres según búsqueda
+              final filteredParents = parents.where((parent) => 
+                  (parent['name'] ?? '').toLowerCase().contains(_searchController.text.toLowerCase()) ||
+                  (parent['email'] ?? '').toLowerCase().contains(_searchController.text.toLowerCase())).toList();
+              
+              if (filteredParents.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.family_restroom, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        _searchController.text.isEmpty
+                            ? 'No hay padres/responsables registrados'
+                            : 'No se encontraron padres/responsables con esa búsqueda',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
+              return ListView.builder(
+                itemCount: filteredParents.length,
+                itemBuilder: (context, index) {
+                  final parent = filteredParents[index];
+                  final name = parent['name'] ?? 'Sin nombre';
+                  final email = parent['email'] ?? 'Sin correo';
+                  final children = parent['children'] ?? '0';
+                  
+                  return Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Colors.orange,
+                        child: Icon(Icons.family_restroom, color: Colors.white),
+                      ),
+                      title: Text(name),
+                      subtitle: Text('$email • $children atleta(s)'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        // Navegación a detalle o edición de padre/responsable
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Detalle de padre/responsable en desarrollo')),
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOwnerTab() {
+    return Column(
+      children: [
+        // Barra de búsqueda con botón de agregar propietario
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Barra de búsqueda
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar propietarios...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      // ignore: avoid_redundant_argument_values
+                      vertical: 0.0,
+                    ),
+                  ),
+                  onChanged: _onSearchChanged,
+                ),
+              ),
+              
+              // Botón de agregar propietario
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    // Acción temporal mientras se desarrolla la pantalla de formulario
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Funcionalidad en desarrollo - Solo SuperAdmin')),
+                    );
+                    _refreshOwners();
+                  },
+                  icon: const Icon(
+                    Icons.person_add,
+                    color: Colors.white,
+                  ),
+                  tooltip: 'Agregar Propietario',
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const Divider(),
+        
+        // Lista de propietarios (temporalmente un placeholder)
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.admin_panel_settings, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text(
+                  'Gestión de Propietarios en desarrollo',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text('Solo los super administradores pueden gestionar propietarios.'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Funcionalidad en desarrollo - Solo SuperAdmin')),
+                    );
+                  },
+                  child: const Text('Ver Propietarios'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 } 

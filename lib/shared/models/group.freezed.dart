@@ -21,14 +21,15 @@ Group _$GroupFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Group {
   String get id => throw _privateConstructorUsedError;
-  String get academyId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
+  String get academyId => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   String? get coachId => throw _privateConstructorUsedError;
-  List<String>? get athleteIds => throw _privateConstructorUsedError;
-  Map<String, dynamic>? get settings => throw _privateConstructorUsedError;
-  @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-  DateTime get createdAt => throw _privateConstructorUsedError;
+  List<String> get athleteIds => throw _privateConstructorUsedError;
+  int? get capacity => throw _privateConstructorUsedError;
+  bool get isPublic => throw _privateConstructorUsedError;
+  DateTime? get createdAt => throw _privateConstructorUsedError;
+  DateTime? get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Group to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -46,14 +47,15 @@ abstract class $GroupCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String academyId,
       String name,
+      String academyId,
       String? description,
       String? coachId,
-      List<String>? athleteIds,
-      Map<String, dynamic>? settings,
-      @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-      DateTime createdAt});
+      List<String> athleteIds,
+      int? capacity,
+      bool isPublic,
+      DateTime? createdAt,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -72,26 +74,28 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
   @override
   $Res call({
     Object? id = null,
-    Object? academyId = null,
     Object? name = null,
+    Object? academyId = null,
     Object? description = freezed,
     Object? coachId = freezed,
-    Object? athleteIds = freezed,
-    Object? settings = freezed,
-    Object? createdAt = null,
+    Object? athleteIds = null,
+    Object? capacity = freezed,
+    Object? isPublic = null,
+    Object? createdAt = freezed,
+    Object? updatedAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      academyId: null == academyId
-          ? _value.academyId
-          : academyId // ignore: cast_nullable_to_non_nullable
-              as String,
       name: null == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      academyId: null == academyId
+          ? _value.academyId
+          : academyId // ignore: cast_nullable_to_non_nullable
               as String,
       description: freezed == description
           ? _value.description
@@ -101,18 +105,26 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
           ? _value.coachId
           : coachId // ignore: cast_nullable_to_non_nullable
               as String?,
-      athleteIds: freezed == athleteIds
+      athleteIds: null == athleteIds
           ? _value.athleteIds
           : athleteIds // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      settings: freezed == settings
-          ? _value.settings
-          : settings // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      createdAt: null == createdAt
+              as List<String>,
+      capacity: freezed == capacity
+          ? _value.capacity
+          : capacity // ignore: cast_nullable_to_non_nullable
+              as int?,
+      isPublic: null == isPublic
+          ? _value.isPublic
+          : isPublic // ignore: cast_nullable_to_non_nullable
+              as bool,
+      createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
+              as DateTime?,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ) as $Val);
   }
 }
@@ -126,14 +138,15 @@ abstract class _$$GroupImplCopyWith<$Res> implements $GroupCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String academyId,
       String name,
+      String academyId,
       String? description,
       String? coachId,
-      List<String>? athleteIds,
-      Map<String, dynamic>? settings,
-      @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-      DateTime createdAt});
+      List<String> athleteIds,
+      int? capacity,
+      bool isPublic,
+      DateTime? createdAt,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -150,26 +163,28 @@ class __$$GroupImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? academyId = null,
     Object? name = null,
+    Object? academyId = null,
     Object? description = freezed,
     Object? coachId = freezed,
-    Object? athleteIds = freezed,
-    Object? settings = freezed,
-    Object? createdAt = null,
+    Object? athleteIds = null,
+    Object? capacity = freezed,
+    Object? isPublic = null,
+    Object? createdAt = freezed,
+    Object? updatedAt = freezed,
   }) {
     return _then(_$GroupImpl(
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
-      academyId: null == academyId
-          ? _value.academyId
-          : academyId // ignore: cast_nullable_to_non_nullable
-              as String,
       name: null == name
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      academyId: null == academyId
+          ? _value.academyId
+          : academyId // ignore: cast_nullable_to_non_nullable
               as String,
       description: freezed == description
           ? _value.description
@@ -179,37 +194,45 @@ class __$$GroupImplCopyWithImpl<$Res>
           ? _value.coachId
           : coachId // ignore: cast_nullable_to_non_nullable
               as String?,
-      athleteIds: freezed == athleteIds
+      athleteIds: null == athleteIds
           ? _value._athleteIds
           : athleteIds // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
-      settings: freezed == settings
-          ? _value._settings
-          : settings // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
-      createdAt: null == createdAt
+              as List<String>,
+      capacity: freezed == capacity
+          ? _value.capacity
+          : capacity // ignore: cast_nullable_to_non_nullable
+              as int?,
+      isPublic: null == isPublic
+          ? _value.isPublic
+          : isPublic // ignore: cast_nullable_to_non_nullable
+              as bool,
+      createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime,
+              as DateTime?,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$GroupImpl implements _Group {
+class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
   const _$GroupImpl(
       {required this.id,
-      required this.academyId,
       required this.name,
+      required this.academyId,
       this.description,
       this.coachId,
-      final List<String>? athleteIds,
-      final Map<String, dynamic>? settings,
-      @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-      required this.createdAt})
-      : _athleteIds = athleteIds,
-        _settings = settings;
+      final List<String> athleteIds = const [],
+      this.capacity,
+      this.isPublic = true,
+      this.createdAt,
+      this.updatedAt})
+      : _athleteIds = athleteIds;
 
   factory _$GroupImpl.fromJson(Map<String, dynamic> json) =>
       _$$GroupImplFromJson(json);
@@ -217,40 +240,52 @@ class _$GroupImpl implements _Group {
   @override
   final String id;
   @override
-  final String academyId;
-  @override
   final String name;
+  @override
+  final String academyId;
   @override
   final String? description;
   @override
   final String? coachId;
-  final List<String>? _athleteIds;
+  final List<String> _athleteIds;
   @override
-  List<String>? get athleteIds {
-    final value = _athleteIds;
-    if (value == null) return null;
+  @JsonKey()
+  List<String> get athleteIds {
     if (_athleteIds is EqualUnmodifiableListView) return _athleteIds;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(value);
-  }
-
-  final Map<String, dynamic>? _settings;
-  @override
-  Map<String, dynamic>? get settings {
-    final value = _settings;
-    if (value == null) return null;
-    if (_settings is EqualUnmodifiableMapView) return _settings;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(value);
+    return EqualUnmodifiableListView(_athleteIds);
   }
 
   @override
-  @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-  final DateTime createdAt;
+  final int? capacity;
+  @override
+  @JsonKey()
+  final bool isPublic;
+  @override
+  final DateTime? createdAt;
+  @override
+  final DateTime? updatedAt;
 
   @override
-  String toString() {
-    return 'Group(id: $id, academyId: $academyId, name: $name, description: $description, coachId: $coachId, athleteIds: $athleteIds, settings: $settings, createdAt: $createdAt)';
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
+    return 'Group(id: $id, name: $name, academyId: $academyId, description: $description, coachId: $coachId, athleteIds: $athleteIds, capacity: $capacity, isPublic: $isPublic, createdAt: $createdAt, updatedAt: $updatedAt)';
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty('type', 'Group'))
+      ..add(DiagnosticsProperty('id', id))
+      ..add(DiagnosticsProperty('name', name))
+      ..add(DiagnosticsProperty('academyId', academyId))
+      ..add(DiagnosticsProperty('description', description))
+      ..add(DiagnosticsProperty('coachId', coachId))
+      ..add(DiagnosticsProperty('athleteIds', athleteIds))
+      ..add(DiagnosticsProperty('capacity', capacity))
+      ..add(DiagnosticsProperty('isPublic', isPublic))
+      ..add(DiagnosticsProperty('createdAt', createdAt))
+      ..add(DiagnosticsProperty('updatedAt', updatedAt));
   }
 
   @override
@@ -259,17 +294,22 @@ class _$GroupImpl implements _Group {
         (other.runtimeType == runtimeType &&
             other is _$GroupImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
             (identical(other.academyId, academyId) ||
                 other.academyId == academyId) &&
-            (identical(other.name, name) || other.name == name) &&
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.coachId, coachId) || other.coachId == coachId) &&
             const DeepCollectionEquality()
                 .equals(other._athleteIds, _athleteIds) &&
-            const DeepCollectionEquality().equals(other._settings, _settings) &&
+            (identical(other.capacity, capacity) ||
+                other.capacity == capacity) &&
+            (identical(other.isPublic, isPublic) ||
+                other.isPublic == isPublic) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.updatedAt, updatedAt) ||
+                other.updatedAt == updatedAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -277,13 +317,15 @@ class _$GroupImpl implements _Group {
   int get hashCode => Object.hash(
       runtimeType,
       id,
-      academyId,
       name,
+      academyId,
       description,
       coachId,
       const DeepCollectionEquality().hash(_athleteIds),
-      const DeepCollectionEquality().hash(_settings),
-      createdAt);
+      capacity,
+      isPublic,
+      createdAt,
+      updatedAt);
 
   /// Create a copy of Group
   /// with the given fields replaced by the non-null parameter values.
@@ -304,34 +346,38 @@ class _$GroupImpl implements _Group {
 abstract class _Group implements Group {
   const factory _Group(
       {required final String id,
-      required final String academyId,
       required final String name,
+      required final String academyId,
       final String? description,
       final String? coachId,
-      final List<String>? athleteIds,
-      final Map<String, dynamic>? settings,
-      @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-      required final DateTime createdAt}) = _$GroupImpl;
+      final List<String> athleteIds,
+      final int? capacity,
+      final bool isPublic,
+      final DateTime? createdAt,
+      final DateTime? updatedAt}) = _$GroupImpl;
 
   factory _Group.fromJson(Map<String, dynamic> json) = _$GroupImpl.fromJson;
 
   @override
   String get id;
   @override
-  String get academyId;
-  @override
   String get name;
+  @override
+  String get academyId;
   @override
   String? get description;
   @override
   String? get coachId;
   @override
-  List<String>? get athleteIds;
+  List<String> get athleteIds;
   @override
-  Map<String, dynamic>? get settings;
+  int? get capacity;
   @override
-  @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
-  DateTime get createdAt;
+  bool get isPublic;
+  @override
+  DateTime? get createdAt;
+  @override
+  DateTime? get updatedAt;
 
   /// Create a copy of Group
   /// with the given fields replaced by the non-null parameter values.

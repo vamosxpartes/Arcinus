@@ -44,7 +44,7 @@ final authStateChangesProvider = AutoDisposeStreamProvider<User?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStateChangesRef = AutoDisposeStreamProviderRef<User?>;
-String _$authStateHash() => r'7d295fc937654d3b9efe1efaec3ddb8150239df6';
+String _$authStateHash() => r'97184e76f7c81f20b52a1174b381d3f6ffc518e9';
 
 /// Provider de estado de autenticación
 ///

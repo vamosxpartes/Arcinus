@@ -26,6 +26,8 @@ mixin _$User {
   UserRole get role => throw _privateConstructorUsedError;
   Map<String, bool> get permissions => throw _privateConstructorUsedError;
   List<String> get academyIds => throw _privateConstructorUsedError;
+  List<String> get customRoleIds =>
+      throw _privateConstructorUsedError; // IDs de roles personalizados asignados
   DateTime get createdAt => throw _privateConstructorUsedError;
   String? get profileImageUrl => throw _privateConstructorUsedError;
 
@@ -50,6 +52,7 @@ abstract class $UserCopyWith<$Res> {
       UserRole role,
       Map<String, bool> permissions,
       List<String> academyIds,
+      List<String> customRoleIds,
       DateTime createdAt,
       String? profileImageUrl});
 }
@@ -75,6 +78,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? role = null,
     Object? permissions = null,
     Object? academyIds = null,
+    Object? customRoleIds = null,
     Object? createdAt = null,
     Object? profileImageUrl = freezed,
   }) {
@@ -103,6 +107,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.academyIds
           : academyIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      customRoleIds: null == customRoleIds
+          ? _value.customRoleIds
+          : customRoleIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -129,6 +137,7 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       UserRole role,
       Map<String, bool> permissions,
       List<String> academyIds,
+      List<String> customRoleIds,
       DateTime createdAt,
       String? profileImageUrl});
 }
@@ -151,6 +160,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? role = null,
     Object? permissions = null,
     Object? academyIds = null,
+    Object? customRoleIds = null,
     Object? createdAt = null,
     Object? profileImageUrl = freezed,
   }) {
@@ -179,6 +189,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value._academyIds
           : academyIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      customRoleIds: null == customRoleIds
+          ? _value._customRoleIds
+          : customRoleIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -201,10 +215,12 @@ class _$UserImpl implements _User {
       required this.role,
       required final Map<String, bool> permissions,
       final List<String> academyIds = const [],
+      final List<String> customRoleIds = const [],
       required this.createdAt,
       this.profileImageUrl})
       : _permissions = permissions,
-        _academyIds = academyIds;
+        _academyIds = academyIds,
+        _customRoleIds = customRoleIds;
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -234,6 +250,16 @@ class _$UserImpl implements _User {
     return EqualUnmodifiableListView(_academyIds);
   }
 
+  final List<String> _customRoleIds;
+  @override
+  @JsonKey()
+  List<String> get customRoleIds {
+    if (_customRoleIds is EqualUnmodifiableListView) return _customRoleIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_customRoleIds);
+  }
+
+// IDs de roles personalizados asignados
   @override
   final DateTime createdAt;
   @override
@@ -241,7 +267,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(id: $id, email: $email, name: $name, role: $role, permissions: $permissions, academyIds: $academyIds, createdAt: $createdAt, profileImageUrl: $profileImageUrl)';
+    return 'User(id: $id, email: $email, name: $name, role: $role, permissions: $permissions, academyIds: $academyIds, customRoleIds: $customRoleIds, createdAt: $createdAt, profileImageUrl: $profileImageUrl)';
   }
 
   @override
@@ -257,6 +283,8 @@ class _$UserImpl implements _User {
                 .equals(other._permissions, _permissions) &&
             const DeepCollectionEquality()
                 .equals(other._academyIds, _academyIds) &&
+            const DeepCollectionEquality()
+                .equals(other._customRoleIds, _customRoleIds) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.profileImageUrl, profileImageUrl) ||
@@ -273,6 +301,7 @@ class _$UserImpl implements _User {
       role,
       const DeepCollectionEquality().hash(_permissions),
       const DeepCollectionEquality().hash(_academyIds),
+      const DeepCollectionEquality().hash(_customRoleIds),
       createdAt,
       profileImageUrl);
 
@@ -300,6 +329,7 @@ abstract class _User implements User {
       required final UserRole role,
       required final Map<String, bool> permissions,
       final List<String> academyIds,
+      final List<String> customRoleIds,
       required final DateTime createdAt,
       final String? profileImageUrl}) = _$UserImpl;
 
@@ -317,6 +347,8 @@ abstract class _User implements User {
   Map<String, bool> get permissions;
   @override
   List<String> get academyIds;
+  @override
+  List<String> get customRoleIds; // IDs de roles personalizados asignados
   @override
   DateTime get createdAt;
   @override

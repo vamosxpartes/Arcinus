@@ -11,11 +11,16 @@ El proyecto se encuentra en fase activa de desarrollo con los siguientes compone
 - ✅ **Gestión de academias** con creación, listado y detalles básicos
 - ✅ **Dashboards dinámicos basados en permisos** con estadísticas y métricas relevantes
 - ✅ **Sistema de permisos granular** para control de acceso a funcionalidades
+- ✅ **Sistema de roles personalizados** con interfaz completa de gestión
+- ✅ **Optimización de verificación de permisos** mediante sistema de caché
+- ✅ **CRUD completo de atletas, entrenadores y gerentes** con pantallas dedicadas
+- ✅ **Gestión de grupos/equipos** con asignación de entrenadores y atletas
+- ✅ **Sistema de entrenamientos y sesiones** con plantillas, recurrencia y asistencia
 
 Actualmente trabajando en:
-- 🔄 Optimización del flujo de creación de academias
-- 🔄 Mejora del sistema de métricas en el dashboard
-- 🔄 Implementación de gestión de grupos/equipos
+- 🔄 Implementación de evaluaciones y seguimiento de atletas
+- 🔄 Integración de calendario y programación de actividades
+- 🔄 Sistema de comunicación interno y notificaciones
 
 ## Características Principales
 
@@ -25,6 +30,19 @@ Actualmente trabajando en:
 - **Sistema de pagos**: Control de mensualidades y pagos.
 - **Sistema de comunicación integrado**: Chat interno y notificaciones para mantener a todos los miembros informados.
 - **Control de acceso basado en permisos**: Sistema granular que permite control preciso sobre cada funcionalidad.
+- **Roles personalizados**: Creación y gestión de roles con combinaciones específicas de permisos.
+
+## Sistema de Entrenamientos y Sesiones
+
+El nuevo sistema de entrenamientos implementado ofrece:
+
+- **Gestión completa de entrenamientos**: Creación, edición y eliminación de entrenamientos.
+- **Plantillas reutilizables**: Crear plantillas que pueden utilizarse como base para nuevos entrenamientos.
+- **Entrenamientos recurrentes**: Configurar un entrenamiento para repetirse según un patrón (diario, semanal, mensual).
+- **Sesiones específicas**: Gestión de sesiones individuales derivadas de un entrenamiento.
+- **Registro de asistencia**: Control detallado de asistencia de atletas a cada sesión.
+- **Seguimiento de rendimiento**: Registro de datos de desempeño en cada sesión.
+- **Flujo de trabajo intuitivo**: Interfaz fácil de usar para la gestión completa del ciclo de entrenamiento.
 
 ## Mejoras Planificadas e Implementadas
 
@@ -46,11 +64,25 @@ Se ha completado la evolución del sistema basado en roles hacia uno fundamentad
 - Renderización condicional de UI basada en permisos individuales en lugar de roles completos
 - Navegación y visualización de contenido adaptada a los permisos específicos de cada usuario
 
+### 4. Optimización de Verificación de Permisos ✅
+Se ha implementado un sistema para mejorar el rendimiento de las verificaciones de permisos:
+- Caché inteligente de permisos con invalidación automática
+- Reducción significativa de operaciones de verificación repetitivas
+- Widgets optimizados para mostrar/ocultar contenido basado en permisos
+- Mayor fluidez de la interfaz de usuario en pantallas con múltiples comprobaciones
+
+### 5. Sistema de Roles Personalizados ✅
+Se ha desarrollado un sistema completo para la creación y gestión de roles personalizados:
+- Creación de roles con combinaciones específicas de permisos
+- Interfaz para editar y eliminar roles existentes
+- Asignación de roles personalizados a múltiples usuarios
+- Visualización clara de permisos asociados a cada rol
+
 ### Próximas Mejoras Planificadas
 
-1. **Interfaz de Administración de Permisos**: Crear una interfaz visual para que propietarios y managers puedan administrar permisos de usuarios.
-2. **Sistema de Roles Personalizados**: Permitir la creación de roles personalizados con combinaciones específicas de permisos.
-3. **Optimización de Rendimiento**: Mejorar la eficiencia de las consultas a Firestore y la gestión de estado.
+1. **Sistema de Auditoría de Permisos**: Implementación de registro y seguimiento de cambios en permisos.
+2. **Notificaciones de Cambios de Permisos**: Alertar a usuarios cuando sus permisos son modificados.
+3. **Optimización de Consultas a Firestore**: Mejorar la eficiencia en el acceso a datos.
 
 ## Esquema de Roles
 
@@ -60,6 +92,7 @@ Se ha completado la evolución del sistema basado en roles hacia uno fundamentad
 4. **Entrenador**: Responsable de grupos/equipos y entrenamientos.
 5. **Atleta**: Miembro de la academia que participa en las actividades.
 6. **Padre/Responsable**: Relacionado con uno o más atletas.
+7. **Roles Personalizados**: Combinaciones específicas de permisos definidas por propietarios o managers.
 
 ## Estructura de Firestore
 
@@ -72,11 +105,15 @@ Collection 'academies'
 
 Collection 'users'
   |- Document '{userId}'
-      |- Field: email, name, role, permissions, academyIds, createdAt
+      |- Field: email, name, role, permissions, academyIds, customRoleIds, createdAt
       |- Collection 'profile'
       |- Collection 'coach_profile' (si el rol es coach)
       |- Collection 'athlete_profile' (si el rol es athlete)
       |- Collection 'parent_profile' (si el rol es parent)
+
+Collection 'custom_roles'
+  |- Document '{roleId}'
+      |- Field: name, description, academyId, permissions, assignedUserIds, createdBy, createdAt, updatedAt
 
 Collection 'classes'
   |- Document '{classId}'
@@ -140,6 +177,19 @@ La gestión de usuarios se organiza por categorías:
 
 - **User Search**: Cada categoría incluye un buscador y etiquetas para filtrar usuarios.
 
+## Sistema de Permisos y Roles Personalizados
+
+- **Administración de Permisos**: Interfaz completa para gestionar permisos de usuarios:
+  - Gestión individual por usuario
+  - Gestión por roles
+  - Operaciones por lotes para múltiples usuarios
+
+- **Roles Personalizados**: Sistema para crear y gestionar roles a medida:
+  - Creación de roles con nombres y descripciones personalizadas
+  - Asignación granular de permisos específicos
+  - Visualización de permisos activos en cada rol
+  - Gestión de usuarios asignados a cada rol
+
 ## Sistema de Comunicación
 
 - **Chat Interno**: Permite la comunicación directa entre miembros de la academia.
@@ -196,9 +246,14 @@ La gestión de usuarios se organiza por categorías:
    flutter pub get
    ```
 
-3. Configure Firebase siguiendo las instrucciones en `README_FIREBASE.md`
+3. Genere el código necesario para los modelos
+   ```
+   dart run build_runner build --delete-conflicting-outputs
+   ```
 
-4. Ejecute la aplicación
+4. Configure Firebase siguiendo las instrucciones en `README_FIREBASE.md`
+
+5. Ejecute la aplicación
    ```
    flutter run
    ```
@@ -214,6 +269,8 @@ lib/
 │   └── features/        # Características organizadas por módulos
 │       ├── auth/        # Autenticación
 │       ├── dashboard/
+│       ├── roles/       # Gestión de roles personalizados
+│       ├── permissions/ # Administración de permisos
 │       ├── chat/        # Sistema de chat interno
 │       ├── notifications/ # Gestión de notificaciones
 │       ├── academy_management/
@@ -222,6 +279,9 @@ lib/
 │   ├── shared/          # Utilidades y servicios compartidos
 │   └── features/        # Características organizadas por dominio
 └── shared/              # Recursos compartidos entre UI y UX
+    ├── models/          # Modelos de datos (generados con Freezed)
+    ├── constants/       # Constantes de la aplicación
+    └── utils/           # Utilidades compartidas
 ```
 
 ## Tecnologías Utilizadas

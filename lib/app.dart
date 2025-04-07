@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
 import 'package:arcinus/config/firebase/analytics_service.dart';
+import 'package:arcinus/shared/models/training.dart';
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/ui/features/academy/screens/academy_list_screen.dart';
 import 'package:arcinus/ui/features/academy/screens/create_academy_screen.dart';
@@ -8,7 +9,12 @@ import 'package:arcinus/ui/features/auth/screens/auth_screens.dart';
 import 'package:arcinus/ui/features/chat/screens/chat_screen.dart';
 import 'package:arcinus/ui/features/chat/screens/chats_list_screen.dart';
 import 'package:arcinus/ui/features/dashboard/screens/dashboard_screens.dart';
+import 'package:arcinus/ui/features/home/screens/main_screen.dart';
 import 'package:arcinus/ui/features/splash/splash_screen.dart';
+import 'package:arcinus/ui/features/trainings/attendance_screen.dart';
+import 'package:arcinus/ui/features/trainings/session_list_screen.dart';
+import 'package:arcinus/ui/features/trainings/training_form_screen.dart';
+import 'package:arcinus/ui/features/trainings/training_list_screen.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +32,29 @@ class ArcinusApp extends ConsumerWidget {
     final analyticsObserver = AnalyticsService().getAnalyticsObserver();
     final authState = ref.watch(authStateProvider);
     final splashCompleted = ref.watch(splashCompletedProvider);
+    
+    // Asegurar que se cargue la academia automáticamente
+    ref.watch(autoLoadAcademyProvider);
+    
+    // Crear un efecto para realizar carga inicial de academias cuando cambie el estado de autenticación
+    ref.listen(authStateProvider, (previous, next) {
+      if (next.hasValue && next.valueOrNull != null) {
+        // Cuando el usuario se autentica, iniciar la carga de academias
+        developer.log('DEBUG: App - Usuario autenticado, iniciando carga de academias');
+        ref.invalidate(userAcademiesProvider);
+      }
+    });
+    
+    // Observar cambios en la academia actual para depuración
+    ref.listen(currentAcademyProvider, (previous, current) {
+      if (current != previous) {
+        if (current != null) {
+          developer.log('DEBUG: App - Academia actual cambiada: ${current.id} - ${current.name}');
+        } else {
+          developer.log('DEBUG: App - Academia actual limpiada (null)');
+        }
+      }
+    });
     
     // Si el splash no ha terminado, lo mostramos
     if (!splashCompleted) {
@@ -105,13 +134,13 @@ class ArcinusApp extends ConsumerWidget {
                       return const CreateAcademyScreen();
                     } else {
                       developer.log('DEBUG: Redirigiendo a dashboard');
-                      return const DashboardScreen();
+                      return const MainScreen();
                     }
                   },
                   loading: () => const LoadingScreen(),
                   error: (error, stack) {
                     developer.log('DEBUG: Error verificando si necesita crear academia: $error');
-                    return const DashboardScreen();
+                    return const MainScreen();
                   },
                 );
               },
@@ -129,7 +158,9 @@ class ArcinusApp extends ConsumerWidget {
         '/chats': (context) => const ChatsListScreen(),
         '/chat': (context) => const ChatScreen(),
         '/notifications': (context) => const NotificationsScreen(),
-        '/trainings': (context) => const UnderDevelopmentScreen(title: 'Entrenamientos'),
+        '/trainings': (context) => TrainingListScreen(
+          academyId: ref.read(currentAcademyIdProvider) ?? '',
+        ),
         '/calendar': (context) => const UnderDevelopmentScreen(title: 'Calendario'),
         '/stats': (context) => const UnderDevelopmentScreen(title: 'Estadísticas'),
         '/settings': (context) => const UnderDevelopmentScreen(title: 'Configuración'),
@@ -137,6 +168,58 @@ class ArcinusApp extends ConsumerWidget {
         '/academies': (context) => const AcademyListScreen(),
         '/create-academy': (context) => const CreateAcademyScreen(),
         '/academy-details': (context) => const UnderDevelopmentScreen(title: 'Detalles de Academia'),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name?.startsWith('/trainings/') ?? false) {
+          final academyId = ref.read(currentAcademyIdProvider) ?? '';
+          
+          switch (settings.name) {
+            case '/trainings/new':
+              return MaterialPageRoute(
+                builder: (context) => TrainingFormScreen(
+                  academyId: academyId,
+                ),
+              );
+              
+            case '/trainings/template/new':
+              return MaterialPageRoute(
+                builder: (context) => TrainingFormScreen(
+                  academyId: academyId,
+                  isTemplate: true,
+                ),
+              );
+              
+            case '/trainings/edit':
+              final training = settings.arguments as Training;
+              return MaterialPageRoute(
+                builder: (context) => TrainingFormScreen(
+                  academyId: academyId,
+                  training: training,
+                  isTemplate: training.isTemplate,
+                ),
+              );
+              
+            case '/trainings/sessions':
+              final trainingId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => SessionListScreen(
+                  trainingId: trainingId,
+                  academyId: academyId,
+                ),
+              );
+              
+            case '/trainings/attendance':
+              final sessionId = settings.arguments as String;
+              return MaterialPageRoute(
+                builder: (context) => AttendanceScreen(
+                  sessionId: sessionId,
+                  academyId: academyId,
+                ),
+              );
+          }
+        }
+        
+        return null;
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(

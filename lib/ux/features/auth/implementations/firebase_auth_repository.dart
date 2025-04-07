@@ -59,6 +59,65 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
   
+  /// Crea un usuario en Firebase Auth sin iniciar sesión automáticamente
+  /// Esta es una nueva función para ser usada internamente por la app cuando
+  /// se crean usuarios desde un panel administrativo
+  Future<app.User> createUserWithoutSignIn(
+    String email,
+    String password,
+    String name,
+    app.UserRole role,
+  ) async {
+    try {
+      developer.log('DEBUG: Firebase - Creando usuario sin iniciar sesión: $email con rol: $role');
+      
+      // Guardar el usuario actual para restaurarlo después
+      final currentUser = _firebaseAuth.currentUser;
+      
+      if (currentUser != null) {
+        // No podemos obtener la contraseña actual, tendríamos que almacenarla de manera segura
+        // Esto es una limitación de la implementación actual
+        developer.log('DEBUG: Firebase - Usuario actual que se restaurará: ${currentUser.uid}');
+      }
+      
+      // Crear usuario en Firebase Auth
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      final uid = userCredential.user!.uid;
+      developer.log('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $role');
+      
+      // Crear documento de usuario en Firestore
+      final user = app.User(
+        id: uid,
+        email: email,
+        name: name,
+        role: role,
+        permissions: Permissions.getDefaultPermissions(role),
+        academyIds: [],
+        createdAt: DateTime.now(),
+      );
+      
+      await _firestore.collection('users').doc(uid).set(_userToJson(user));
+      developer.log('DEBUG: Firebase - Documento de usuario creado en Firestore');
+      
+      // Cerrar sesión del usuario recién creado para no permanecer autenticado como él
+      await _firebaseAuth.signOut();
+      
+      // Si había un usuario anterior, necesitaríamos volver a iniciar sesión con él
+      // Pero esto requeriría conocer su contraseña, lo cual no tenemos
+      // Por ahora, simplemente dejamos al usuario desconectado
+      // y la UI debería redirigir al login
+      
+      return user;
+    } catch (e) {
+      developer.log('DEBUG: Firebase - Error al crear usuario: $e');
+      throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al crear usuario: $e'));
+    }
+  }
+  
   @override
   Future<app.User> signUpWithEmailAndPassword(
     String email,
@@ -76,18 +135,16 @@ class FirebaseAuthRepository implements AuthRepository {
       
       final uid = userCredential.user!.uid;
       
-      // Por seguridad, verificamos que solo se puedan registrar propietarios directamente
-      final effectiveRole = role == app.UserRole.owner ? app.UserRole.owner : app.UserRole.guest;
-      
-      developer.log('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $effectiveRole');
+      // Usar el rol proporcionado directamente
+      developer.log('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $role');
       
       // Crear documento de usuario en Firestore
       final user = app.User(
         id: uid,
         email: email,
         name: name,
-        role: effectiveRole, // Usar el rol efectivo
-        permissions: Permissions.getDefaultPermissions(effectiveRole),
+        role: role, // Usar el rol proporcionado sin modificar
+        permissions: Permissions.getDefaultPermissions(role),
         academyIds: [],
         createdAt: DateTime.now(),
       );

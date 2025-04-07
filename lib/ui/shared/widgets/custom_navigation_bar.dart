@@ -25,6 +25,13 @@ class CustomNavigationBar extends StatefulWidget {
   State<CustomNavigationBar> createState() => _CustomNavigationBarState();
 }
 
+// Item de navegación para Entrenamientos
+const NavigationItem trainingNavigationItem = NavigationItem(
+  icon: Icons.fitness_center,
+  label: 'Entrenamientos',
+  destination: '/trainings',
+);
+
 class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTickerProviderStateMixin {
   // Controlador para el panel deslizable
   late AnimationController _panelController;
@@ -66,7 +73,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    Theme.of(context);
     final hasAdditionalItems = widget.allItems.isNotEmpty;
     
     return GestureDetector(
@@ -119,7 +126,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
       child: Container(
         height: 90 + (hasAdditionalItems ? _panelAnimation.value : 0),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          color: Theme.of(context).colorScheme.surface,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(30),
@@ -138,7 +145,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
               height: 4,
               margin: const EdgeInsets.only(top: 8, bottom: 8),
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withAlpha(100),
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withAlpha(100),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -157,7 +164,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
                           padding: const EdgeInsets.only(left: 8.0, bottom: 16.0),
                           child: Text(
                             'Todas las opciones',
-                            style: theme.textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -192,7 +199,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
               Container(
                 height: 1,
                 margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
-                color: theme.colorScheme.outlineVariant.withAlpha(90),
+                color: Theme.of(context).colorScheme.outlineVariant.withAlpha(90),
               ),
             
             // Barra principal con elementos fijados

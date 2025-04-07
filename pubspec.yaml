@@ -38,11 +38,16 @@ dependencies:
   image_picker: ^1.1.2
   flutter_launcher_icons: ^0.14.3
   shared_preferences: ^2.5.3
+  uuid: ^4.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  
+  # Testing
+  mocktail: ^1.0.3
+  fake_cloud_firestore: ^2.5.2
   
   # Generadores de código
   build_runner: ^2.4.8

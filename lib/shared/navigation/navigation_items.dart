@@ -5,57 +5,57 @@ import 'package:flutter/material.dart';
 class NavigationItems {
   /// Lista de todos los elementos de navegación disponibles en la aplicación
   static final List<NavigationItem> allItems = [
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.dashboard,
       label: 'Inicio',
       destination: '/dashboard',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.group,
       label: 'Usuarios',
       destination: '/users-management',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.sports,
       label: 'Entrenamientos',
       destination: '/trainings',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.calendar_today,
       label: 'Calendario',
       destination: '/calendar',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.bar_chart,
       label: 'Estadísticas',
       destination: '/stats',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.settings,
       label: 'Configuración',
       destination: '/settings',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.payments,
       label: 'Pagos',
       destination: '/payments',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.school,
       label: 'Academias',
       destination: '/academies',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.person,
       label: 'Perfil',
       destination: '/profile',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.chat,
       label: 'Chat',
       destination: '/chats',
     ),
-    NavigationItem(
+    const NavigationItem(
       icon: Icons.notifications,
       label: 'Notificaciones',
       destination: '/notifications',

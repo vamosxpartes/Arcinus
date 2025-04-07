@@ -1,14 +1,34 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/shared/constants/permissions.dart';
-import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/shared/models/navigation_item.dart';
+import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/shared/navigation/navigation_items.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
+import 'package:arcinus/ux/features/permission/services/permission_cache_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Proveedor del servicio de caché de permisos
+final permissionCacheServiceProvider = Provider<PermissionCacheService>((ref) {
+  return PermissionCacheService();
+});
 
 /// Proveedor del servicio de permisos
 final permissionServiceProvider = Provider<PermissionService>((ref) {
   final authState = ref.watch(authStateProvider);
+  final cacheService = ref.watch(permissionCacheServiceProvider);
+  
+  // Actualizar caché cuando cambie el usuario
+  if (authState.hasValue) {
+    cacheService.updateCache(authState.valueOrNull);
+  }
+  
   return PermissionService(ref, authState.valueOrNull);
+});
+
+/// Proveedor para obtener un lote de permisos para optimizar rendimiento de UI
+final permissionBatchProvider = Provider.family<Map<String, bool>, List<String>>((ref, permissions) {
+  final authState = ref.watch(authStateProvider);
+  final cacheService = ref.watch(permissionCacheServiceProvider);
+  return cacheService.getPermissionBatch(authState.valueOrNull, permissions);
 });
 
 /// Servicio para gestionar los permisos y accesos basados en permisos
@@ -18,22 +38,22 @@ class PermissionService {
 
   PermissionService(this._ref, this._currentUser);
 
+  /// Obtiene el servicio de caché
+  PermissionCacheService get _cacheService => _ref.read(permissionCacheServiceProvider);
+
   /// Verifica si el usuario actual tiene un permiso específico
   bool hasPermission(String permission) {
-    if (_currentUser == null) return false;
-    return _currentUser.permissions[permission] == true;
+    return _cacheService.hasPermission(_currentUser, permission);
   }
 
   /// Verifica si el usuario actual tiene todos los permisos especificados
   bool hasAllPermissions(List<String> permissions) {
-    if (_currentUser == null) return false;
-    return permissions.every((p) => _currentUser.permissions[p] == true);
+    return _cacheService.hasAllPermissions(_currentUser, permissions);
   }
 
   /// Verifica si el usuario actual tiene al menos uno de los permisos especificados
   bool hasAnyPermission(List<String> permissions) {
-    if (_currentUser == null) return false;
-    return permissions.any((p) => _currentUser.permissions[p] == true);
+    return _cacheService.hasAnyPermission(_currentUser, permissions);
   }
   
   /// Obtiene los elementos de navegación filtrados por los permisos del usuario actual
@@ -154,5 +174,10 @@ class PermissionService {
       default:
         return false;
     }
+  }
+  
+  /// Limpia la caché de permisos
+  void clearPermissionCache() {
+    _cacheService.clearCache();
   }
 } 

@@ -16,6 +16,10 @@ _$UserImpl _$$UserImplFromJson(Map<String, dynamic> json) => _$UserImpl(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      customRoleIds: (json['customRoleIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
       profileImageUrl: json['profileImageUrl'] as String?,
     );
@@ -28,6 +32,7 @@ Map<String, dynamic> _$$UserImplToJson(_$UserImpl instance) =>
       'role': _$UserRoleEnumMap[instance.role]!,
       'permissions': instance.permissions,
       'academyIds': instance.academyIds,
+      'customRoleIds': instance.customRoleIds,
       'createdAt': instance.createdAt.toIso8601String(),
       'profileImageUrl': instance.profileImageUrl,
     };

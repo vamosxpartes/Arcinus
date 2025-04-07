@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'group.freezed.dart';
@@ -11,17 +12,15 @@ String dateTimeToString(DateTime dateTime) => dateTime.toIso8601String();
 class Group with _$Group {
   const factory Group({
     required String id,
-    required String academyId,
     required String name,
+    required String academyId,
     String? description,
     String? coachId,
-    List<String>? athleteIds,
-    Map<String, dynamic>? settings,
-    @JsonKey(
-      fromJson: dateTimeFromString,
-      toJson: dateTimeToString,
-    )
-    required DateTime createdAt,
+    @Default([]) List<String> athleteIds,
+    int? capacity,
+    @Default(true) bool isPublic,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) = _Group;
 
   factory Group.fromJson(Map<String, dynamic> json) => _$GroupFromJson(json);
