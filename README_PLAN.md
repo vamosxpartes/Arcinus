@@ -173,6 +173,40 @@ Durante el desarrollo del proyecto, se han implementado las siguientes mejoras a
 - Mayor organización y claridad en la estructura deportiva
 - Base sólida para implementar entrenamientos y evaluaciones
 
+### 9. Implementación de Almacenamiento Local con Hive ✅
+
+**Estado**: Completado
+
+**Logros**:
+- Se implementó un sistema completo de almacenamiento local utilizando Hive
+- Se crearon modelos específicos para persistencia local (ej. `UserHiveModel`)
+- Se desarrolló el servicio de conectividad (`ConnectivityService`) para monitoreo de red
+- Se implementó un sistema de operaciones offline con cola de sincronización
+- Se desarrolló el servicio de sincronización (`SyncService`) para reconciliar datos
+- Se integraron repositorios locales en los servicios existentes
+- Se creó documentación detallada del sistema en README-offline-sync.md
+
+**Beneficios obtenidos**:
+- Funcionalidad completa offline con sincronización automática
+- Reducción significativa de consultas a Firestore
+- Mejor experiencia de usuario en condiciones de conectividad limitada
+- Sistema transparente que no requiere intervención del usuario
+- Estructura extensible para añadir soporte offline a nuevas entidades
+- Base sólida para implementar caché de datos frecuentemente accedidos
+
+**Pruebas y depuración**:
+```
+• Verificar funcionamiento del servicio de conectividad ✓
+• Comprobar almacenamiento local de usuarios ✓
+• Validar sincronización bidireccional de datos ✓
+• Probar operaciones CRUD en modo offline ✓
+• Verificar recuperación tras reconexión ✓
+• Notas de problemas encontrados:
+  - Se requirió la generación de código para los adaptadores de Hive
+  - Se resolvieron problemas de sincronización con timestamps
+  - Se ajustó la estrategia de resolución de conflictos para priorizar datos más recientes
+```
+
 ## Fase 6: Sistema de Entrenamientos y Sesiones
 
 **Estado**: Completado ✅

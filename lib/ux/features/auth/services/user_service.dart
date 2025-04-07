@@ -3,15 +3,23 @@ import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/ux/features/academy/athlete_repository.dart';
 import 'package:arcinus/ux/features/auth/implementations/firebase_auth_repository.dart';
 import 'package:arcinus/ux/features/auth/repositories/auth_repository.dart';
+import 'package:arcinus/ux/features/auth/repositories/local_user_repository.dart';
+import 'package:arcinus/ux/shared/services/connectivity_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final userServiceProvider = Provider<UserService>((ref) {
   final athleteRepository = ref.watch(athleteRepositoryProvider);
+  final localUserRepository = ref.watch(localUserRepositoryProvider);
+  final connectivityService = ref.watch(connectivityServiceProvider);
+  
   return UserService(
     FirebaseFirestore.instance,
     FirebaseAuthRepository(),
     athleteRepository,
+    localUserRepository,
+    connectivityService,
   );
 });
 
@@ -19,17 +27,44 @@ class UserService {
   final FirebaseFirestore _firestore;
   final AuthRepository _authRepository;
   final AthleteRepository _athleteRepository;
+  final LocalUserRepository _localUserRepository;
+  final ConnectivityService _connectivityService;
 
-  UserService(this._firestore, this._authRepository, this._athleteRepository);
+  UserService(
+    this._firestore, 
+    this._authRepository, 
+    this._athleteRepository,
+    this._localUserRepository,
+    this._connectivityService,
+  );
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
       _firestore.collection('users');
 
   // MÉTODOS GENERALES PARA TODOS LOS USUARIOS
 
+  // Obtener el usuario actual (autenticado)
+  Future<User?> getCurrentUser() async {
+    return _authRepository.currentUser();
+  }
+
   // Obtener un usuario por ID
   Future<User?> getUserById(String userId) async {
     try {
+      // Primero intentar obtener desde la base de datos local
+      final localUser = await _localUserRepository.getUserById(userId);
+      if (localUser != null) {
+        debugPrint('Usuario obtenido desde DB local: $userId');
+        return localUser;
+      }
+      
+      // Si no está en local y no hay conectividad, retornar null
+      if (!await _connectivityService.hasConnectivity()) {
+        debugPrint('Sin conectividad, no se puede obtener usuario remoto');
+        return null;
+      }
+      
+      // Obtener desde Firestore
       final docSnap = await _usersCollection.doc(userId).get();
       
       if (!docSnap.exists) {
@@ -39,8 +74,14 @@ class UserService {
       final data = docSnap.data()!;
       data['id'] = docSnap.id;
       
-      return User.fromJson(data);
+      final user = User.fromJson(data);
+      
+      // Guardar en la base de datos local para futuros accesos
+      await _localUserRepository.saveUser(user);
+      
+      return user;
     } catch (e) {
+      debugPrint('Error al obtener usuario: $e');
       throw Exception('Error al obtener usuario: $e');
     }
   }
@@ -48,6 +89,28 @@ class UserService {
   // Obtener usuarios por rol
   Future<List<User>> getUsersByRole(UserRole role, {String? academyId}) async {
     try {
+      // Primero intentar obtener desde la base de datos local
+      if (academyId != null) {
+        final localUsers = await _localUserRepository.getUsersByRoleAndAcademy(role, academyId);
+        if (localUsers.isNotEmpty) {
+          debugPrint('Usuarios por rol obtenidos desde DB local: ${localUsers.length}');
+          return localUsers;
+        }
+      } else {
+        final localUsers = await _localUserRepository.getUsersByRole(role);
+        if (localUsers.isNotEmpty) {
+          debugPrint('Usuarios por rol obtenidos desde DB local: ${localUsers.length}');
+          return localUsers;
+        }
+      }
+      
+      // Si no hay usuarios locales y no hay conectividad, retornar lista vacía
+      if (!await _connectivityService.hasConnectivity()) {
+        debugPrint('Sin conectividad, no se pueden obtener usuarios remotos');
+        return [];
+      }
+      
+      // Obtener desde Firestore
       Query<Map<String, dynamic>> query = _usersCollection
           .where('role', isEqualTo: role.toString().split('.').last);
       
@@ -57,13 +120,60 @@ class UserService {
       
       final querySnap = await query.get();
       
-      return querySnap.docs.map((doc) {
+      final users = querySnap.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
         return User.fromJson(data);
       }).toList();
+      
+      // Guardar usuarios en la base de datos local
+      for (final user in users) {
+        await _localUserRepository.saveUser(user);
+      }
+      
+      return users;
     } catch (e) {
+      debugPrint('Error al obtener usuarios por rol: $e');
       throw Exception('Error al obtener usuarios por rol: $e');
+    }
+  }
+
+  // Obtener usuarios por academia
+  Future<List<User>> getUsersByAcademy(String academyId) async {
+    try {
+      // Primero intentar obtener desde la base de datos local
+      final localUsers = await _localUserRepository.getUsersByAcademy(academyId);
+      if (localUsers.isNotEmpty) {
+        debugPrint('Usuarios por academia obtenidos desde DB local: ${localUsers.length}');
+        return localUsers;
+      }
+      
+      // Si no hay usuarios locales y no hay conectividad, retornar lista vacía
+      if (!await _connectivityService.hasConnectivity()) {
+        debugPrint('Sin conectividad, no se pueden obtener usuarios remotos');
+        return [];
+      }
+      
+      // Obtener desde Firestore
+      final querySnap = await _usersCollection
+          .where('academyIds', arrayContains: academyId)
+          .get();
+      
+      final users = querySnap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return User.fromJson(data);
+      }).toList();
+      
+      // Guardar usuarios en la base de datos local
+      for (final user in users) {
+        await _localUserRepository.saveUser(user);
+      }
+      
+      return users;
+    } catch (e) {
+      debugPrint('Error al obtener usuarios por academia: $e');
+      throw Exception('Error al obtener usuarios por academia: $e');
     }
   }
 
@@ -77,85 +187,154 @@ class UserService {
     bool isDirectRegistration = false,
   }) async {
     try {
+      // Verificar conectividad
+      final hasConnectivity = await _connectivityService.hasConnectivity();
+      
       // Determinar qué método usar según si es registro directo o interno
       User user;
       
-      if (isDirectRegistration) {
-        // Registro directo - inicia sesión automáticamente (usado solo en pantalla de registro)
-        user = await _authRepository.signUpWithEmailAndPassword(
-          email,
-          password,
-          name,
-          role,
-        );
-      } else {
-        try {
-          // Registro interno - no inicia sesión automáticamente
-          if (_authRepository is FirebaseAuthRepository) {
-            final authRepo = _authRepository;
-            user = await authRepo.createUserWithoutSignIn(
-              email,
-              password,
-              name,
-              role,
-            );
-          } else {
-            // Fallback si no es una instancia de FirebaseAuthRepository
-            user = await _authRepository.signUpWithEmailAndPassword(
-              email,
-              password,
-              name,
-              role,
-            );
-            // IMPORTANTE: Esto iniciará sesión como el nuevo usuario, lo que no es deseado
-            // Sin embargo, necesitamos un fallback en caso de que la implementación cambie
+      if (hasConnectivity) {
+        // Hay conectividad, crear usuario directamente en Firebase
+        if (isDirectRegistration) {
+          // Registro directo - inicia sesión automáticamente (usado solo en pantalla de registro)
+          user = await _authRepository.signUpWithEmailAndPassword(
+            email,
+            password,
+            name,
+            role,
+          );
+        } else {
+          try {
+            // Registro interno - no inicia sesión automáticamente
+            if (_authRepository is FirebaseAuthRepository) {
+              final authRepo = _authRepository;
+              user = await authRepo.createUserWithoutSignIn(
+                email,
+                password,
+                name,
+                role,
+              );
+            } else {
+              // Fallback si no es una instancia de FirebaseAuthRepository
+              user = await _authRepository.signUpWithEmailAndPassword(
+                email,
+                password,
+                name,
+                role,
+              );
+            }
+          } catch (e) {
+            throw Exception('Error al crear usuario sin iniciar sesión: $e');
           }
-        } catch (e) {
-          // En caso de error con la implementación específica, usamos el método estándar
-          throw Exception('Error al crear usuario sin iniciar sesión: $e');
         }
-      }
-      
-      // Si se proporciona un ID de academia, añadirlo a la lista
-      if (academyId != null && !user.academyIds.contains(academyId)) {
-        final updatedUser = user.copyWith(
-          academyIds: [...user.academyIds, academyId],
+        
+        // Si se proporciona un ID de academia, añadirlo a la lista
+        if (academyId != null && !user.academyIds.contains(academyId)) {
+          user = user.copyWith(
+            academyIds: [...user.academyIds, academyId],
+          );
+          
+          await _authRepository.updateUser(user);
+        }
+        
+        // Guardar en la base de datos local
+        await _localUserRepository.saveUser(user);
+      } else {
+        // No hay conectividad, crear usuario solo localmente
+        // y encolar para sincronización posterior
+        user = User(
+          id: DateTime.now().millisecondsSinceEpoch.toString(), // ID temporal
+          email: email,
+          name: name,
+          role: role,
+          permissions: {}, // Se asignarán al sincronizar
+          academyIds: academyId != null ? [academyId] : [],
+          createdAt: DateTime.now(),
         );
         
-        await _authRepository.updateUser(updatedUser);
-        return updatedUser;
+        await _localUserRepository.saveUserWithSync(user);
+        
+        debugPrint('Usuario creado localmente y encolado para sincronización: ${user.id}');
       }
       
       return user;
     } catch (e) {
+      debugPrint('Error al crear usuario: $e');
       throw Exception('Error al crear usuario: $e');
+    }
+  }
+
+  // Crear un usuario sin iniciar sesión (usado para sincronización)
+  Future<User> createUserOnly(User user) async {
+    try {
+      // Guardar en Firestore
+      await _usersCollection.doc(user.id).set(
+        {
+          'email': user.email,
+          'name': user.name,
+          'role': user.role.toString(),
+          'permissions': user.permissions,
+          'academyIds': user.academyIds,
+          'createdAt': Timestamp.fromDate(user.createdAt),
+          if (user.profileImageUrl != null) 'profileImageUrl': user.profileImageUrl,
+        },
+      );
+      
+      return user;
+    } catch (e) {
+      debugPrint('Error al crear usuario sin iniciar sesión: $e');
+      throw Exception('Error al crear usuario sin iniciar sesión: $e');
     }
   }
 
   // Actualizar un usuario existente
   Future<User> updateUser(User user) async {
     try {
-      await _authRepository.updateUser(user);
+      final hasConnectivity = await _connectivityService.hasConnectivity();
+      
+      if (hasConnectivity) {
+        // Actualizar en Firebase
+        await _authRepository.updateUser(user);
+        
+        // Actualizar también en local
+        await _localUserRepository.updateUser(user);
+      } else {
+        // Solo actualizar en local y encolar para sincronización
+        await _localUserRepository.updateUserWithSync(user);
+        debugPrint('Usuario actualizado localmente y encolado para sincronización: ${user.id}');
+      }
+      
       return user;
     } catch (e) {
+      debugPrint('Error al actualizar usuario: $e');
       throw Exception('Error al actualizar usuario: $e');
     }
   }
-  
+
   // Eliminar un usuario (desactivar o eliminar completamente)
   Future<void> deleteUser(String userId) async {
     try {
-      // Primero obtener el usuario para verificar sus datos
-      final user = await getUserById(userId);
-      if (user == null) {
-        throw Exception('Usuario no encontrado');
-      }
+      final hasConnectivity = await _connectivityService.hasConnectivity();
       
-      // Por ahora, solo eliminamos el documento de Firestore
-      // NOTA: En una implementación completa, también se debería eliminar
-      // la cuenta de autenticación y gestionar las referencias cruzadas
-      await _usersCollection.doc(userId).delete();
+      if (hasConnectivity) {
+        // Primero obtener el usuario para verificar sus datos
+        final user = await getUserById(userId);
+        if (user == null) {
+          throw Exception('Usuario no encontrado');
+        }
+        
+        // Eliminar de Firestore
+        await _usersCollection.doc(userId).delete();
+        
+        // Eliminar también de local
+        await _localUserRepository.deleteUser(userId);
+      } else {
+        // Solo eliminar en local y encolar para sincronización
+        await _localUserRepository.deleteUserWithSync(userId);
+        debugPrint('Usuario eliminado localmente y encolado para sincronización: $userId');
+      }
     } catch (e) {
+      debugPrint('Error al eliminar usuario: $e');
       throw Exception('Error al eliminar usuario: $e');
     }
   }
@@ -283,7 +462,6 @@ class UserService {
         name: name,
         role: UserRole.coach,
         academyId: academyId,
-        isDirectRegistration: false,
       );
       
       // Actualizar la academia con el nuevo coach
@@ -350,7 +528,6 @@ class UserService {
         name: name,
         role: UserRole.manager,
         academyId: academyId,
-        isDirectRegistration: false,
       );
       
       return manager;
