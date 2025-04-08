@@ -165,15 +165,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     }
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Grupos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshGroups,
-          ),
-        ],
-      ),
       body: Column(
         children: [
           // Barra de búsqueda
@@ -221,11 +212,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addGroup,
-        tooltip: 'Crear Grupo',
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
@@ -252,14 +238,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
                       ? 'No hay grupos creados'
                       : 'No se encontraron grupos con esa búsqueda',
                   style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                if (_searchQuery.isEmpty)
-                  ElevatedButton.icon(
-                    onPressed: _addGroup,
-                    icon: const Icon(Icons.add),
-                    label: const Text('Crear Grupo'),
-                  ),
+                ),              
               ],
             ),
           );

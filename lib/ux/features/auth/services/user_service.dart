@@ -535,4 +535,127 @@ class UserService {
       throw Exception('Error al crear manager: $e');
     }
   }
+
+  // MÉTODOS ESPECÍFICOS PARA PADRES
+  
+  // Obtener un padre con sus datos adicionales
+  Future<Map<String, dynamic>> getParentWithData(String userId, String academyId) async {
+    try {
+      // Obtener datos básicos del usuario
+      final parent = await getUserById(userId);
+      if (parent == null) {
+        throw Exception('Padre/Madre no encontrado');
+      }
+      
+      // Intentar obtener datos adicionales del documento del usuario
+      Map<String, dynamic> parentData = {};
+      
+      try {
+        final docSnap = await _usersCollection.doc(userId).get();
+        if (docSnap.exists) {
+          final data = docSnap.data() ?? {};
+          
+          // Extraer datos específicos de padres
+          if (data.containsKey('parentData')) {
+            parentData = data['parentData'] as Map<String, dynamic>;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error al obtener datos adicionales del padre: $e');
+      }
+      
+      return {
+        'user': parent,
+        'parentData': parentData,
+      };
+    } catch (e) {
+      throw Exception('Error al obtener padre con datos: $e');
+    }
+  }
+  
+  // Crear un nuevo padre con sus datos adicionales
+  Future<User> createParent({
+    required String email,
+    required String password,
+    required String name,
+    required String academyId,
+    Map<String, dynamic>? parentData,
+  }) async {
+    try {
+      // 1. Crear el usuario básico
+      final parent = await createUser(
+        email: email,
+        password: password,
+        name: name,
+        role: UserRole.parent,
+        academyId: academyId,
+      );
+      
+      // 2. Guardar datos adicionales del padre si existen
+      if (parentData != null && parentData.isNotEmpty) {
+        await _usersCollection.doc(parent.id).update({
+          'parentData': parentData,
+        });
+      }
+      
+      return parent;
+    } catch (e) {
+      throw Exception('Error al crear padre: $e');
+    }
+  }
+  
+  // Actualizar un padre existente
+  Future<void> updateParent({
+    required String userId,
+    required String name,
+    required String email,
+    Map<String, dynamic>? parentData,
+  }) async {
+    try {
+      // 1. Obtener el usuario actual
+      final currentUser = await getUserById(userId);
+      if (currentUser == null) {
+        throw Exception('Usuario no encontrado');
+      }
+      
+      // 2. Actualizar datos básicos del usuario
+      final updatedUser = currentUser.copyWith(
+        name: name,
+        email: email,
+      );
+      
+      await updateUser(updatedUser);
+      
+      // 3. Actualizar datos adicionales si existen
+      if (parentData != null && parentData.isNotEmpty) {
+        await _usersCollection.doc(userId).update({
+          'parentData': parentData,
+        });
+      }
+    } catch (e) {
+      throw Exception('Error al actualizar padre: $e');
+    }
+  }
+  
+  // Eliminar un padre
+  Future<void> deleteParent(String userId, String academyId) async {
+    try {
+      // Verificar si el usuario pertenece a otras academias
+      final user = await getUserById(userId);
+      if (user == null) {
+        return; // Ya no existe
+      }
+      
+      // Si no pertenece a otras academias, eliminar el usuario por completo
+      if (user.academyIds.length <= 1) {
+        await deleteUser(userId);
+      } else {
+        // Si pertenece a otras academias, solo actualizar la lista de academias
+        final updatedAcademyIds = user.academyIds.where((id) => id != academyId).toList();
+        await updateUser(user.copyWith(academyIds: updatedAcademyIds));
+      }
+    } catch (e) {
+      throw Exception('Error al eliminar padre: $e');
+    }
+  }
 } 

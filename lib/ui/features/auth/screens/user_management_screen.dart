@@ -7,6 +7,9 @@ import 'package:arcinus/ui/features/auth/screens/coach_form_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/coach_list_screen.dart' show coachesProvider;
 import 'package:arcinus/ui/features/auth/screens/manager_form_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/manager_list_screen.dart' show managersProvider;
+import 'package:arcinus/ui/features/auth/screens/parent_form_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/parent_list_screen.dart';
+import 'package:arcinus/ui/features/groups/screens/group_list_screen.dart';
 import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
@@ -271,10 +274,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
 
   // Método para refrescar la lista de padres
   void _refreshParents() {
-    // Implementar cuando tengamos el provider de padres
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Funcionalidad en desarrollo')),
-    );
+    ref.invalidate(parentsProvider);
   }
 
   // Método para refrescar la lista de owners
@@ -405,141 +405,17 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   }
 
   Widget _buildGroupsTab() {
-    return Column(
-      children: [
-        // Barra de búsqueda con botón de agregar grupo
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              // Barra de búsqueda
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar grupos...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      // ignore: avoid_redundant_argument_values
-                      vertical: 0.0,
-                    ),
-                  ),
-                  onChanged: _onSearchChanged,
-                ),
-              ),
-              
-              // Botón de agregar grupo
-              const SizedBox(width: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    final currentAcademy = ref.read(currentAcademyProvider);
-                    if (currentAcademy == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No hay academia seleccionada')),
-                      );
-                      return;
-                    }
-                    
-                    // Aquí iría la navegación al formulario de creación de grupo
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Crear grupo en desarrollo')),
-                    );
-                  },
-                  icon: const Icon(
-                    Icons.group_add,
-                    color: Colors.white,
-                  ),
-                  tooltip: 'Agregar Grupo',
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const Divider(),
-        
-        // Lista de grupos simulada con datos de ejemplo
-        Expanded(
-          child: Consumer(
-            builder: (context, ref, child) {
-              final currentAcademy = ref.watch(currentAcademyProvider);
-              
-              if (currentAcademy == null) {
-                return const Center(
-                  child: Text('No hay academia seleccionada'),
-                );
-              }
-              
-              // Ejemplo de grupos (simulados)
-              final List<Map<String, String>> groups = [
-                {'id': '1', 'name': 'Grupo A - Principiantes', 'members': '8', 'coach': 'Carlos Rodriguez'},
-                {'id': '2', 'name': 'Grupo B - Intermedios', 'members': '12', 'coach': 'Laura Gómez'},
-                {'id': '3', 'name': 'Grupo C - Avanzados', 'members': '6', 'coach': 'Miguel Sanchez'},
-                {'id': '4', 'name': 'Elite - Competición', 'members': '4', 'coach': 'Ana Martinez'},
-              ];
-              
-              // Filtrar grupos según búsqueda
-              final filteredGroups = groups.where((group) => 
-                  (group['name'] ?? '').toLowerCase().contains(_searchController.text.toLowerCase())).toList();
-              
-              if (filteredGroups.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.groups, size: 64, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text(
-                        _searchController.text.isEmpty
-                            ? 'No hay grupos registrados'
-                            : 'No se encontraron grupos con esa búsqueda',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              
-              return ListView.builder(
-                itemCount: filteredGroups.length,
-                itemBuilder: (context, index) {
-                  final group = filteredGroups[index];
-                  final name = group['name'] ?? 'Grupo sin nombre';
-                  final members = group['members'] ?? '0';
-                  final coach = group['coach'] ?? 'Sin entrenador asignado';
-                  
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.green,
-                        child: Icon(Icons.group, color: Colors.white),
-                      ),
-                      title: Text(name),
-                      subtitle: Text('$members miembros • Entrenador: $coach'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        // Navegación a detalle o edición de grupo
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Detalle de grupo en desarrollo')),
-                        );
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
+    final currentAcademy = ref.watch(currentAcademyProvider);
+    if (currentAcademy == null) {
+      return const Center(
+        child: Text('No hay academia seleccionada'),
+      );
+    }
+    
+    return Consumer(
+      builder: (context, ref, child) {
+        return const GroupListScreen();
+      },
     );
   }
   
@@ -1639,6 +1515,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   }
 
   Widget _buildParentTab() {
+    // Usamos el Parent List Screen que ya implementamos
     return Column(
       children: [
         // Barra de búsqueda con botón de agregar padre
@@ -1651,15 +1528,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Buscar padres/responsables...',
+                    hintText: 'Buscar padres...',
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      // ignore: avoid_redundant_argument_values
-                      vertical: 0.0,
-                    ),
+                    // ignore: avoid_redundant_argument_values
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0.0),
                   ),
                   onChanged: _onSearchChanged,
                 ),
@@ -1682,97 +1557,32 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                       return;
                     }
                     
-                    // Acción temporal mientras se desarrolla la pantalla de formulario
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Funcionalidad en desarrollo')),
-                    );
-                    _refreshParents();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ParentFormScreen(
+                          mode: ParentFormMode.create,
+                          academyId: currentAcademy.id,
+                        ),
+                      ),
+                    ).then((created) {
+                      if (created == true) {
+                        _refreshParents();
+                      }
+                    });
                   },
-                  icon: const Icon(
-                    Icons.person_add,
-                    color: Colors.white,
-                  ),
-                  tooltip: 'Agregar Padre/Responsable',
+                  icon: const Icon(Icons.add, color: Colors.white),
                 ),
               ),
             ],
           ),
         ),
         
-        const Divider(),
-        
-        // Lista de padres con datos de ejemplo
+        // Lista de padres
         Expanded(
-          child: Consumer(
-            builder: (context, ref, child) {
-              final currentAcademy = ref.watch(currentAcademyProvider);
-              
-              if (currentAcademy == null) {
-                return const Center(
-                  child: Text('No hay academia seleccionada'),
-                );
-              }
-              
-              // Ejemplo de padres/responsables (simulados)
-              final List<Map<String, String>> parents = [
-                {'id': '1', 'name': 'Ana García', 'email': 'ana.garcia@ejemplo.com', 'children': '2', 'phone': '555-123-4567'},
-                {'id': '2', 'name': 'Juan Pérez', 'email': 'juan.perez@ejemplo.com', 'children': '1', 'phone': '555-987-6543'},
-                {'id': '3', 'name': 'María Rodríguez', 'email': 'maria.rodriguez@ejemplo.com', 'children': '3', 'phone': '555-456-7890'},
-                {'id': '4', 'name': 'Carlos Martínez', 'email': 'carlos.martinez@ejemplo.com', 'children': '1', 'phone': '555-789-0123'},
-              ];
-              
-              // Filtrar padres según búsqueda
-              final filteredParents = parents.where((parent) => 
-                  (parent['name'] ?? '').toLowerCase().contains(_searchController.text.toLowerCase()) ||
-                  (parent['email'] ?? '').toLowerCase().contains(_searchController.text.toLowerCase())).toList();
-              
-              if (filteredParents.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.family_restroom, size: 64, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text(
-                        _searchController.text.isEmpty
-                            ? 'No hay padres/responsables registrados'
-                            : 'No se encontraron padres/responsables con esa búsqueda',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              
-              return ListView.builder(
-                itemCount: filteredParents.length,
-                itemBuilder: (context, index) {
-                  final parent = filteredParents[index];
-                  final name = parent['name'] ?? 'Sin nombre';
-                  final email = parent['email'] ?? 'Sin correo';
-                  final children = parent['children'] ?? '0';
-                  
-                  return Card(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.orange,
-                        child: Icon(Icons.family_restroom, color: Colors.white),
-                      ),
-                      title: Text(name),
-                      subtitle: Text('$email • $children atleta(s)'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        // Navegación a detalle o edición de padre/responsable
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Detalle de padre/responsable en desarrollo')),
-                        );
-                      },
-                    ),
-                  );
-                },
-              );
-            },
+          child: ParentListScreen(
+            searchQuery: _searchController.text,
+            onRefresh: _refreshParents,
           ),
         ),
       ],

@@ -102,4 +102,40 @@ Este documento registra los avances e implementaciones logrados en el desarrollo
 ### Arquitectura
 - **Separación por Capas**: Arquitectura clara que separa UI, lógica de negocio y modelos
 - **Gestión de Estado con Riverpod**: Implementación de gestión de estado reactiva y escalable
-- **Internacionalización**: Soporte para español e inglés en toda la aplicación 
+- **Internacionalización**: Soporte para español e inglés en toda la aplicación
+
+## Mejoras implementadas (08/04/2024)
+
+### 1. Corrección del comportamiento del icono de Dashboard
+- Se corrigió el comportamiento en el `CustomNavigationBar` para que el icono de Dashboard redirija al usuario en lugar de construir una nueva instancia.
+- La implementación garantiza que si ya existen rutas en la pila de navegación, se regrese a la ruta inicial antes de navegar al dashboard.
+
+### 2. Gestión de Padres y Grupos
+- Se implementó la funcionalidad completa de gestión de padres (creación, edición, listado y eliminación), siguiendo el mismo patrón que se usa para los otros roles (manager, coach, atleta).
+- Se integró la gestión de grupos en la pantalla de administración de usuarios, reutilizando el componente `GroupListScreen` existente.
+- Los padres pueden ser asociados con atletas, estableciendo una relación entre ellos.
+
+### 3. Confirmación para salir de la aplicación
+- Se implementó un diálogo de confirmación cuando el usuario intenta salir de la aplicación utilizando `PopScope`.
+- La implementación respeta las convenciones de la plataforma, no mostrando el diálogo en iOS.
+- Se agregó un provider `confirmExitProvider` que permite activar/desactivar esta funcionalidad fácilmente.
+
+## Mejoras implementadas (21/04/2024)
+
+### 1. Corrección de errores en la gestión de grupos
+- Se solucionó el error "datetime is not a subtype of string" en la creación de grupos, asegurando que los campos de tipo DateTime se conviertan correctamente a cadenas ISO8601 antes de almacenarse en Firestore.
+- Se implementó una solución para manejar correctamente los objetos Timestamp de Firestore al cargar datos, convirtiéndolos a formato ISO8601 antes de pasarlos al deserializador.
+- Se refactorizaron todos los métodos de servicios relacionados con fechas para garantizar la consistencia en la manipulación de fechas.
+
+### 2. Optimización de la persistencia de autenticación
+- Se mejoró el sistema de autenticación para mantener la sesión activa entre reinicios de la aplicación, añadiendo soporte para persistencia local en Firebase Auth.
+- Se implementó detección automática de plataforma para aplicar la estrategia de persistencia adecuada (LOCAL para dispositivos móviles, SESSION para web).
+- Se agregaron logs detallados para facilitar la depuración del proceso de autenticación y sesión.
+- Se corrigió el problema de "usuario no autenticado" que aparecía ocasionalmente al reiniciar la aplicación.
+
+### 3. Refinamiento de la navegación del Dashboard
+- Se optimizó el comportamiento de navegación en el dashboard para evitar la creación de instancias duplicadas.
+- Se eliminó la navegación redundante que podía causar recreación de pantallas y pérdida de estado.
+- Se mejoró la transición entre pestañas para garantizar una experiencia fluida.
+
+Estas mejoras contribuyen significativamente a la estabilidad y robustez de la aplicación, corrigiendo errores críticos y optimizando el rendimiento general. La corrección en la persistencia de autenticación es especialmente importante para garantizar una experiencia de usuario fluida sin necesidad de iniciar sesión repetidamente. 

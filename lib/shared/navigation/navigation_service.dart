@@ -68,6 +68,13 @@ class NavigationService {
       return;
     }
     
+    // Manejo especial para la ruta de dashboard
+    if (route == '/dashboard') {
+      // Buscar la MainScreen en el stack de navegación
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+    
     Navigator.of(context).pushNamed(route);
   }
   

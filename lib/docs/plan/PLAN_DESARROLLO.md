@@ -195,17 +195,65 @@ Durante el desarrollo del proyecto, se han implementado las siguientes mejoras a
 - Base sólida para implementar caché de datos frecuentemente accedidos
 
 **Pruebas y depuración**:
-```
 • Verificar funcionamiento del servicio de conectividad ✓
 • Comprobar almacenamiento local de usuarios ✓
-• Validar sincronización bidireccional de datos ✓
-• Probar operaciones CRUD en modo offline ✓
-• Verificar recuperación tras reconexión ✓
+
+### 10. Optimización de la Persistencia de Autenticación ✅
+
+**Estado**: Completado
+
+**Logros**:
+- Se implementó un sistema robusto de persistencia de autenticación en Firebase Auth
+- Se añadió configuración automática de persistencia según la plataforma (LOCAL para móvil, SESSION para web)
+- Se agregaron logs extensivos para monitoreo y depuración del sistema de autenticación
+- Se mejoró la gestión de estados de autenticación en el autoLoadAcademyProvider
+- Se corrigió el problema de pérdida de sesión al reiniciar la aplicación
+- Se optimizó el proceso de recuperación de datos de usuario cuando cambia el estado de autenticación
+
+**Beneficios obtenidos**:
+- Experiencia de usuario más fluida sin necesidad de iniciar sesión repetidamente
+- Mayor robustez en la gestión de sesiones de usuario
+- Mejor compatibilidad entre diferentes plataformas
+- Sistema de logs que facilita el diagnóstico de problemas relacionados con autenticación
+- Transiciones más suaves entre estados de la aplicación (autenticado/no autenticado)
+- Carga más confiable de datos relacionados con el usuario al iniciar la aplicación
+
+**Pruebas y depuración**:
+• Verificar persistencia de sesión entre reinicios de aplicación ✓
+• Comprobar correcta carga de datos de usuario después de reiniciar ✓
+• Validar funcionamiento adecuado del autoLoadAcademyProvider con usuario autenticado ✓
+• Verificar correcto manejo de timestamps en modelos de datos ✓
 • Notas de problemas encontrados:
-  - Se requirió la generación de código para los adaptadores de Hive
-  - Se resolvieron problemas de sincronización con timestamps
-  - Se ajustó la estrategia de resolución de conflictos para priorizar datos más recientes
-```
+  - Se detectó un error "setPersistence() is only supported on web based platforms" que fue corregido implementando verificación de plataforma
+  - Se observó que los objetos Timestamp de Firestore no se convertían correctamente a DateTime en ciertos modelos
+  - Se encontraron casos donde el usuario aparecía como "no autenticado" brevemente al iniciar la aplicación
+
+### 11. Corrección de la Navegación del Dashboard ✅
+
+**Estado**: Completado
+
+**Logros**:
+- Se optimizó el comportamiento del icono de Dashboard en la barra de navegación personalizada
+- Se eliminó la navegación redundante que causaba la creación de nuevas instancias del Dashboard
+- Se implementó una lógica mejorada para volver a la raíz de la navegación cuando se selecciona el Dashboard
+- Se refactorizó la gestión de estados en el componente CustomNavigationBar
+- Se añadieron verificaciones para prevenir múltiples recreaciones de pantallas
+
+**Beneficios obtenidos**:
+- Mejor conservación del estado entre navegaciones
+- Experiencia de usuario más consistente y predecible
+- Menor consumo de memoria al evitar instancias duplicadas de pantallas
+- Transiciones más fluidas entre secciones de la aplicación
+- Estructura de navegación más robusta y mantenible
+
+**Pruebas y depuración**:
+• Verificar comportamiento del Dashboard al hacer tap en su icono ✓
+• Comprobar conservación de estado entre navegaciones ✓
+• Validar comportamiento cuando existen múltiples niveles de navegación ✓
+• Notas de problemas encontrados:
+  - Se identificó que el uso de pushReplacementNamed causaba la pérdida de estado y duplicación de instancias
+  - Se observó que la pila de navegación no se limpiaba correctamente al regresar al Dashboard
+  - Se resolvió la redundancia en el manejo de rutas de navegación
 
 ## Fase 6: Sistema de Entrenamientos y Sesiones
 

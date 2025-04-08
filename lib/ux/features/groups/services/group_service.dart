@@ -19,14 +19,39 @@ class GroupService {
   Future<List<Group>> getGroupsByAcademy(String academyId) async {
     final snapshot = await _groupsCollection(academyId).get();
     return snapshot.docs
-        .map((doc) => Group.fromJson({...doc.data(), 'id': doc.id}))
+        .map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          
+          // Convertir timestamps de Firestore a strings ISO8601
+          if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+            data['createdAt'] = (data['createdAt'] as Timestamp).toDate().toIso8601String();
+          }
+          if (data['updatedAt'] != null && data['updatedAt'] is Timestamp) {
+            data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+          }
+          
+          return Group.fromJson(data);
+        })
         .toList();
   }
 
   Future<Group?> getGroupById(String groupId, String academyId) async {
     final doc = await _groupsCollection(academyId).doc(groupId).get();
     if (!doc.exists) return null;
-    return Group.fromJson({...doc.data()!, 'id': doc.id});
+    
+    final data = doc.data()!;
+    data['id'] = doc.id;
+    
+    // Convertir timestamps de Firestore a strings ISO8601
+    if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+      data['createdAt'] = (data['createdAt'] as Timestamp).toDate().toIso8601String();
+    }
+    if (data['updatedAt'] != null && data['updatedAt'] is Timestamp) {
+      data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+    }
+    
+    return Group.fromJson(data);
   }
 
   Future<List<Group>> getGroupsByCoach(String coachId, String academyId) async {
@@ -35,7 +60,20 @@ class GroupService {
         .get();
     
     return snapshot.docs
-        .map((doc) => Group.fromJson({...doc.data(), 'id': doc.id}))
+        .map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          
+          // Convertir timestamps de Firestore a strings ISO8601
+          if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+            data['createdAt'] = (data['createdAt'] as Timestamp).toDate().toIso8601String();
+          }
+          if (data['updatedAt'] != null && data['updatedAt'] is Timestamp) {
+            data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+          }
+          
+          return Group.fromJson(data);
+        })
         .toList();
   }
 
@@ -45,7 +83,20 @@ class GroupService {
         .get();
     
     return snapshot.docs
-        .map((doc) => Group.fromJson({...doc.data(), 'id': doc.id}))
+        .map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          
+          // Convertir timestamps de Firestore a strings ISO8601
+          if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+            data['createdAt'] = (data['createdAt'] as Timestamp).toDate().toIso8601String();
+          }
+          if (data['updatedAt'] != null && data['updatedAt'] is Timestamp) {
+            data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+          }
+          
+          return Group.fromJson(data);
+        })
         .toList();
   }
 
@@ -67,8 +118,8 @@ class GroupService {
       'athleteIds': athleteIds ?? [],
       'capacity': capacity,
       'isPublic': isPublic,
-      'createdAt': now,
-      'updatedAt': now,
+      'createdAt': now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
     };
 
     final docRef = await _groupsCollection(academyId).add(data);
@@ -99,7 +150,7 @@ class GroupService {
     }
     
     final data = <String, dynamic>{
-      'updatedAt': DateTime.now(),
+      'updatedAt': DateTime.now().toIso8601String(),
     };
     
     if (name != null) data['name'] = name;
@@ -143,7 +194,7 @@ class GroupService {
   Future<void> addAthleteToGroup(String athleteId, String groupId, String academyId) async {
     await _groupsCollection(academyId).doc(groupId).update({
       'athleteIds': FieldValue.arrayUnion([athleteId]),
-      'updatedAt': DateTime.now(),
+      'updatedAt': DateTime.now().toIso8601String(),
     });
     
     // También podríamos actualizar la referencia en el atleta
@@ -152,7 +203,7 @@ class GroupService {
   Future<void> removeAthleteFromGroup(String athleteId, String groupId, String academyId) async {
     await _groupsCollection(academyId).doc(groupId).update({
       'athleteIds': FieldValue.arrayRemove([athleteId]),
-      'updatedAt': DateTime.now(),
+      'updatedAt': DateTime.now().toIso8601String(),
     });
     
     // También podríamos actualizar la referencia en el atleta
@@ -170,7 +221,7 @@ class GroupService {
     // Actualizar el grupo con el nuevo entrenador
     await _groupsCollection(academyId).doc(groupId).update({
       'coachId': coachId,
-      'updatedAt': DateTime.now(),
+      'updatedAt': DateTime.now().toIso8601String(),
     });
     
     // También podríamos actualizar la referencia en el entrenador
@@ -180,7 +231,7 @@ class GroupService {
     // Similar a assignCoachToGroup pero estableciendo coachId a null
     await _groupsCollection(academyId).doc(groupId).update({
       'coachId': null,
-      'updatedAt': DateTime.now(),
+      'updatedAt': DateTime.now().toIso8601String(),
     });
   }
 } 

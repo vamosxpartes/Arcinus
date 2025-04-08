@@ -62,7 +62,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         final route = item.destination;
         switch (route) {
           case '/dashboard':
+            // Simplemente cambiar al tab de dashboard en lugar de crear una nueva instancia
             _onTabTapped(0);
+            // Si ya estamos en alguna ruta dentro de la aplicación, regresamos a la raíz
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+              // No usamos pushReplacementNamed para evitar crear una nueva instancia
+            }
             break;
           case '/calendar':
             _onTabTapped(1);

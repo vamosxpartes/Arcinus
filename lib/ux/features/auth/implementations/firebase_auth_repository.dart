@@ -23,16 +23,41 @@ class FirebaseAuthRepository implements AuthRepository {
     FirebaseStorage? storage,
   }) : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
        _firestore = firestore ?? FirebaseFirestore.instance,
-       _storage = storage ?? FirebaseStorage.instance;
+       _storage = storage ?? FirebaseStorage.instance {
+    // Establecer persistencia para mantener la sesión activa entre reinicios
+    _setPersistence();
+  }
+  
+  // Configurar la persistencia de autenticación
+  Future<void> _setPersistence() async {
+    try {
+      // La configuración de persistencia solo está disponible en web
+      if (kIsWeb) {
+        await _firebaseAuth.setPersistence(firebase_auth.Persistence.SESSION);
+        developer.log('DEBUG: FirebaseAuthRepository - Persistencia establecida en SESSION (Web)');
+      } else {
+        // En dispositivos móviles la persistencia LOCAL es la predeterminada
+        // No necesitamos configurarla explícitamente
+        developer.log('DEBUG: FirebaseAuthRepository - Usando persistencia predeterminada en dispositivos móviles (LOCAL)');
+      }
+    } catch (e) {
+      developer.log('ERROR: FirebaseAuthRepository - Error al configurar persistencia: $e');
+    }
+  }
   
   @override
   Future<app.User?> currentUser() async {
     final firebaseUser = _firebaseAuth.currentUser;
+    developer.log('DEBUG: FirebaseAuthRepository.currentUser - Usuario de Firebase: ${firebaseUser?.uid ?? "null"}');
+    
     if (firebaseUser == null) {
+      developer.log('DEBUG: FirebaseAuthRepository.currentUser - No hay usuario autenticado en Firebase');
       return null;
     }
     
-    return _getUserData(firebaseUser.uid);
+    final userData = await _getUserData(firebaseUser.uid);
+    developer.log('DEBUG: FirebaseAuthRepository.currentUser - Datos de usuario obtenidos: ${userData?.id ?? "null"}');
+    return userData;
   }
   
   @override
@@ -181,10 +206,16 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Stream<app.User?> get authStateChanges {
     return _firebaseAuth.authStateChanges().asyncMap((firebaseUser) async {
+      developer.log('DEBUG: FirebaseAuthRepository.authStateChanges - Cambio en estado de autenticación: ${firebaseUser?.uid ?? "null"}');
+      
       if (firebaseUser == null) {
+        developer.log('DEBUG: FirebaseAuthRepository.authStateChanges - Usuario Firebase null');
         return null;
       }
-      return await _getUserData(firebaseUser.uid);
+      
+      final userData = await _getUserData(firebaseUser.uid);
+      developer.log('DEBUG: FirebaseAuthRepository.authStateChanges - Datos de usuario obtenidos: ${userData?.id ?? "null"}');
+      return userData;
     });
   }
   
@@ -234,15 +265,19 @@ class FirebaseAuthRepository implements AuthRepository {
   /// Obtiene los datos de un usuario de Firestore
   Future<app.User?> _getUserData(String uid) async {
     try {
+      developer.log('DEBUG: FirebaseAuthRepository._getUserData - Buscando usuario con ID: $uid');
       final doc = await _firestore.collection('users').doc(uid).get();
       
       if (!doc.exists) {
+        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Documento no existe en Firestore');
         return null;
       }
       
-      return _userFromFirestore(doc);
+      final user = _userFromFirestore(doc);
+      developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario recuperado: ${user.id}, rol: ${user.role}');
+      return user;
     } catch (e) {
-      debugPrint('Error al obtener datos de usuario: $e');
+      developer.log('ERROR: FirebaseAuthRepository._getUserData - Error: $e');
       return null;
     }
   }

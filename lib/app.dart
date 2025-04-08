@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 
 import 'package:arcinus/config/firebase/analytics_service.dart';
 import 'package:arcinus/shared/models/training.dart';
@@ -18,14 +19,51 @@ import 'package:arcinus/ui/features/trainings/training_list_screen.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Provider para controlar cuando se ha cargado el splash
 final splashCompletedProvider = StateProvider<bool>((ref) => false);
 
+// Provider para controlar si se muestra el diálogo de confirmación para salir
+final confirmExitProvider = StateProvider<bool>((ref) => true);
+
 class ArcinusApp extends ConsumerWidget {
   const ArcinusApp({super.key});
+
+  // Método para confirmar la salida de la aplicación
+  Future<bool> _confirmExit(BuildContext context, WidgetRef ref) async {
+    // Si la característica está desactivada, permitir salir directamente
+    if (!ref.read(confirmExitProvider)) {
+      return true;
+    }
+    
+    // En iOS, no es común mostrar diálogos de confirmación para salir
+    if (Platform.isIOS) {
+      return true;
+    }
+    
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Seguro que quieres salir?'),
+        content: const Text('¿Estás seguro de que quieres salir de Arcinus?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Salir'),
+          ),
+        ],
+      ),
+    );
+    
+    return result ?? false;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,6 +151,32 @@ class ArcinusApp extends ConsumerWidget {
       navigatorObservers: [
         if (analyticsObserver != null) analyticsObserver,
       ],
+      builder: (context, child) {
+        // Envolver la aplicación en WillPopScope para manejar el botón de retroceso en Android
+        return PopScope(
+          canPop: false,
+          // ignore: deprecated_member_use
+          onPopInvoked: (didPop) async {
+            if (didPop) return;
+            
+            final navigatorState = Navigator.of(context);
+            
+            // Si se puede hacer pop en el navigator, hacer pop normalmente
+            if (navigatorState.canPop()) {
+              navigatorState.pop();
+              return;
+            }
+            
+            // Si no se puede hacer pop, mostrar diálogo de confirmación
+            final shouldExit = await _confirmExit(context, ref);
+            if (shouldExit) {
+              // Salir de la aplicación
+              await SystemNavigator.pop();
+            }
+          },
+          child: child!,
+        );
+      },
       // Usamos un consumer builder para determinar si mostrar la pantalla de login o la de dashboard
       home: authState.when(
         loading: () => const LoadingScreen(),
@@ -153,7 +217,17 @@ class ArcinusApp extends ConsumerWidget {
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/profile': (context) => const ProfileScreen(),
-        '/dashboard': (context) => const DashboardScreen(),
+        '/dashboard': (context) {
+          // En lugar de crear una nueva instancia, navegamos a MainScreen 
+          // que ya contiene el DashboardScreen y establecemos el índice a 0
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const MainScreen())
+            );
+          });
+          // Devolvemos un widget temporal mientras se realiza la navegación
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        },
         '/users-management': (context) => const UserManagementScreen(),
         '/chats': (context) => const ChatsListScreen(),
         '/chat': (context) => const ChatScreen(),
