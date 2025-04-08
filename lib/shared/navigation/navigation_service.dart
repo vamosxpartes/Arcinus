@@ -1,6 +1,7 @@
 import 'package:arcinus/shared/models/navigation_item.dart';
 import 'package:arcinus/shared/navigation/navigation_items.dart';
 import 'package:flutter/material.dart';
+// ignore: depend_on_referenced_packages
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Servicio que gestiona la lógica de navegación de la aplicación

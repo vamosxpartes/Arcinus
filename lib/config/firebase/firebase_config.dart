@@ -1,5 +1,6 @@
 import 'package:arcinus/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
+// ignore: depend_on_referenced_packages
 import 'package:logger/logger.dart';
 
 /// Clase para gestionar la configuración de Firebase

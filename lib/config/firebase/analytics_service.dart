@@ -1,4 +1,5 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
+// ignore: depend_on_referenced_packages
 import 'package:logger/logger.dart';
 
 /// Servicio para gestionar Firebase Analytics

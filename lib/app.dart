@@ -9,7 +9,6 @@ import 'package:arcinus/ui/features/academy/screens/create_academy_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/auth_screens.dart';
 import 'package:arcinus/ui/features/chat/screens/chat_screen.dart';
 import 'package:arcinus/ui/features/chat/screens/chats_list_screen.dart';
-import 'package:arcinus/ui/features/dashboard/screens/dashboard_screens.dart';
 import 'package:arcinus/ui/features/home/screens/main_screen.dart';
 import 'package:arcinus/ui/features/splash/splash_screen.dart';
 import 'package:arcinus/ui/features/trainings/attendance_screen.dart';

@@ -1,5 +1,7 @@
 import 'package:arcinus/shared/models/hive/user_hive_model.dart';
+// ignore: depend_on_referenced_packages
 import 'package:hive_flutter/hive_flutter.dart';
+// ignore: depend_on_referenced_packages
 import 'package:logger/logger.dart';
 
 /// Clase para gestionar la configuración de Hive
