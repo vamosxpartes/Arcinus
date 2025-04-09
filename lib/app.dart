@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:arcinus/config/firebase/analytics_service.dart';
 import 'package:arcinus/shared/models/training.dart';
 import 'package:arcinus/shared/models/user.dart';
+import 'package:arcinus/shared/theme/theme.dart';
 import 'package:arcinus/ui/features/academy/screens/academy_list_screen.dart';
 import 'package:arcinus/ui/features/academy/screens/create_academy_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/auth_screens.dart';
@@ -97,19 +98,8 @@ class ArcinusApp extends ConsumerWidget {
     if (!splashCompleted) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF3E7BFA),
-          ),
-          useMaterial3: true,
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF3E7BFA),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
         home: Consumer(
           builder: (context, ref, _) {
             // Simulamos una carga por 2 segundos y luego marcamos el splash como completado
@@ -125,19 +115,8 @@ class ArcinusApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Arcinus',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3E7BFA),
-        ),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF3E7BFA),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.darkTheme,
+      darkTheme: AppTheme.darkTheme,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,

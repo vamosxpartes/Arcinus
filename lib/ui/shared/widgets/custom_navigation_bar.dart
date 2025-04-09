@@ -254,14 +254,10 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
               height: 40,
               decoration: BoxDecoration(
                 color: isActive
-                    ? theme.colorScheme.primaryContainer
+                    ? theme.colorScheme.surfaceContainerLowest
                     : isPinned
                         ? theme.colorScheme.surfaceContainerHighest.withAlpha(170)
                         : theme.colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-                border: isActive
-                    ? Border.all(color: theme.colorScheme.primary, width: 2)
-                    : null,
               ),
               child: Stack(
                 children: [
@@ -274,24 +270,6 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
                       size: 24,
                     ),
                   ),
-                  if (isPinned && onLongPress != null)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.push_pin,
-                          size: 6,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),

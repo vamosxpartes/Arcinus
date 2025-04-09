@@ -97,17 +97,10 @@ class PermissionService {
             Permissions.viewFinancials,
           ]);
         case '/academies':
-          return hasAnyPermission([
-            Permissions.viewAllAcademies,
-            Permissions.manageAcademy,
-            Permissions.createAcademy,
-          ]);
+          // Solo permitir acceso a superadmins
+          return _currentUser?.role == UserRole.superAdmin;
         case '/profile':
           return true; // Todos pueden acceder a su perfil
-        case '/chats':
-          return hasPermission(Permissions.useChat);
-        case '/notifications':
-          return true; // Todos pueden ver notificaciones
         default:
           return false;
       }
@@ -135,10 +128,8 @@ class PermissionService {
       case '/create-academy':
         return hasPermission(Permissions.createAcademy);
       case '/academies':
-        return hasAnyPermission([
-          Permissions.viewAllAcademies,
-          Permissions.manageAcademy,
-        ]);
+        // Solo permitir acceso a superadmins
+        return _currentUser?.role == UserRole.superAdmin;
       case '/trainings':
         return hasAnyPermission([
           Permissions.createTraining,

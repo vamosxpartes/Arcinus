@@ -50,16 +50,6 @@ class NavigationItems {
       label: 'Perfil',
       destination: '/profile',
     ),
-    const NavigationItem(
-      icon: Icons.chat,
-      label: 'Chat',
-      destination: '/chats',
-    ),
-    const NavigationItem(
-      icon: Icons.notifications,
-      label: 'Notificaciones',
-      destination: '/notifications',
-    ),
   ];
   
   /// Obtiene los elementos predeterminados que deberían estar fijados inicialmente

@@ -1,6 +1,4 @@
 import 'package:arcinus/shared/models/academy.dart';
-import 'package:arcinus/ui/features/dashboard/widgets/chat_page.dart';
-import 'package:arcinus/ui/features/dashboard/widgets/notifications_page.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,22 +42,95 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       appBar: AppBar(
         title: Text(currentAcademy?.name ?? 'Dashboard'),
       ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentPage = index;
-          });
-        },
+      body: Column(
         children: [
-          // Página izquierda: Chat
-          ChatPage(onNavigateToDashboard: _navigateToDashboard),
-          
-          // Página central: Dashboard
-          _buildDashboardPage(currentAcademy),
-          
-          // Página derecha: Notificaciones
-          NotificationsPage(onNavigateToDashboard: _navigateToDashboard),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              children: [
+                // Página izquierda: Chat
+                _buildChatPage(),
+                
+                // Página central: Dashboard
+                _buildDashboardPage(currentAcademy),
+                
+                // Página derecha: Notificaciones
+                _buildNotificationsPage(),
+              ],
+            ),
+          ),
+          // Indicador de páginas
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (int i = 0; i < 3; i++)
+                  Container(
+                    width: i == _currentPage ? 16.0 : 8.0,
+                    height: 8.0,
+                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4.0),
+                      color: i == _currentPage 
+                          ? Theme.of(context).colorScheme.primary 
+                          : Theme.of(context).colorScheme.primary.withAlpha(100),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatPage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.chat_bubble, size: 64, color: Colors.blue),
+          const SizedBox(height: 16),
+          const Text(
+            'Chat',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          const Text('Desliza a la izquierda para ir al Dashboard'),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _navigateToDashboard,
+            child: const Text('Ir al Dashboard'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationsPage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.notifications, size: 64, color: Colors.orange),
+          const SizedBox(height: 16),
+          const Text(
+            'Notificaciones',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          const Text('Desliza a la derecha para ir al Dashboard'),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _navigateToDashboard,
+            child: const Text('Ir al Dashboard'),
+          ),
         ],
       ),
     );
@@ -72,6 +143,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Indicadores de deslizamiento
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.arrow_back, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Chat',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        'Notificaciones',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_forward, size: 16),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
             if (currentAcademy == null)
               Center(
                 child: Padding(
