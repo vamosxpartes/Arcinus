@@ -98,7 +98,7 @@ class PermissionService {
           ]);
         case '/academies':
           // Solo permitir acceso a superadmins
-          return _currentUser?.role == UserRole.superAdmin;
+          return _currentUser.role == UserRole.superAdmin;
         case '/profile':
           return true; // Todos pueden acceder a su perfil
         default:
@@ -129,7 +129,7 @@ class PermissionService {
         return hasPermission(Permissions.createAcademy);
       case '/academies':
         // Solo permitir acceso a superadmins
-        return _currentUser?.role == UserRole.superAdmin;
+        return _currentUser.role == UserRole.superAdmin;
       case '/trainings':
         return hasAnyPermission([
           Permissions.createTraining,

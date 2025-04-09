@@ -81,16 +81,13 @@ class AppTheme {
         secondary: embers,
         onSecondary: magnoliaWhite,
         surface: darkGray,
-        onSurface: magnoliaWhite,
-        background: blackSwarm,
-        onBackground: magnoliaWhite,
         error: bonfireRed,
         onError: magnoliaWhite,
       ),
       
       // Tipografía
       fontFamily: 'Roboto',
-      textTheme: TextTheme(
+      textTheme: const TextTheme(
         // Headers
         displayLarge: TextStyle(
           fontSize: h1Size, 
@@ -155,7 +152,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(buttonRadius),
           ),
-          textStyle: TextStyle(
+          textStyle: const TextStyle(
             fontSize: buttonSize,
             fontWeight: FontWeight.w500,
           ),
@@ -272,13 +269,13 @@ class AppTheme {
         space: spacingMd,
       ),
       checkboxTheme: CheckboxThemeData(
-        fillColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return embers;
           }
           return mediumGray;
         }),
-        checkColor: MaterialStateProperty.all(magnoliaWhite),
+        checkColor: WidgetStateProperty.all(magnoliaWhite),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),

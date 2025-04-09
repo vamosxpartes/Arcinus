@@ -32,18 +32,18 @@ class ProfileScreen extends ConsumerWidget {
   }
   
   Widget _buildNotLoggedInView() {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: AppTheme.blackSwarm,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.account_circle_rounded,
               size: 100,
               color: AppTheme.mediumGray,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
               'Inicia sesión para ver tu perfil',
               style: TextStyle(
@@ -85,7 +85,7 @@ class ProfileScreen extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppTheme.embers, AppTheme.bonfireRed.withOpacity(0.8)],
+          colors: [AppTheme.embers, AppTheme.bonfireRed.withAlpha(200)],
         ),
       ),
       padding: const EdgeInsets.symmetric(
@@ -96,7 +96,7 @@ class ProfileScreen extends ConsumerWidget {
         children: [
           CircleAvatar(
             radius: 60,
-            backgroundColor: AppTheme.magnoliaWhite.withOpacity(0.2),
+            backgroundColor: AppTheme.magnoliaWhite.withAlpha(60),
             child: user.profileImageUrl != null
                 ? ClipOval(
                     child: Image.network(
@@ -132,7 +132,7 @@ class ProfileScreen extends ConsumerWidget {
             user.email,
             style: TextStyle(
               fontSize: AppTheme.bodySize,
-              color: AppTheme.magnoliaWhite.withOpacity(0.8),
+              color: AppTheme.magnoliaWhite.withAlpha(200),
             ),
             textAlign: TextAlign.center,
           ),
@@ -143,7 +143,7 @@ class ProfileScreen extends ConsumerWidget {
               vertical: AppTheme.spacingSm,
             ),
             decoration: BoxDecoration(
-              color: AppTheme.magnoliaWhite.withOpacity(0.2),
+              color: AppTheme.magnoliaWhite.withAlpha(60),
               borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
             ),
             child: Text(
@@ -377,8 +377,8 @@ class ProfileScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
+        const Padding(
+          padding: EdgeInsets.symmetric(
             horizontal: AppTheme.spacingMd,
             vertical: AppTheme.spacingSm,
           ),

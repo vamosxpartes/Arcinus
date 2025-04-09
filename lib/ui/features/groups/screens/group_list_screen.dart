@@ -1,4 +1,5 @@
 import 'package:arcinus/shared/models/group.dart';
+import 'package:arcinus/shared/theme/app_theme.dart';
 import 'package:arcinus/ui/features/groups/screens/group_form_screen.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/groups/services/group_service.dart';
@@ -95,49 +96,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     }
   }
 
-  Future<void> _deleteGroup(Group group) async {
-    final currentAcademy = ref.read(currentAcademyProvider);
-    if (currentAcademy == null) return;
-    
-    // Pedir confirmación
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar Grupo'),
-        content: Text('¿Estás seguro de eliminar el grupo ${group.name}? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-    
-    if (shouldDelete == true) {
-      try {
-        final groupService = ref.read(groupServiceProvider);
-        await groupService.deleteGroup(group.id, currentAcademy.id);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Grupo eliminado correctamente')),
-          );
-          await _refreshGroups();
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al eliminar grupo: $e')),
-          );
-        }
-      }
-    }
-  }
 
   Future<void> _viewGroupDetails(Group group) async {
     final currentAcademy = ref.read(currentAcademyProvider);
@@ -276,64 +234,98 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
 
   Widget _buildGroupItem(Group group) {
     final hasCoach = group.coachId != null;
+    final hasAthletes = group.athleteIds.isNotEmpty;
+    final athletesCount = group.athleteIds.length;
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => _viewGroupDetails(group),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Contenido principal
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      group.name,
-                      style: const TextStyle(
-                        fontSize: 18, 
-                        fontWeight: FontWeight.bold
-                      ),
+                  // Imagen circular
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppTheme.mediumGray,
+                    child: Icon(
+                      Icons.group,
+                      size: 30,
+                      color: hasCoach ? AppTheme.embers : AppTheme.lightGray,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () => _editGroup(group),
-                    tooltip: 'Editar',
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                    onPressed: () => _deleteGroup(group),
-                    tooltip: 'Eliminar',
+                  const SizedBox(width: 16),
+                  
+                  // Información del grupo
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group.name,
+                          style: const TextStyle(
+                            fontSize: AppTheme.h3Size,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.magnoliaWhite,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          group.description ?? 'description',
+                          style: const TextStyle(
+                            fontSize: AppTheme.bodySize,
+                            color: AppTheme.lightGray,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          hasAthletes
+                              ? '$athletesCount miembros'
+                              : 'Sin miembros',
+                          style: const TextStyle(
+                            fontSize: AppTheme.h3Size,
+                            fontWeight: FontWeight.w500,
+                            color: AppTheme.magnoliaWhite,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              
-              if (group.description != null && group.description!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  group.description!,
-                  style: TextStyle(color: Colors.grey[700]),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+            ),
+            
+            // Barra de fotografías (simulada con círculos)
+            if (hasAthletes)
+              Container(
+                height: 90,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // Mostramos hasta 5 atletas
+                    ...List.generate(athletesCount > 5 ? 5 : athletesCount, (index) => 
+                      Container(
+                        decoration: const BoxDecoration(
+                          color: AppTheme.darkGray,
+                        ),
+                        width: 50,
+                        height: 50,
+                        child: const Icon(Icons.person, color: AppTheme.lightGray),
+                      )
+                    ),
+                  ],
                 ),
-              ],
-              
-              const SizedBox(height: 12),
-              
-              Row(
-                children: [
-                  Icon(Icons.person, size: 16, color: hasCoach ? Colors.green : Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(
-                    hasCoach ? 'Entrenador asignado' : 'Sin entrenador',
-                    style: TextStyle(color: hasCoach ? Colors.green : Colors.grey),
-                  ),
-                ],
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
