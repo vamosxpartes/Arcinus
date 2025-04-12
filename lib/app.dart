@@ -2,7 +2,6 @@ import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:arcinus/config/firebase/analytics_service.dart';
-import 'package:arcinus/shared/models/session.dart';
 import 'package:arcinus/shared/models/training.dart';
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/shared/theme/app_theme.dart';

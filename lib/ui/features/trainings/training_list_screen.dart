@@ -1,9 +1,7 @@
 import 'package:arcinus/shared/models/training.dart';
-import 'package:arcinus/shared/models/navigation_item.dart';
 import 'package:arcinus/shared/navigation/navigation_items.dart';
 import 'package:arcinus/shared/navigation/navigation_service.dart';
 import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
-import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:arcinus/ux/features/trainings/services/training_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,7 +49,6 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     
     return Scaffold(
       backgroundColor: Colors.black, // Black Swarm del brandbook
@@ -88,9 +85,9 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
     return Container(
       height: 100,
       padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E), // Dark Gray del brandbook
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1E1E), // Dark Gray del brandbook
+        borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
@@ -225,7 +222,6 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: const Color(0xFF323232), // Medium Gray del brandbook
-            width: 1.0,
           ),
         ),
         child: Column(
@@ -291,9 +287,9 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
             if (isCompleted)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E), // Dark Gray del brandbook
-                  borderRadius: const BorderRadius.only(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E1E1E), // Dark Gray del brandbook
+                  borderRadius: BorderRadius.only(
                     bottomLeft: Radius.circular(16),
                     bottomRight: Radius.circular(16),
                   ),
@@ -318,7 +314,7 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withAlpha(30),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Text(
@@ -400,7 +396,6 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: const Color(0xFF323232), // Medium Gray del brandbook
-            width: 1.0,
           ),
         ),
         child: Row(

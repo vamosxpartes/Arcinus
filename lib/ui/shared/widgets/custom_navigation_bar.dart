@@ -42,7 +42,6 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with TickerPr
   
   // Controlador para animar el cambio de posición del botón agregar
   late AnimationController _addButtonPositionController;
-  late Animation<double> _addButtonPositionAnimation;
   
   // Estado para controlar si el panel está siendo arrastrado
   bool _isDragging = false;
@@ -81,13 +80,6 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with TickerPr
       duration: const Duration(milliseconds: 300),
     );
     
-    _addButtonPositionAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _addButtonPositionController,
-      curve: Curves.easeInOutCubic,
-    ));
     
     // Inicializar estado de la posición del botón
     _lastPinnedItemsCount = widget.pinnedItems.length;
@@ -153,7 +145,6 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with TickerPr
       final int endPosition = items.length;
       
       // Posición actual basada en la animación
-      final double position = _addButtonPositionAnimation.value;
       final int insertPosition = isOdd 
           ? endPosition
           : middlePosition;

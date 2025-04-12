@@ -24,10 +24,10 @@ class ErrorDisplay extends StatelessWidget {
               size: 64,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Ocurrió un error',
               style: TextStyle(
-                color: const Color(0xFFFFFFFF), // Magnolia White
+                color: Color(0xFFFFFFFF), // Magnolia White
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),

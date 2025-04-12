@@ -30,8 +30,8 @@ class LoadingIndicator extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               message!,
-              style: TextStyle(
-                color: const Color(0xFFFFFFFF), // Magnolia White
+              style: const TextStyle(
+                color: Color(0xFFFFFFFF), // Magnolia White
                 fontSize: 16,
               ),
               textAlign: TextAlign.center,

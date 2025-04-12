@@ -1,10 +1,9 @@
 import 'package:arcinus/shared/models/exercise.dart';
-import 'package:arcinus/shared/widgets/loading_indicator.dart';
-import 'package:arcinus/shared/widgets/error_display.dart';
 import 'package:arcinus/shared/widgets/empty_state.dart';
-import 'package:arcinus/ux/features/trainings/services/exercise_service.dart';
+import 'package:arcinus/shared/widgets/error_display.dart';
+import 'package:arcinus/shared/widgets/loading_indicator.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
-import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
+import 'package:arcinus/ux/features/trainings/services/exercise_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -156,7 +155,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> with Si
                   borderRadius: BorderRadius.circular(8.0),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0.0),
+                contentPadding: const EdgeInsets.symmetric(),
               ),
               onChanged: (value) {
                 setState(() => _searchQuery = value);
@@ -266,7 +265,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> with Si
         }
         
         if (exercises.isEmpty) {
-          return EmptyState(
+          return const EmptyState(
             icon: Icons.fitness_center,
             message: 'No hay ejercicios disponibles',
             suggestion: 'Agrega nuevos ejercicios para comenzar',
@@ -304,7 +303,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> with Si
         final favorites = exercises.take(3).toList();
         
         if (favorites.isEmpty) {
-          return EmptyState(
+          return const EmptyState(
             icon: Icons.favorite,
             message: 'No hay ejercicios favoritos',
             suggestion: 'Marca ejercicios como favoritos para acceder rápidamente',
@@ -341,7 +340,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> with Si
         final recents = exercises.reversed.take(5).toList();
         
         if (recents.isEmpty) {
-          return EmptyState(
+          return const EmptyState(
             icon: Icons.history,
             message: 'No hay ejercicios recientes',
             suggestion: 'Los ejercicios que veas aparecerán aquí',
@@ -412,7 +411,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> with Si
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: difficultyColor.withOpacity(0.2),
+                      color: difficultyColor.withAlpha(60),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(color: difficultyColor),
                     ),
@@ -444,7 +443,7 @@ class _ExerciseListScreenState extends ConsumerState<ExerciseListScreen> with Si
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFa00c30).withOpacity(0.2), // Embers
+                      color: const Color(0xFFa00c30).withAlpha(30), // Embers
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(

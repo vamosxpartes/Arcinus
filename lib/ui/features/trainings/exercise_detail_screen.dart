@@ -1,6 +1,5 @@
 import 'package:arcinus/shared/models/exercise.dart';
 import 'package:arcinus/shared/widgets/loading_indicator.dart';
-import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:arcinus/ux/features/trainings/services/exercise_service.dart';
 import 'package:flutter/material.dart';
@@ -413,7 +412,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
               return FilterChip(
                 label: Text(group),
                 selected: isSelected,
-                selectedColor: const Color(0xFFa00c30).withOpacity(0.2), // Embers
+                selectedColor: const Color(0xFFa00c30).withAlpha(50), // Embers
                 checkmarkColor: const Color(0xFFa00c30), // Embers
                 backgroundColor: const Color(0xFF1E1E1E), // Dark Gray
                 side: BorderSide(

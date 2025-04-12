@@ -1,14 +1,10 @@
-import 'package:arcinus/shared/models/session.dart';
-import 'package:arcinus/shared/models/training.dart';
-import 'package:arcinus/shared/widgets/loading_indicator.dart';
-import 'package:arcinus/shared/widgets/error_display.dart';
 import 'package:arcinus/shared/widgets/empty_state.dart';
-import 'package:arcinus/ux/features/academy/academy_provider.dart';
+import 'package:arcinus/shared/widgets/error_display.dart';
+import 'package:arcinus/shared/widgets/loading_indicator.dart';
 import 'package:arcinus/ux/features/trainings/services/performance_service.dart';
-import 'package:arcinus/ux/features/trainings/services/training_service.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
 class PerformanceDashboardScreen extends ConsumerStatefulWidget {
@@ -58,9 +54,6 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     super.dispose();
   }
   
-  String _getAcademyId() {
-    return widget.academyId ?? ref.read(currentAcademyIdProvider) ?? '';
-  }
   
   Future<void> _loadData() async {
     setState(() {
@@ -69,9 +62,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     });
     
     try {
-      final performanceService = ref.read(performanceServiceProvider);
-      final academyId = _getAcademyId();
-      
+      final performanceService = ref.read(performanceServiceProvider);      
       // Cargar datos según el contexto
       if (widget.trainingId != null) {
         // Datos de efectividad para un entrenamiento específico
@@ -128,9 +119,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
               primary: Color(0xFFa00c30), // Embers
               onPrimary: Color(0xFFFFFFFF), // Magnolia White
               surface: Color(0xFF1E1E1E), // Dark Gray
-              onSurface: Color(0xFFFFFFFF), // Magnolia White
-            ),
-            dialogBackgroundColor: const Color(0xFF000000), // Black Swarm
+            ), dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF000000)), // Black Swarm
           ),
           child: child!,
         );
@@ -142,7 +131,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
         _startDate = picked.start;
         _endDate = picked.end;
       });
-      _loadData();
+      await _loadData();
     }
   }
   
@@ -455,7 +444,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _getAttendanceColor(rate).withOpacity(0.2),
+                          color: _getAttendanceColor(rate).withAlpha(30),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
@@ -599,9 +588,9 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
       width: 100,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(30),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withAlpha(50)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -749,26 +738,23 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
     return LineChart(
       LineChartData(
         gridData: FlGridData(
-          show: true,
-          drawVerticalLine: true,
           horizontalInterval: 1,
           verticalInterval: 1,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: const Color(0xFF323232), // Medium Gray
+          getDrawingHorizontalLine: (value) => const FlLine(
+            color: Color(0xFF323232), // Medium Gray
             strokeWidth: 1,
           ),
-          getDrawingVerticalLine: (value) => FlLine(
-            color: const Color(0xFF323232), // Medium Gray
+          getDrawingVerticalLine: (value) => const FlLine(
+            color: Color(0xFF323232), // Medium Gray
             strokeWidth: 1,
           ),
         ),
         titlesData: FlTitlesData(
-          show: true,
           rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+            
           ),
           topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+            
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
@@ -841,7 +827,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFFa00c30).withOpacity(0.1), // Embers
+              color: const Color(0xFFa00c30).withAlpha(30), // Embers
             ),
           ),
           LineChartBarData(
@@ -853,7 +839,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFF00C853).withOpacity(0.1), // Court Green
+              color: const Color(0xFF00C853).withAlpha(30), // Court Green
             ),
           ),
         ],
@@ -901,7 +887,7 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: progressColor.withOpacity(0.1),
+              color: progressColor.withAlpha(30),
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
