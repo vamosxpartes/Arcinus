@@ -9,6 +9,7 @@ class CustomNavigationBar extends StatefulWidget {
   final Function(NavigationItem)? onItemLongPress;
   final double expandedPanelHeight;
   final bool enableDrag;
+  final VoidCallback? onAddButtonTap;
 
   const CustomNavigationBar({
     super.key,
@@ -19,6 +20,7 @@ class CustomNavigationBar extends StatefulWidget {
     this.onItemLongPress,
     this.expandedPanelHeight = 240.0,
     this.enableDrag = true,
+    this.onAddButtonTap,
   });
 
   @override
@@ -30,16 +32,25 @@ const NavigationItem trainingNavigationItem = NavigationItem(
   icon: Icons.fitness_center,
   label: 'Entrenamientos',
   destination: '/trainings',
+  hasCreationFunction: true,
 );
 
-class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTickerProviderStateMixin {
+class _CustomNavigationBarState extends State<CustomNavigationBar> with TickerProviderStateMixin {
   // Controlador para el panel deslizable
   late AnimationController _panelController;
   late Animation<double> _panelAnimation;
   
+  // Controlador para animar el cambio de posición del botón agregar
+  late AnimationController _addButtonPositionController;
+  late Animation<double> _addButtonPositionAnimation;
+  
   // Estado para controlar si el panel está siendo arrastrado
   bool _isDragging = false;
   double _dragExtent = 0.0;
+  
+  // Variable para rastrar la última cantidad de elementos fijados
+  int _lastPinnedItemsCount = 0;
+  bool _isButtonAtEnd = true;
 
   @override
   void initState() {
@@ -63,12 +74,95 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
     _panelController.addListener(() {
       setState(() {});
     });
+    
+    // Inicializar el controlador para la animación del botón agregar
+    _addButtonPositionController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    
+    _addButtonPositionAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _addButtonPositionController,
+      curve: Curves.easeInOutCubic,
+    ));
+    
+    // Inicializar estado de la posición del botón
+    _lastPinnedItemsCount = widget.pinnedItems.length;
+    _isButtonAtEnd = widget.pinnedItems.length % 2 != 0;
+  }
+  
+  @override
+  void didUpdateWidget(CustomNavigationBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    
+    // Verificar si el número de elementos fijados ha cambiado
+    if (widget.pinnedItems.length != _lastPinnedItemsCount) {
+      // La cantidad ha cambiado, actualizamos estado
+      final bool newIsButtonAtEnd = widget.pinnedItems.length % 2 != 0;
+      
+      // Solo animamos si la posición ha cambiado
+      if (newIsButtonAtEnd != _isButtonAtEnd) {
+        if (newIsButtonAtEnd) {
+          _addButtonPositionController.forward();
+        } else {
+          _addButtonPositionController.reverse();
+        }
+        _isButtonAtEnd = newIsButtonAtEnd;
+      }
+      
+      _lastPinnedItemsCount = widget.pinnedItems.length;
+    }
   }
 
   @override
   void dispose() {
     _panelController.dispose();
+    _addButtonPositionController.dispose();
     super.dispose();
+  }
+  
+  // Verifica si la ruta actual tiene función de creación
+  bool _routeHasCreationFunction() {
+    return widget.allItems.any((item) => 
+      item.destination == widget.activeRoute && item.hasCreationFunction);
+  }
+  
+  // Construye los elementos de navegación con el botón de agregar en la posición adecuada
+  List<Widget> _buildNavigationItems() {
+    final List<Widget> items = widget.pinnedItems.map((item) => _buildNavigationButton(
+      context,
+      item,
+      onTap: () => widget.onItemTap(item),
+      onLongPress: widget.onItemLongPress != null 
+          ? () => widget.onItemLongPress!(item)
+          : null,
+      isPinned: true,
+      isActive: item.destination == widget.activeRoute,
+    )).toList();
+    
+    // Verificar si debemos mostrar el botón de agregar
+    if (_routeHasCreationFunction() && widget.onAddButtonTap != null) {
+      // Calcular la posición del botón según si el número de items es par o impar
+      final bool isOdd = widget.pinnedItems.length % 2 != 0;
+      
+      // Posición inicial y final para la animación
+      final int middlePosition = items.length ~/ 2;
+      final int endPosition = items.length;
+      
+      // Posición actual basada en la animación
+      final double position = _addButtonPositionAnimation.value;
+      final int insertPosition = isOdd 
+          ? endPosition
+          : middlePosition;
+          
+      // Insertar el botón en la posición calculada
+      items.insert(insertPosition, _buildAddButton(context));
+    }
+    
+    return items;
   }
 
   @override
@@ -209,18 +303,55 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with SingleTi
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: widget.pinnedItems.map((item) => _buildNavigationButton(
-                    context,
-                    item,
-                    onTap: () => widget.onItemTap(item),
-                    onLongPress: widget.onItemLongPress != null 
-                        ? () => widget.onItemLongPress!(item)
-                        : null,
-                    isPinned: true,
-                    isActive: item.destination == widget.activeRoute,
-                  )).toList(),
+                  children: _buildNavigationItems(),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // Construir el botón de agregar
+  Widget _buildAddButton(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return GestureDetector(
+      onTap: widget.onAddButtonTap,
+      child: SizedBox(
+        width: 64,
+        height: 64,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icono con fondo
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.add,
+                  color: theme.colorScheme.onPrimary,
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Etiqueta
+            Text(
+              'Agregar',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ],
         ),

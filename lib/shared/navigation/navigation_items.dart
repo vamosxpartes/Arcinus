@@ -14,11 +14,13 @@ class NavigationItems {
       icon: Icons.group,
       label: 'Usuarios',
       destination: '/users-management',
+      hasCreationFunction: true,
     ),
     const NavigationItem(
       icon: Icons.sports,
       label: 'Entrenamientos',
       destination: '/trainings',
+      hasCreationFunction: true,
     ),
     const NavigationItem(
       icon: Icons.calendar_today,
@@ -44,6 +46,7 @@ class NavigationItems {
       icon: Icons.school,
       label: 'Academias',
       destination: '/academies',
+      hasCreationFunction: true,
     ),
     const NavigationItem(
       icon: Icons.person,
@@ -54,7 +57,7 @@ class NavigationItems {
   
   /// Obtiene los elementos predeterminados que deberían estar fijados inicialmente
   static List<NavigationItem> getDefaultPinnedItems() {
-    return allItems.take(5).toList();
+    return allItems.take(4).toList();
   }
   
   /// Método deprecado - Reemplazado por filtrado basado en permisos

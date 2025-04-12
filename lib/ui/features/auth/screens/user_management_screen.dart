@@ -361,6 +361,11 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
             });
           }
         },
+        onAddButtonTap: () {
+          // Dependiendo de la pestaña seleccionada, mostrar la pantalla de creación correspondiente
+          final currentRole = _selectedRole;
+          _showCreateUserForm(currentRole);
+        },
       ),
     );
   }
@@ -1673,5 +1678,85 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
         ),
       ],
     );
+  }
+
+  // Método para mostrar el formulario de creación de usuario según el rol
+  void _showCreateUserForm(UserRole role) {
+    final currentAcademy = ref.read(currentAcademyProvider);
+    if (currentAcademy == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay academia seleccionada')),
+      );
+      return;
+    }
+    
+    switch (role) {
+      case UserRole.athlete:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AthleteFormScreen(
+              mode: AthleteFormMode.create,
+              academyId: currentAcademy.id,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _refreshAthletes();
+          }
+        });
+        break;
+      case UserRole.coach:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CoachFormScreen(
+              mode: CoachFormMode.create,
+              academyId: currentAcademy.id,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _refreshCoaches();
+          }
+        });
+        break;
+      case UserRole.manager:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ManagerFormScreen(
+              mode: ManagerFormMode.create,
+              academyId: currentAcademy.id,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _refreshManagers();
+          }
+        });
+        break;
+      case UserRole.parent:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ParentFormScreen(
+              mode: ParentFormMode.create,
+              academyId: currentAcademy.id,
+            ),
+          ),
+        ).then((result) {
+          if (result == true) {
+            _refreshParents();
+          }
+        });
+        break;
+      default:
+        // Para otros roles, mostrar mensaje de no implementado
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Creación de este tipo de usuario no implementada aún')),
+        );
+        break;
+    }
   }
 } 

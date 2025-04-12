@@ -40,15 +40,15 @@ class NavigationService {
       }
       // No se puede quitar si es el único elemento
     } else {
-      // Si no está fijado y hay menos de 5, lo añadimos
-      if (_pinnedItems.length < 5) {
+      // Si no está fijado y hay menos de 4, lo añadimos
+      if (_pinnedItems.length < 4) {
         _pinnedItems.add(item);
         result = true;
       } else {
-        // Si ya hay 5, mostramos un mensaje
+        // Si ya hay 4, mostramos un mensaje
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Solo puedes fijar 5 elementos. Quita uno primero.')),
+            const SnackBar(content: Text('Solo puedes fijar 4 elementos. Quita uno primero.')),
           );
         }
       }

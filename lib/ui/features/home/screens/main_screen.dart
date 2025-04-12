@@ -94,6 +94,73 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           });
         }
       },
+      onAddButtonTap: () {
+        _handleAddButtonTap();
+      },
+    );
+  }
+  
+  void _handleAddButtonTap() {
+    final String activeRoute = _getActiveRoute();
+    
+    switch (activeRoute) {
+      case '/trainings':
+        Navigator.pushNamed(context, '/trainings/new');
+        break;
+      case '/users-management':
+        // Aquí podrías mostrar un diálogo para elegir qué tipo de usuario crear
+        _showAddUserDialog();
+        break;
+      case '/academies':
+        Navigator.pushNamed(context, '/create-academy');
+        break;
+      default:
+        // Por defecto no hacer nada o mostrar un mensaje
+        break;
+    }
+  }
+  
+  void _showAddUserDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Agregar usuario'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Atleta'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/athlete/new');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.sports),
+              title: const Text('Entrenador'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/coach/new');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.admin_panel_settings),
+              title: const Text('Manager'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/manager/new');
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
     );
   }
   

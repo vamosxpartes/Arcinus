@@ -1,5 +1,7 @@
 import 'package:arcinus/shared/models/training.dart';
 import 'package:arcinus/shared/models/navigation_item.dart';
+import 'package:arcinus/shared/navigation/navigation_items.dart';
+import 'package:arcinus/shared/navigation/navigation_service.dart';
 import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:arcinus/ux/features/trainings/services/training_service.dart';
@@ -22,6 +24,7 @@ class TrainingListScreen extends ConsumerStatefulWidget {
 class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
   late DateTime _selectedDate;
   late List<DateTime> _weekDays;
+  final NavigationService _navigationService = NavigationService();
 
   @override
   void initState() {
@@ -63,41 +66,20 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
         ),
       ),
       bottomNavigationBar: CustomNavigationBar(
-        pinnedItems: const [
-          NavigationItem(
-            icon: Icons.home,
-            label: 'Inicio',
-            destination: '/home',
-          ),
-          trainingNavigationItem,
-          NavigationItem(
-            icon: Icons.people,
-            label: 'Atletas',
-            destination: '/athletes',
-          ),
-          NavigationItem(
-            icon: Icons.analytics,
-            label: 'Estadísticas',
-            destination: '/stats',
-          ),
-          NavigationItem(
-            icon: Icons.person,
-            label: 'Perfil',
-            destination: '/profile',
-          ),
-        ],
-        allItems: const [],
+        pinnedItems: _navigationService.pinnedItems,
+        allItems: NavigationItems.allItems,
         activeRoute: '/trainings',
         onItemTap: (item) {
-          Navigator.pushReplacementNamed(context, item.destination);
+          _navigationService.navigateToRoute(context, item.destination);
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFFda1a32), // Bonfire Red del brandbook
-        onPressed: () {
+        onItemLongPress: (item) {
+          if (_navigationService.togglePinItem(item, context: context)) {
+            setState(() {});
+          }
+        },
+        onAddButtonTap: () {
           _showAddTrainingOptions();
         },
-        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
