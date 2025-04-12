@@ -1,8 +1,11 @@
 import 'package:arcinus/shared/models/training.dart';
+import 'package:arcinus/shared/models/navigation_item.dart';
+import 'package:arcinus/ui/shared/widgets/custom_navigation_bar.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:arcinus/ux/features/trainings/services/training_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 class TrainingListScreen extends ConsumerStatefulWidget {
   final String academyId;
@@ -16,367 +19,430 @@ class TrainingListScreen extends ConsumerStatefulWidget {
   ConsumerState<TrainingListScreen> createState() => _TrainingListScreenState();
 }
 
-class _TrainingListScreenState extends ConsumerState<TrainingListScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
+  late DateTime _selectedDate;
+  late List<DateTime> _weekDays;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _selectedDate = DateTime.now();
+    _generateWeekDays();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  void _generateWeekDays() {
+    // Generar los días de la semana actual
+    final now = DateTime.now();
+    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    
+    _weekDays = List.generate(7, (index) {
+      return firstDayOfWeek.add(Duration(days: index));
+    });
+  }
+
+  void _onDateSelected(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          const SizedBox(height: 50),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Entrenamientos',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                _buildAddTrainingButton(context),
-              ],
-            ),
-          ),
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Activos'),
-              Tab(text: 'Plantillas'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTrainingList(false),
-                _buildTrainingList(true),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddTrainingButton(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(Icons.add),
-      onSelected: (value) {
-        switch (value) {
-          case 'training':
-            Navigator.pushNamed(context, '/trainings/new');
-            break;
-          case 'template':
-            Navigator.pushNamed(context, '/trainings/template/new');
-            break;
-        }
-      },
-      itemBuilder: (context) => [
-        const PopupMenuItem(
-          value: 'training',
-          child: Row(
-            children: [
-              Icon(Icons.fitness_center),
-              SizedBox(width: 8),
-              Text('Nuevo Entrenamiento'),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'template',
-          child: Row(
-            children: [
-              Icon(Icons.content_copy),
-              SizedBox(width: 8),
-              Text('Nueva Plantilla'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrainingList(bool isTemplate) {
-    final trainingService = ref.watch(trainingServiceProvider);
+    final colorScheme = Theme.of(context).colorScheme;
     
-    return isTemplate
-      ? StreamBuilder<List<Training>>(
-          stream: trainingService.getTrainingTemplates(widget.academyId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            
-            if (snapshot.hasError) {
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
-            }
-            
-            final templates = snapshot.data ?? [];
-            
-            if (templates.isEmpty) {
-              return const Center(
-                child: Text('No hay plantillas de entrenamiento disponibles'),
-              );
-            }
-            
-            return ListView.builder(
-              itemCount: templates.length,
-              padding: const EdgeInsets.all(16),
-              itemBuilder: (context, index) {
-                final template = templates[index];
-                return _buildTrainingCard(template);
-              },
-            );
-          },
-        )
-      : StreamBuilder<List<Training>>(
-          stream: trainingService.getTrainingsByAcademy(widget.academyId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            
-            if (snapshot.hasError) {
-              return Center(
-                child: Text('Error: ${snapshot.error}'),
-              );
-            }
-            
-            final trainings = snapshot.data
-                ?.where((training) => !training.isTemplate)
-                .toList() ?? [];
-            
-            if (trainings.isEmpty) {
-              return const Center(
-                child: Text('No hay entrenamientos activos'),
-              );
-            }
-            
-            return ListView.builder(
-              itemCount: trainings.length,
-              padding: const EdgeInsets.all(16),
-              itemBuilder: (context, index) {
-                final training = trainings[index];
-                return _buildTrainingCard(training);
-              },
-            );
-          },
-        );
-  }
-
-  Widget _buildTrainingCard(Training training) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: () {
-          if (training.isTemplate) {
-            _showTemplateOptionsDialog(training);
-          } else {
-            Navigator.pushNamed(
-              context, 
-              '/trainings/sessions',
-              arguments: training.id,
-            );
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      training.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                  if (training.isTemplate)
-                    Chip(
-                      label: const Text('Plantilla'),
-                      backgroundColor: Colors.blue.shade100,
-                    ),
-                  if (training.isRecurring)
-                    Chip(
-                      label: const Text('Recurrente'),
-                      backgroundColor: Colors.green.shade100,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                training.description,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    Icons.group,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${training.groupIds.length} grupos',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Icon(
-                    Icons.person,
-                    size: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${training.coachIds.length} entrenadores',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  if (training.sessionIds != null && training.sessionIds!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 16.0),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.event,
-                            size: 16,
-                            color: Colors.grey.shade600,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${training.sessionIds!.length} sesiones',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              
-              // Añadir botones de acción solo si no es una plantilla
-              if (!training.isTemplate && training.sessionIds != null && training.sessionIds!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.bar_chart),
-                        label: const Text('Ver métricas'),
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/trainings/performance',
-                            arguments: {
-                              'trainingId': training.id,
-                              'academyId': widget.academyId,
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showTemplateOptionsDialog(Training template) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Opciones de Plantilla'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      backgroundColor: Colors.black, // Black Swarm del brandbook
+      body: SafeArea(
+        child: Column(
           children: [
-            ListTile(
-              leading: const Icon(Icons.content_copy),
-              title: const Text('Usar como entrenamiento'),
-              onTap: () {
-                Navigator.pop(context);
-                
-                // Crear una copia de la plantilla para usarla como base para un nuevo entrenamiento
-                final currentUser = ref.read(authStateProvider).valueOrNull;
-                
-                // Crear un nuevo entrenamiento basado en la plantilla pero sin configuración de recurrencia
-                final newTraining = template.copyWith(
-                  id: '', // ID vacío para que se cree uno nuevo
-                  isTemplate: false, // Ya no es una plantilla
-                  sessionIds: [], // Sin sesiones asociadas
-                  createdAt: DateTime.now(),
-                  createdBy: currentUser?.id ?? 'unknownUser',
-                  updatedAt: null,
-                  updatedBy: null,
-                  // Mantenemos el contenido, grupos, entrenadores, etc. de la plantilla
-                );
-                
-                // Navegar a la pantalla de edición con el nuevo entrenamiento como base
-                Navigator.pushNamed(
-                  context,
-                  '/trainings/new',
-                  arguments: {'training': newTraining, 'isTemplate': false},
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Editar plantilla'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(
-                  context,
-                  '/trainings/edit',
-                  arguments: template,
-                );
-              },
+            _buildCalendarStrip(),
+            Expanded(
+              child: _buildTrainingList(),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+      ),
+      bottomNavigationBar: CustomNavigationBar(
+        pinnedItems: const [
+          NavigationItem(
+            icon: Icons.home,
+            label: 'Inicio',
+            destination: '/home',
+          ),
+          trainingNavigationItem,
+          NavigationItem(
+            icon: Icons.people,
+            label: 'Atletas',
+            destination: '/athletes',
+          ),
+          NavigationItem(
+            icon: Icons.analytics,
+            label: 'Estadísticas',
+            destination: '/stats',
+          ),
+          NavigationItem(
+            icon: Icons.person,
+            label: 'Perfil',
+            destination: '/profile',
           ),
         ],
+        allItems: const [],
+        activeRoute: '/trainings',
+        onItemTap: (item) {
+          Navigator.pushReplacementNamed(context, item.destination);
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFFda1a32), // Bonfire Red del brandbook
+        onPressed: () {
+          _showAddTrainingOptions();
+        },
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildCalendarStrip() {
+    return Container(
+      height: 100,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E), // Dark Gray del brandbook
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(16),
+          bottomRight: Radius.circular(16),
+        ),
+      ),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _weekDays.length,
+        itemBuilder: (context, index) {
+          final day = _weekDays[index];
+          final isSelected = day.day == _selectedDate.day &&
+                            day.month == _selectedDate.month &&
+                            day.year == _selectedDate.year;
+          
+          return GestureDetector(
+            onTap: () => _onDateSelected(day),
+            child: Container(
+              width: 50,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFda1a32) : Colors.transparent, // Bonfire Red si está seleccionado
+                borderRadius: BorderRadius.circular(25),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    DateFormat('E').format(day).substring(0, 3),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    day.day.toString(),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTrainingList() {
+    final trainingService = ref.watch(trainingServiceProvider);
+    final dateFormatter = DateFormat('hh:mm a');
+    
+    return StreamBuilder<List<Training>>(
+      stream: trainingService.getTrainingsByAcademy(widget.academyId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFFda1a32)));
+        }
+        
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }
+        
+        final trainings = snapshot.data
+          ?.where((training) => !training.isTemplate)
+          .toList() ?? [];
+        
+        if (trainings.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.fitness_center, color: Color(0xFFa00c30), size: 48),
+                SizedBox(height: 16),
+                Text(
+                  'No hay entrenamientos programados',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Para propósitos de demostración, simulamos algunos estado de completado
+        // En una implementación real, esto vendría de tus datos
+        final completedStates = {
+          0: true,  // Primer entrenamiento completado
+          2: false, // Tercer entrenamiento no completado
+        };
+        
+        return ListView.builder(
+          itemCount: trainings.length,
+          padding: const EdgeInsets.all(16),
+          itemBuilder: (context, index) {
+            final training = trainings[index];
+            // Simulamos una hora para cada entrenamiento
+            final time = DateTime.now().add(Duration(hours: index + 9));
+            final isCompleted = completedStates[index] ?? false;
+            
+            return _buildTrainingCard(
+              training, 
+              dateFormatter.format(time),
+              isCompleted,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTrainingCard(Training training, String time, bool isCompleted) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context, 
+          '/trainings/sessions',
+          arguments: training.id,
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: isCompleted ? const Color(0xFF323232) : Colors.black, // Medium Gray si está completado
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF323232), // Medium Gray del brandbook
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(top: 6, right: 12),
+                    decoration: BoxDecoration(
+                      color: isCompleted 
+                        ? const Color(0xFF00C853) // Court Green del brandbook
+                        : Colors.grey,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          training.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          training.description,
+                          style: const TextStyle(
+                            color: Color(0xFF8A8A8A), // Light Gray del brandbook
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E1E), // Dark Gray del brandbook
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      time,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isCompleted)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E), // Dark Gray del brandbook
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: Color(0xFF00C853), // Court Green del brandbook
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Sesión completada',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Ver detalles',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddTrainingOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E1E), // Dark Gray del brandbook
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Crear nuevo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildOptionButton(
+                icon: Icons.fitness_center,
+                label: 'Nuevo Entrenamiento',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/trainings/new');
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildOptionButton(
+                icon: Icons.content_copy,
+                label: 'Nueva Plantilla',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/trainings/template/new');
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF323232), // Medium Gray del brandbook
+            width: 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: const Color(0xFFda1a32), // Bonfire Red del brandbook
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+              ),
+            ),
+            const Spacer(),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white,
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }
