@@ -2,17 +2,19 @@ import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:arcinus/config/firebase/analytics_service.dart';
+import 'package:arcinus/shared/models/session.dart';
 import 'package:arcinus/shared/models/training.dart';
 import 'package:arcinus/shared/models/user.dart';
-import 'package:arcinus/shared/theme/theme.dart';
-import 'package:arcinus/ui/features/academy/screens/academy_list_screen.dart';
-import 'package:arcinus/ui/features/academy/screens/create_academy_screen.dart';
-import 'package:arcinus/ui/features/auth/screens/auth_screens.dart';
-import 'package:arcinus/ui/features/chat/screens/chat_screen.dart';
-import 'package:arcinus/ui/features/chat/screens/chats_list_screen.dart';
+import 'package:arcinus/shared/theme/app_theme.dart';
+import 'package:arcinus/ui/features/auth/screens/forgot_password_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/login_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/profile_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/register_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/user_management_screen.dart';
 import 'package:arcinus/ui/features/home/screens/main_screen.dart';
 import 'package:arcinus/ui/features/splash/splash_screen.dart';
 import 'package:arcinus/ui/features/trainings/attendance_screen.dart';
+import 'package:arcinus/ui/features/trainings/performance_dashboard_screen.dart';
 import 'package:arcinus/ui/features/trainings/session_list_screen.dart';
 import 'package:arcinus/ui/features/trainings/training_form_screen.dart';
 import 'package:arcinus/ui/features/trainings/training_list_screen.dart';
@@ -173,7 +175,7 @@ class ArcinusApp extends ConsumerWidget {
                     developer.log('DEBUG: Usuario autenticado, rol: ${user.role}, necesita crear academia: $needsCreation');
                     if (user.role == UserRole.owner && needsCreation) {
                       developer.log('DEBUG: Redirigiendo a crear academia');
-                      return const CreateAcademyScreen();
+                      return const UnderDevelopmentScreen(title: 'Crear Academia');
                     } else {
                       developer.log('DEBUG: Redirigiendo a dashboard');
                       return const MainScreen();
@@ -207,9 +209,9 @@ class ArcinusApp extends ConsumerWidget {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         },
         '/users-management': (context) => const UserManagementScreen(),
-        '/chats': (context) => const ChatsListScreen(),
-        '/chat': (context) => const ChatScreen(),
-        '/notifications': (context) => const NotificationsScreen(),
+        '/chats': (context) => const UnderDevelopmentScreen(title: 'Chats'),
+        '/chat': (context) => const UnderDevelopmentScreen(title: 'Chat'),
+        '/notifications': (context) => const UnderDevelopmentScreen(title: 'Notificaciones'),
         '/trainings': (context) => TrainingListScreen(
           academyId: ref.read(currentAcademyIdProvider) ?? '',
         ),
@@ -217,8 +219,8 @@ class ArcinusApp extends ConsumerWidget {
         '/stats': (context) => const UnderDevelopmentScreen(title: 'Estadísticas'),
         '/settings': (context) => const UnderDevelopmentScreen(title: 'Configuración'),
         '/payments': (context) => const UnderDevelopmentScreen(title: 'Pagos'),
-        '/academies': (context) => const AcademyListScreen(),
-        '/create-academy': (context) => const CreateAcademyScreen(),
+        '/academies': (context) => const UnderDevelopmentScreen(title: 'Academias'),
+        '/create-academy': (context) => const UnderDevelopmentScreen(title: 'Crear Academia'),
         '/academy-details': (context) => const UnderDevelopmentScreen(title: 'Detalles de Academia'),
       },
       onGenerateRoute: (settings) {
@@ -266,6 +268,17 @@ class ArcinusApp extends ConsumerWidget {
                 builder: (context) => AttendanceScreen(
                   sessionId: sessionId,
                   academyId: academyId,
+                ),
+              );
+              
+            case '/trainings/performance':
+              final args = settings.arguments as Map<String, dynamic>?;
+              return MaterialPageRoute(
+                builder: (context) => PerformanceDashboardScreen(
+                  athleteId: args?['athleteId'] as String?,
+                  groupId: args?['groupId'] as String?,
+                  trainingId: args?['trainingId'] as String?,
+                  academyId: args?['academyId'] as String? ?? academyId,
                 ),
               );
           }

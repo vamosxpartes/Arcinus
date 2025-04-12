@@ -288,6 +288,31 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> with Si
                     ),
                 ],
               ),
+              
+              // Añadir botones de acción solo si no es una plantilla
+              if (!training.isTemplate && training.sessionIds != null && training.sessionIds!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.bar_chart),
+                        label: const Text('Ver métricas'),
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/trainings/performance',
+                            arguments: {
+                              'trainingId': training.id,
+                              'academyId': widget.academyId,
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

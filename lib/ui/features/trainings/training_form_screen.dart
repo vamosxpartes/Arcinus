@@ -190,14 +190,20 @@ class _TrainingFormScreenState extends ConsumerState<TrainingFormScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
+                SizedBox(
+                  width: 120,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
+                  ),
                 ),
                 const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _saveTraining,
-                  child: Text(isEditing ? 'Actualizar' : 'Guardar'),
+                SizedBox(
+                  width: 120,
+                  child: ElevatedButton(
+                    onPressed: _saveTraining,
+                    child: Text(isEditing ? 'Actualizar' : 'Guardar'),
+                  ),
                 ),
               ],
             ),

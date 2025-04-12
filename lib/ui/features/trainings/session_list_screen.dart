@@ -43,6 +43,20 @@ class SessionListScreen extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.bar_chart),
+                  tooltip: 'Ver métricas de rendimiento',
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/trainings/performance',
+                      arguments: {
+                        'trainingId': trainingId,
+                        'academyId': academyId,
+                      },
+                    );
+                  },
+                ),
                 _AddSessionButton(trainingId: trainingId, academyId: academyId),
               ],
             ),
