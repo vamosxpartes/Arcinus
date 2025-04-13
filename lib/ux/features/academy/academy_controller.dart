@@ -1,10 +1,10 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/shared/models/academy.dart';
-import 'package:arcinus/shared/models/sport_characteristics.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/academy/academy_repository.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:developer' as developer;
 
 // Definir el provider para el controlador
 final academyControllerProvider = Provider((ref) => AcademyController(ref));

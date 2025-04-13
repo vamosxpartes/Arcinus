@@ -130,7 +130,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final screenHeight = MediaQuery.of(context).size.height;
     
     return Scaffold(
       body: SafeArea(
@@ -151,7 +150,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(height: 20),
                     
@@ -231,7 +229,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withAlpha(15),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -285,7 +283,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withAlpha(15),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
@@ -354,7 +352,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   vertical: 4,
                                 ),
                               ),
-                              child: Text(
+                              child: const Text(
                                 '¿Olvidaste tu contraseña?',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w500,

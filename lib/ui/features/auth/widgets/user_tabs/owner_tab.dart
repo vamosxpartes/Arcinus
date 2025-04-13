@@ -1,6 +1,5 @@
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/ui/features/auth/widgets/shared/user_search_bar.dart';
-import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:arcinus/ux/features/auth/providers/user_management_provider.dart';
 import 'package:arcinus/ux/features/auth/services/user_service.dart';
 import 'package:flutter/material.dart';
@@ -32,8 +31,6 @@ class OwnerTab extends ConsumerWidget {
           controller: searchController,
           hintText: 'Buscar propietarios...',
           onSearch: (query) => userManagementNotifier.updateSearchQuery(query),
-          onAddPressed: () => _showAddOwnerDialog(context, ref),
-          addButtonTooltip: 'Agregar Propietario',
         ),
         
         const Divider(),
@@ -120,72 +117,4 @@ class OwnerTab extends ConsumerWidget {
     );
   }
 
-  void _showAddOwnerDialog(BuildContext context, WidgetRef ref) {
-    final currentUser = ref.read(authStateProvider).valueOrNull;
-    if (currentUser?.role != UserRole.superAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No tienes permisos para agregar propietarios')),
-      );
-      return;
-    }
-    
-    final TextEditingController emailController = TextEditingController();
-    final TextEditingController nameController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Agregar Propietario'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nombre completo',
-                hintText: 'Nombre del propietario',
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Correo electrónico',
-                hintText: 'email@ejemplo.com',
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (emailController.text.isEmpty || nameController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Debes completar todos los campos')),
-                );
-                return;
-              }
-              
-              // Lógica para crear el owner
-              // Esto sería implementado con un servicio real
-              Navigator.pop(context);
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Propietario agregado correctamente')),
-              );
-              
-              // Refrescar la lista
-              ref.invalidate(ownersProvider);
-            },
-            child: const Text('Agregar'),
-          ),
-        ],
-      ),
-    );
-  }
 } 

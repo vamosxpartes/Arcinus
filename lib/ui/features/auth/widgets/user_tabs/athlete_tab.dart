@@ -26,8 +26,6 @@ class AthleteTab extends ConsumerWidget {
           controller: searchController,
           hintText: 'Buscar atletas...',
           onSearch: (query) => userManagementNotifier.updateSearchQuery(query),
-          onAddPressed: () => _addAthlete(context, ref),
-          addButtonTooltip: 'Agregar Atleta',
         ),
         
         const Divider(),
@@ -115,31 +113,6 @@ class AthleteTab extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _addAthlete(BuildContext context, WidgetRef ref) {
-    final currentAcademy = ref.read(currentAcademyProvider);
-    if (currentAcademy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay academia seleccionada')),
-      );
-      return;
-    }
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AthleteFormScreen(
-          mode: AthleteFormMode.create,
-          academyId: currentAcademy.id,
-        ),
-      ),
-    ).then((result) {
-      if (result == true) {
-        // Refrescar datos
-        ref.invalidate(athletesProvider(currentAcademy.id));
-      }
-    });
   }
 
   void _editAthlete(BuildContext context, WidgetRef ref, String athleteId, String academyId) {

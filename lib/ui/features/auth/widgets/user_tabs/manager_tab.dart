@@ -26,8 +26,6 @@ class ManagerTab extends ConsumerWidget {
           controller: searchController,
           hintText: 'Buscar gerentes...',
           onSearch: (query) => userManagementNotifier.updateSearchQuery(query),
-          onAddPressed: () => _addManager(context, ref),
-          addButtonTooltip: 'Agregar Gerente',
         ),
         
         const Divider(),
@@ -117,30 +115,6 @@ class ManagerTab extends ConsumerWidget {
     );
   }
 
-  void _addManager(BuildContext context, WidgetRef ref) {
-    final currentAcademy = ref.read(currentAcademyProvider);
-    if (currentAcademy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay academia seleccionada')),
-      );
-      return;
-    }
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ManagerFormScreen(
-          mode: ManagerFormMode.create,
-          academyId: currentAcademy.id,
-        ),
-      ),
-    ).then((result) {
-      if (result == true) {
-        // Refrescar datos
-        ref.invalidate(managersProvider(currentAcademy.id));
-      }
-    });
-  }
 
   void _editManager(BuildContext context, WidgetRef ref, String managerId, String academyId) {
     Navigator.push(

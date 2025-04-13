@@ -21,7 +21,7 @@ class GroupListScreen extends ConsumerStatefulWidget {
 
 class _GroupListScreenState extends ConsumerState<GroupListScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+  final String _searchQuery = '';
 
   @override
   void dispose() {
@@ -29,11 +29,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
-    setState(() {
-      _searchQuery = query.toLowerCase();
-    });
-  }
 
   Future<void> _refreshGroups() async {
     setState(() {
@@ -46,33 +41,6 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     });
   }
 
-  Future<void> _addGroup() async {
-    final currentAcademy = ref.read(currentAcademyProvider);
-    if (currentAcademy == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No hay academia seleccionada')),
-        );
-      }
-      return;
-    }
-    
-    if (!mounted) return;
-    
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => GroupFormScreen(
-          mode: GroupFormMode.create,
-          academyId: currentAcademy.id,
-        ),
-      ),
-    );
-    
-    if (result == true && mounted) {
-      await _refreshGroups();
-    }
-  }
 
   Future<void> _editGroup(Group group) async {
     final currentAcademy = ref.read(currentAcademyProvider);
@@ -123,52 +91,8 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     }
     
     return Scaffold(
-      body: Column(
-        children: [
-          // Barra de búsqueda
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar grupos...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      // ignore: avoid_redundant_argument_values
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0.0),
-                    ),
-                    onChanged: _onSearchChanged,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: IconButton(
-                    onPressed: _addGroup,
-                    icon: const Icon(
-                      Icons.group_add,
-                      color: Colors.white,
-                    ),
-                    tooltip: 'Crear Grupo',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Lista de grupos
-          Expanded(
-            child: _buildGroupList(currentAcademy.id),
-          ),
-        ],
+      body: Expanded(
+        child: _buildGroupList(currentAcademy.id),
       ),
     );
   }

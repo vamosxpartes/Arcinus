@@ -958,8 +958,7 @@ class UserService {
       return {
         'success': true,
         'stats': stats,
-        'message': 'Migración completada. Total: ${stats['total']}, ' +
-                  'SuperAdmins: ${stats['superadmins']}, ' +
+        'message': 'Migración completada. Total: ${stats['total']}, ' 'SuperAdmins: ${stats['superadmins']}, ' +
                   'Owners: ${stats['owners']}, ' +
                   'AcademyUsers: ${stats['academyUsers']}, ' +
                   'Errores: ${stats['errors']}',

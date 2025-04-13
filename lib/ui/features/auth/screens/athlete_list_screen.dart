@@ -183,22 +183,7 @@ class _AthleteListScreenState extends ConsumerState<AthleteListScreen> {
                     ),
                     onChanged: _onSearchChanged,
                   ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: IconButton(
-                    onPressed: _addAthlete,
-                    icon: const Icon(
-                      Icons.person_add,
-                      color: Colors.white,
-                    ),
-                    tooltip: 'Agregar Atleta',
-                  ),
-                ),
+                ),                
               ],
             ),
           ),

@@ -250,7 +250,7 @@ class FirebaseAuthRepository implements AuthRepository {
         await _firestore.collection('superadmins').doc(user.id).update(_userToJson(user));
       } else if (user.role == app.UserRole.owner) {
         await _firestore.collection('owners').doc(user.id).update(_userToJson(user));
-      } else if (!user.academyIds.isEmpty) {
+      } else if (user.academyIds.isNotEmpty) {
         // Usuario con academia asignada - actualizar en la subcolección de la academia
         for (final academyId in user.academyIds) {
           await _firestore.collection('academies').doc(academyId).collection('users').doc(user.id).update(_userToJson(user));

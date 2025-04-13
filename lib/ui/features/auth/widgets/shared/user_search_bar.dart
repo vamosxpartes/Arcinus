@@ -5,16 +5,12 @@ class UserSearchBar extends ConsumerWidget {
   final TextEditingController controller;
   final String hintText;
   final Function(String) onSearch;
-  final VoidCallback onAddPressed;
-  final String addButtonTooltip;
 
   const UserSearchBar({
     super.key,
     required this.controller,
     required this.hintText,
     required this.onSearch,
-    required this.onAddPressed,
-    this.addButtonTooltip = 'Agregar',
   });
 
   @override
@@ -45,14 +41,6 @@ class UserSearchBar extends ConsumerWidget {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
               borderRadius: BorderRadius.circular(8.0),
-            ),
-            child: IconButton(
-              onPressed: onAddPressed,
-              icon: const Icon(
-                Icons.person_add,
-                color: Colors.white,
-              ),
-              tooltip: addButtonTooltip,
             ),
           ),
         ],
