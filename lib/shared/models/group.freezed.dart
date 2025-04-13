@@ -28,6 +28,7 @@ mixin _$Group {
   List<String> get athleteIds => throw _privateConstructorUsedError;
   int? get capacity => throw _privateConstructorUsedError;
   bool get isPublic => throw _privateConstructorUsedError;
+  Map<String, dynamic>? get formationData => throw _privateConstructorUsedError;
   DateTime? get createdAt => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
@@ -54,6 +55,7 @@ abstract class $GroupCopyWith<$Res> {
       List<String> athleteIds,
       int? capacity,
       bool isPublic,
+      Map<String, dynamic>? formationData,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -81,6 +83,7 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
     Object? athleteIds = null,
     Object? capacity = freezed,
     Object? isPublic = null,
+    Object? formationData = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -117,6 +120,10 @@ class _$GroupCopyWithImpl<$Res, $Val extends Group>
           ? _value.isPublic
           : isPublic // ignore: cast_nullable_to_non_nullable
               as bool,
+      formationData: freezed == formationData
+          ? _value.formationData
+          : formationData // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -145,6 +152,7 @@ abstract class _$$GroupImplCopyWith<$Res> implements $GroupCopyWith<$Res> {
       List<String> athleteIds,
       int? capacity,
       bool isPublic,
+      Map<String, dynamic>? formationData,
       DateTime? createdAt,
       DateTime? updatedAt});
 }
@@ -170,6 +178,7 @@ class __$$GroupImplCopyWithImpl<$Res>
     Object? athleteIds = null,
     Object? capacity = freezed,
     Object? isPublic = null,
+    Object? formationData = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
@@ -206,6 +215,10 @@ class __$$GroupImplCopyWithImpl<$Res>
           ? _value.isPublic
           : isPublic // ignore: cast_nullable_to_non_nullable
               as bool,
+      formationData: freezed == formationData
+          ? _value._formationData
+          : formationData // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
       createdAt: freezed == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -230,9 +243,11 @@ class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
       final List<String> athleteIds = const [],
       this.capacity,
       this.isPublic = true,
+      final Map<String, dynamic>? formationData,
       this.createdAt,
       this.updatedAt})
-      : _athleteIds = athleteIds;
+      : _athleteIds = athleteIds,
+        _formationData = formationData;
 
   factory _$GroupImpl.fromJson(Map<String, dynamic> json) =>
       _$$GroupImplFromJson(json);
@@ -261,6 +276,16 @@ class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
   @override
   @JsonKey()
   final bool isPublic;
+  final Map<String, dynamic>? _formationData;
+  @override
+  Map<String, dynamic>? get formationData {
+    final value = _formationData;
+    if (value == null) return null;
+    if (_formationData is EqualUnmodifiableMapView) return _formationData;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
+
   @override
   final DateTime? createdAt;
   @override
@@ -268,7 +293,7 @@ class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.info}) {
-    return 'Group(id: $id, name: $name, academyId: $academyId, description: $description, coachId: $coachId, athleteIds: $athleteIds, capacity: $capacity, isPublic: $isPublic, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'Group(id: $id, name: $name, academyId: $academyId, description: $description, coachId: $coachId, athleteIds: $athleteIds, capacity: $capacity, isPublic: $isPublic, formationData: $formationData, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -284,6 +309,7 @@ class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
       ..add(DiagnosticsProperty('athleteIds', athleteIds))
       ..add(DiagnosticsProperty('capacity', capacity))
       ..add(DiagnosticsProperty('isPublic', isPublic))
+      ..add(DiagnosticsProperty('formationData', formationData))
       ..add(DiagnosticsProperty('createdAt', createdAt))
       ..add(DiagnosticsProperty('updatedAt', updatedAt));
   }
@@ -306,6 +332,8 @@ class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
                 other.capacity == capacity) &&
             (identical(other.isPublic, isPublic) ||
                 other.isPublic == isPublic) &&
+            const DeepCollectionEquality()
+                .equals(other._formationData, _formationData) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -324,6 +352,7 @@ class _$GroupImpl with DiagnosticableTreeMixin implements _Group {
       const DeepCollectionEquality().hash(_athleteIds),
       capacity,
       isPublic,
+      const DeepCollectionEquality().hash(_formationData),
       createdAt,
       updatedAt);
 
@@ -353,6 +382,7 @@ abstract class _Group implements Group {
       final List<String> athleteIds,
       final int? capacity,
       final bool isPublic,
+      final Map<String, dynamic>? formationData,
       final DateTime? createdAt,
       final DateTime? updatedAt}) = _$GroupImpl;
 
@@ -374,6 +404,8 @@ abstract class _Group implements Group {
   int? get capacity;
   @override
   bool get isPublic;
+  @override
+  Map<String, dynamic>? get formationData;
   @override
   DateTime? get createdAt;
   @override

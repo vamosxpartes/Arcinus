@@ -19,6 +19,7 @@ class Group with _$Group {
     @Default([]) List<String> athleteIds,
     int? capacity,
     @Default(true) bool isPublic,
+    Map<String, dynamic>? formationData,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) = _Group;

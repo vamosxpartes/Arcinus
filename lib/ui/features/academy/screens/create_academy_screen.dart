@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:arcinus/shared/models/sport_characteristics.dart';
 import 'package:arcinus/ux/features/academy/academy_controller.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:developer' as developer;
 
 class CreateAcademyScreen extends ConsumerStatefulWidget {
   const CreateAcademyScreen({super.key});
@@ -22,18 +24,15 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
   File? _logoFile;
   bool _isLoading = false;
   
-  // Lista de deportes disponibles
-  final List<String> _sports = [
-    'Fútbol',
-    'Baloncesto',
-    'Voleibol',
-    'Natación',
-    'Tenis',
-    'Artes Marciales',
-    'Gimnasia',
-    'Atletismo',
-    'Otro'
-  ];
+  // Lista de deportes disponibles con códigos normalizados
+  final Map<String, String> _sports = {
+    'basketball': 'Baloncesto',
+    'volleyball': 'Voleibol',
+    'skating': 'Patinaje',
+    'soccer': 'Fútbol',
+    'futsal': 'Fútbol de Salón',
+    'otro': 'Otro'
+  };
 
   @override
   void dispose() {
@@ -61,12 +60,17 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
     if (!_formKey.currentState!.validate() || _selectedSport == null) {
       // Mostrar error si no se ha seleccionado deporte
       if (_selectedSport == null) {
+        developer.log('DEBUG: CreateAcademyScreen._createAcademy - Validación fallida: deporte no seleccionado');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Por favor selecciona un deporte')),
         );
+      } else {
+        developer.log('DEBUG: CreateAcademyScreen._createAcademy - Validación fallida: formulario inválido');
       }
       return;
     }
+    
+    developer.log('DEBUG: CreateAcademyScreen._createAcademy - Validación exitosa, iniciando creación');
     
     setState(() {
       _isLoading = true;
@@ -75,20 +79,38 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
     try {
       // Crear academia
       final academyController = ref.read(academyControllerProvider);
+      developer.log('DEBUG: CreateAcademyScreen._createAcademy - Obtenido controlador de academia');
+      
+      // Obtener características del deporte
+      developer.log('DEBUG: CreateAcademyScreen._createAcademy - Deporte seleccionado: $_selectedSport');
+      final sportConfig = _selectedSport == 'otro' 
+          ? null 
+          : SportCharacteristics.forSport(_selectedSport!);
+      
+      // Convertir SportCharacteristics a Map<String, dynamic> para evitar errores de serialización
+      final sportConfigMap = sportConfig?.toJson();
+      developer.log('DEBUG: CreateAcademyScreen._createAcademy - SportConfig generado: ${sportConfigMap != null ? 'sí' : 'no'}');
+      
+      developer.log('DEBUG: CreateAcademyScreen._createAcademy - Llamando a academyController.createAcademy');
       final academy = await academyController.createAcademy(
         name: _nameController.text.trim(),
-        sport: _selectedSport!,
+        sport: _sports[_selectedSport!] ?? _selectedSport!,
         location: _locationController.text.trim().isNotEmpty ? _locationController.text.trim() : null,
         taxId: _taxIdController.text.trim().isNotEmpty ? _taxIdController.text.trim() : null,
         description: _descriptionController.text.trim().isNotEmpty ? _descriptionController.text.trim() : null,
+        sportConfig: sportConfigMap,
       );
+      
+      developer.log('DEBUG: CreateAcademyScreen._createAcademy - Academia creada exitosamente: ${academy.id}');
       
       // Subir logo si se seleccionó
       if (_logoFile != null) {
+        developer.log('DEBUG: CreateAcademyScreen._createAcademy - Subiendo logo para academia ${academy.id}');
         await academyController.uploadAcademyLogo(
           academy.id,
           _logoFile!.path,
         );
+        developer.log('DEBUG: CreateAcademyScreen._createAcademy - Logo subido exitosamente');
       }
       
       if (mounted) {
@@ -96,6 +118,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
           _isLoading = false;
         });
         
+        developer.log('DEBUG: CreateAcademyScreen._createAcademy - Navegando al dashboard');
         // Navegar al dashboard
         Navigator.of(context).popUntil((route) => route.isFirst);
         // Usar unawaited intencionalmente para permitir la navegación inmediata
@@ -108,6 +131,8 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
         );
       }
     } catch (e) {
+      developer.log('ERROR: CreateAcademyScreen._createAcademy - Error al crear academia: $e', error: e);
+      
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -116,6 +141,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
         // Mostrar un mensaje más informativo para el error específico
         String errorMessage = e.toString();
         if (errorMessage.contains('propietario ya tiene una academia')) {
+          developer.log('DEBUG: CreateAcademyScreen._createAcademy - Error de academia duplicada');
           // Si es el error específico de academia duplicada
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -126,10 +152,22 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
           );
           
           // Redirigir al dashboard donde verá su academia existente
+          developer.log('DEBUG: CreateAcademyScreen._createAcademy - Redirigiendo al dashboard después de error de academia duplicada');
           Navigator.of(context).popUntil((route) => route.isFirst);
           await Navigator.pushReplacementNamed(context, '/dashboard');
+        } else if (errorMessage.contains('not-found')) {
+          developer.log('DEBUG: CreateAcademyScreen._createAcademy - Error de documento no encontrado: $errorMessage');
+          // Error específico de documento no encontrado
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error al crear academia: Documento no encontrado. Contacta al soporte técnico.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 7),
+            ),
+          );
         } else {
           // Para otros errores
+          developer.log('DEBUG: CreateAcademyScreen._createAcademy - Error general: $errorMessage');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error al crear la academia: $e')),
           );
@@ -143,62 +181,64 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
     final needsAcademyCreation = ref.watch(needsAcademyCreationProvider);
     
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Crear Academia'),
+        // Mostrar botón de cancelar solo si no es obligatoria la creación
+        leading: needsAcademyCreation.maybeWhen(
+          data: (needsCreation) => needsCreation ? null : const BackButton(),
+          orElse: () => const BackButton(),
+        ),
+      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Form(
+          key: _formKey,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ListView(
               children: [
-                const SizedBox(height: 16),
-                // Título de la pantalla
-                const Text(
-                  'Crear Nueva Academia',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                
-                // Mensaje informativo para el propietario
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Theme.of(context).colorScheme.primary,
+                // Si es obligatorio crear academia, mostrar mensaje explicativo
+                needsAcademyCreation.maybeWhen(
+                  data: (needsCreation) => needsCreation
+                      ? Container(
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.only(bottom: 24),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '¡Importante!',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Información',
+                                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                                      color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Para comenzar a usar la aplicación, primero debes crear una academia deportiva.',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Como propietario, debes crear una academia para comenzar a utilizar la aplicación. Después de este paso, podrás gestionar todos los aspectos de tu academia deportiva.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ),
+                        )
+                      : const SizedBox.shrink(),
+                  orElse: () => const SizedBox.shrink(),
                 ),
-                const SizedBox(height: 16),
                 
-                // Selector de logo
+                // Logo
                 Center(
                   child: GestureDetector(
                     onTap: _pickImage,
@@ -252,10 +292,10 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                   ),
                   value: _selectedSport,
                   hint: const Text('Selecciona un deporte'),
-                  items: _sports.map((String sport) {
+                  items: _sports.entries.map((entry) {
                     return DropdownMenuItem<String>(
-                      value: sport,
-                      child: Text(sport),
+                      value: entry.key,
+                      child: Text(entry.value),
                     );
                   }).toList(),
                   onChanged: (String? value) {
@@ -309,26 +349,38 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    OutlinedButton(
-                      onPressed: needsAcademyCreation.maybeWhen(
-                        data: (needsCreation) => needsCreation 
-                          ? null  // Deshabilitamos si es obligatorio crear
-                          : (_isLoading ? null : () => Navigator.pop(context)),
-                        orElse: () => _isLoading ? null : () => Navigator.pop(context),
+                    Expanded(
+                      flex: 1,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: OutlinedButton(
+                          onPressed: needsAcademyCreation.maybeWhen(
+                            data: (needsCreation) => needsCreation 
+                              ? null  // Deshabilitamos si es obligatorio crear
+                              : (_isLoading ? null : () => Navigator.pop(context)),
+                            orElse: () => _isLoading ? null : () => Navigator.pop(context),
+                          ),
+                          child: const Text('Cancelar'),
+                        ),
                       ),
-                      child: const Text('Cancelar'),
                     ),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _createAcademy,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('Crear Academia'),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _createAcademy,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Crear Academia'),
+                        ),
+                      ),
                     ),
                   ],
                 ),

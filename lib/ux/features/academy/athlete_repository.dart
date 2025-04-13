@@ -31,6 +31,10 @@ class AthleteRepository {
     List<String>? parentIds,
     Map<String, dynamic>? medicalInfo,
     Map<String, dynamic>? emergencyContacts,
+    Map<String, dynamic>? additionalInfo,
+    String? position,
+    List<String>? specializations,
+    Map<String, dynamic>? sportStats,
   }) async {
     // Crear el perfil del atleta
     final athleteProfile = AthleteProfile(
@@ -43,6 +47,10 @@ class AthleteRepository {
       parentIds: parentIds,
       medicalInfo: medicalInfo,
       emergencyContacts: emergencyContacts,
+      additionalInfo: additionalInfo,
+      position: position,
+      specializations: specializations,
+      sportStats: sportStats,
       createdAt: DateTime.now(),
     );
 

@@ -25,6 +25,11 @@ class Permissions {
   static const String viewAllTrainings = 'viewAllTrainings';
   static const String editTraining = 'editTraining';
   
+  // Permisos de ejercicios
+  static const String createExercise = 'createExercise';
+  static const String viewAllExercises = 'viewAllExercises';
+  static const String editExercise = 'editExercise';
+  
   // Permisos de clases
   static const String scheduleClass = 'scheduleClass';
   static const String takeAttendance = 'takeAttendance';
@@ -61,6 +66,9 @@ class Permissions {
           createTraining: true,
           viewAllTrainings: true,
           editTraining: true,
+          createExercise: true,
+          viewAllExercises: true,
+          editExercise: true,
           scheduleClass: true,
           takeAttendance: true,
           viewAllAttendance: true,
@@ -89,6 +97,9 @@ class Permissions {
           createTraining: true,
           viewAllTrainings: true,
           editTraining: true,
+          createExercise: true,
+          viewAllExercises: true,
+          editExercise: true,
           scheduleClass: true,
           takeAttendance: true,
           viewAllAttendance: true,
@@ -115,6 +126,9 @@ class Permissions {
           createTraining: true,
           viewAllTrainings: true,
           editTraining: true,
+          createExercise: true,
+          viewAllExercises: true,
+          editExercise: true,
           scheduleClass: true,
           takeAttendance: true,
           viewAllAttendance: true,
@@ -141,6 +155,9 @@ class Permissions {
           createTraining: true,
           viewAllTrainings: false,
           editTraining: true,
+          createExercise: true,
+          viewAllExercises: true,
+          editExercise: true,
           scheduleClass: true,
           takeAttendance: true,
           viewAllAttendance: false,
@@ -170,6 +187,9 @@ class Permissions {
           createTraining: false,
           viewAllTrainings: false,
           editTraining: false,
+          createExercise: false,
+          viewAllExercises: true, // Pueden ver ejercicios
+          editExercise: false,
           scheduleClass: false,
           takeAttendance: false,
           viewAllAttendance: false,
@@ -196,6 +216,9 @@ class Permissions {
           createTraining: false,
           viewAllTrainings: false,
           editTraining: false,
+          createExercise: false,
+          viewAllExercises: false,
+          editExercise: false,
           scheduleClass: false,
           takeAttendance: false,
           viewAllAttendance: false,

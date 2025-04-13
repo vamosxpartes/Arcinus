@@ -9,6 +9,8 @@ String dateTimeToString(DateTime dateTime) => dateTime.toIso8601String();
 
 @freezed
 class AthleteProfile with _$AthleteProfile {
+  const AthleteProfile._(); // Constructor privado necesario para los getters
+  
   const factory AthleteProfile({
     required String userId,
     required String academyId,
@@ -20,6 +22,9 @@ class AthleteProfile with _$AthleteProfile {
     Map<String, dynamic>? medicalInfo,
     Map<String, dynamic>? emergencyContacts,
     Map<String, dynamic>? additionalInfo,
+    Map<String, dynamic>? sportStats,
+    List<String>? specializations,
+    String? position,
     @JsonKey(
       fromJson: dateTimeFromString,
       toJson: dateTimeToString,
@@ -27,5 +32,8 @@ class AthleteProfile with _$AthleteProfile {
     required DateTime createdAt,
   }) = _AthleteProfile;
 
+  // Getter para stats como alias de sportStats
+  Map<String, dynamic> get stats => sportStats ?? {};
+  
   factory AthleteProfile.fromJson(Map<String, dynamic> json) => _$AthleteProfileFromJson(json);
 } 

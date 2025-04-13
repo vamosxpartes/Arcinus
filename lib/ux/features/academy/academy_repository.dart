@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:arcinus/shared/models/academy.dart';
+import 'package:arcinus/shared/models/sport_characteristics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,72 +33,158 @@ class AcademyRepository {
     String? location,
     String? taxId,
     String? description,
-    Map<String, dynamic>? sportCharacteristics,
+    Map<String, dynamic>? sportConfig,
     String subscription = 'free', // Plan por defecto
   }) async {
-    final docRef = _academiesCollection.doc();
+    developer.log('DEBUG: Iniciando creación de academia: name=$name, ownerId=$ownerId, sport=$sport');
     
-    final academy = Academy(
-      id: docRef.id,
-      name: name,
-      ownerId: ownerId,
-      sport: sport,
-      logo: logo,
-      location: location,
-      taxId: taxId,
-      description: description,
-      sportCharacteristics: sportCharacteristics,
-      subscription: subscription,
-      createdAt: DateTime.now(),
-    );
-    
-    final json = academy.toJson();
-    
-    // Usamos una transacción para garantizar que ambas operaciones se completen o fallen juntas
-    await _firestore.runTransaction((transaction) async {
-      // 1. Crear la academia
-      transaction.set(docRef, json);
+    try {
+      final docRef = _academiesCollection.doc();
+      developer.log('DEBUG: Generado ID para nueva academia: ${docRef.id}');
       
-      // 2. Actualizar el array academyIds del usuario propietario
-      final userRef = _firestore.collection('users').doc(ownerId);
-      transaction.update(userRef, {
-        'academyIds': FieldValue.arrayUnion([docRef.id]),
+      // Si no se proporcionan configuraciones del deporte, generarlas y convertirlas a JSON
+      final Map<String, dynamic> finalSportConfig;
+      if (sportConfig != null) {
+        finalSportConfig = sportConfig;
+        developer.log('DEBUG: Usando configuración de deporte proporcionada');
+      } else {
+        finalSportConfig = SportCharacteristics.forSport(sport).toJson();
+        developer.log('DEBUG: Generada configuración automática para deporte: $sport');
+      }
+      
+      final academy = Academy(
+        id: docRef.id,
+        name: name,
+        ownerId: ownerId,
+        sport: sport,
+        logo: logo,
+        location: location,
+        taxId: taxId,
+        description: description,
+        // Convertimos de mapa a SportCharacteristics para el objeto Academy
+        sportConfig: SportCharacteristics.fromJson(finalSportConfig),
+        subscription: subscription,
+        createdAt: DateTime.now(),
+      );
+      
+      // Para almacenar en Firestore, aseguramos que todo es serializable
+      final json = academy.toJson();
+      
+      // Asegurar que sportConfig es un mapa y no un objeto SportCharacteristics
+      // para evitar errores de serialización
+      json['sportConfig'] = finalSportConfig;
+      
+      developer.log('DEBUG: Preparando transacción para academia ${docRef.id}');
+      
+      // Verificar si el documento del usuario existe antes de la transacción
+      final userRef = _firestore.collection('owners').doc(ownerId);
+      final userDoc = await userRef.get();
+      
+      if (!userDoc.exists) {
+        developer.log('ERROR: Documento de usuario no encontrado: $ownerId');
+        throw Exception('Usuario con ID $ownerId no encontrado en Firestore');
+      }
+      
+      developer.log('DEBUG: Documento de usuario encontrado, procediendo con la transacción');
+      
+      // Usamos una transacción para garantizar que ambas operaciones se completen o fallen juntas
+      await _firestore.runTransaction((transaction) async {
+        developer.log('DEBUG: Iniciando transacción para crear academia');
+        
+        // 1. Crear la academia
+        developer.log('DEBUG: Guardando documento de academia en Firestore');
+        transaction.set(docRef, json);
+        
+        // 2. Actualizar el array academyIds del usuario propietario
+        developer.log('DEBUG: Actualizando academyIds del usuario $ownerId');
+        transaction.update(userRef, {
+          'academyIds': FieldValue.arrayUnion([docRef.id]),
+        });
+        
+        developer.log('DEBUG: Transacción preparada correctamente');
       });
-    });
-    
-    return academy;
+      
+      developer.log('DEBUG: Academia creada exitosamente con ID: ${docRef.id}');
+      return academy;
+    } catch (e) {
+      developer.log('ERROR: Error al crear academia: $e', error: e);
+      rethrow;
+    }
   }
 
   // Obtener academia por ID
   Future<Academy?> getAcademy(String academyId) async {
-    final docSnap = await _academiesCollection.doc(academyId).get();
+    developer.log('DEBUG: AcademyRepository.getAcademy - Buscando academia con ID: $academyId');
     
-    if (!docSnap.exists) {
-      return null;
+    try {
+      final docSnap = await _academiesCollection.doc(academyId).get();
+      
+      if (!docSnap.exists) {
+        developer.log('DEBUG: AcademyRepository.getAcademy - Academia no encontrada: $academyId');
+        return null;
+      }
+      
+      developer.log('DEBUG: AcademyRepository.getAcademy - Academia encontrada: $academyId');
+      final data = docSnap.data()!;
+      data['id'] = docSnap.id;
+      
+      // Generar sportConfig si no existe
+      if (!data.containsKey('sportConfig') && data.containsKey('sport')) {
+        developer.log('DEBUG: AcademyRepository.getAcademy - Generando sportConfig para academia $academyId');
+        final sportConfig = SportCharacteristics.forSport(data['sport'] as String);
+        data['sportConfig'] = sportConfig.toJson();
+      }
+      
+      return Academy.fromJson(data);
+    } catch (e) {
+      developer.log('ERROR: AcademyRepository.getAcademy - Error al obtener academia: $e', error: e);
+      rethrow;
     }
-    
-    final data = docSnap.data()!;
-    data['id'] = docSnap.id;
-    return Academy.fromJson(data);
   }
 
   // Obtener academias por propietario
   Future<List<Academy>> getAcademiesByOwner(String ownerId) async {
-    final querySnap = await _academiesCollection
-        .where('ownerId', isEqualTo: ownerId)
-        .get();
+    developer.log('DEBUG: AcademyRepository.getAcademiesByOwner - Buscando academias para propietario: $ownerId');
     
-    return querySnap.docs.map((doc) {
-      final data = doc.data();
-      data['id'] = doc.id;
-      return Academy.fromJson(data);
-    }).toList();
+    try {
+      final querySnap = await _academiesCollection
+          .where('ownerId', isEqualTo: ownerId)
+          .get();
+      
+      developer.log('DEBUG: AcademyRepository.getAcademiesByOwner - Consulta ejecutada, documentos encontrados: ${querySnap.docs.length}');
+      
+      return querySnap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        
+        // Generar sportConfig si no existe
+        if (!data.containsKey('sportConfig') && data.containsKey('sport')) {
+          developer.log('DEBUG: AcademyRepository.getAcademiesByOwner - Generando sportConfig para academia ${doc.id}');
+          final sportConfig = SportCharacteristics.forSport(data['sport'] as String);
+          data['sportConfig'] = sportConfig.toJson();
+        }
+        
+        return Academy.fromJson(data);
+      }).toList();
+    } catch (e) {
+      developer.log('ERROR: AcademyRepository.getAcademiesByOwner - Error al obtener academias: $e', error: e);
+      rethrow;
+    }
   }
 
   // Actualizar academia
   Future<void> updateAcademy(Academy academy) async {
-    final json = academy.toJson();
-    await _academiesCollection.doc(academy.id).update(json);
+    // Asegurarse de que haya características del deporte
+    Academy academyToUpdate = academy;
+    
+    if (academyToUpdate.sportConfig == null) {
+      // Generar automáticamente las características del deporte si no están presentes
+      final sportConfig = SportCharacteristics.forSport(academyToUpdate.sport);
+      academyToUpdate = academyToUpdate.copyWith(sportConfig: sportConfig);
+    }
+    
+    final json = academyToUpdate.toJson();
+    await _academiesCollection.doc(academyToUpdate.id).update(json);
   }
 
   // Subir logo de academia
@@ -136,6 +223,14 @@ class AcademyRepository {
 
   // Eliminar academia
   Future<void> deleteAcademy(String academyId) async {
-    await _academiesCollection.doc(academyId).delete();
+    developer.log('DEBUG: AcademyRepository.deleteAcademy - Eliminando academia: $academyId');
+    
+    try {
+      await _academiesCollection.doc(academyId).delete();
+      developer.log('DEBUG: AcademyRepository.deleteAcademy - Academia eliminada con éxito: $academyId');
+    } catch (e) {
+      developer.log('ERROR: AcademyRepository.deleteAcademy - Error al eliminar academia: $e', error: e);
+      rethrow;
+    }
   }
 } 

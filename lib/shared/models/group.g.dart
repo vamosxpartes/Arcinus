@@ -18,6 +18,7 @@ _$GroupImpl _$$GroupImplFromJson(Map<String, dynamic> json) => _$GroupImpl(
           const [],
       capacity: (json['capacity'] as num?)?.toInt(),
       isPublic: json['isPublic'] as bool? ?? true,
+      formationData: json['formationData'] as Map<String, dynamic>?,
       createdAt: json['createdAt'] == null
           ? null
           : DateTime.parse(json['createdAt'] as String),
@@ -36,6 +37,7 @@ Map<String, dynamic> _$$GroupImplToJson(_$GroupImpl instance) =>
       'athleteIds': instance.athleteIds,
       'capacity': instance.capacity,
       'isPublic': instance.isPublic,
+      'formationData': instance.formationData,
       'createdAt': instance.createdAt?.toIso8601String(),
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };

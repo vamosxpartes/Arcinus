@@ -62,21 +62,8 @@ class GroupRepository {
   }
 
   // Obtener todos los grupos de una academia
-  Future<List<Group>> getGroupsByAcademy(String academyId) async {
+  Future<List<Group>> getGroups(String academyId) async {
     final querySnap = await _groupsCollection(academyId).get();
-    
-    return querySnap.docs.map((doc) {
-      final data = doc.data();
-      data['id'] = doc.id;
-      return Group.fromJson(data);
-    }).toList();
-  }
-
-  // Obtener grupos por entrenador
-  Future<List<Group>> getGroupsByCoach(String academyId, String coachId) async {
-    final querySnap = await _groupsCollection(academyId)
-        .where('coachId', isEqualTo: coachId)
-        .get();
     
     return querySnap.docs.map((doc) {
       final data = doc.data();
@@ -91,28 +78,35 @@ class GroupRepository {
     await _groupsCollection(group.academyId).doc(group.id).update(json);
   }
 
-  // Asignar un atleta a un grupo
+  // Eliminar un grupo
+  Future<void> deleteGroup(String academyId, String groupId) async {
+    // Eliminar grupo de la academia
+    await _groupsCollection(academyId).doc(groupId).delete();
+    
+    // Actualizar la academia para eliminar la referencia
+    await _academiesCollection().doc(academyId).update({
+      'groupIds': FieldValue.arrayRemove([groupId]),
+    });
+  }
+
+  // Añadir atleta a un grupo
   Future<void> addAthleteToGroup(String academyId, String groupId, String athleteId) async {
     await _groupsCollection(academyId).doc(groupId).update({
       'athleteIds': FieldValue.arrayUnion([athleteId]),
     });
   }
 
-  // Quitar un atleta de un grupo
+  // Eliminar atleta de un grupo
   Future<void> removeAthleteFromGroup(String academyId, String groupId, String athleteId) async {
     await _groupsCollection(academyId).doc(groupId).update({
       'athleteIds': FieldValue.arrayRemove([athleteId]),
     });
   }
 
-  // Eliminar un grupo
-  Future<void> deleteGroup(String academyId, String groupId) async {
-    // Primero eliminamos la referencia del grupo en la academia
-    await _academiesCollection().doc(academyId).update({
-      'groupIds': FieldValue.arrayRemove([groupId]),
+  // Actualizar formación táctica del grupo
+  Future<void> updateFormation(String academyId, String groupId, Map<String, dynamic> formationData) async {
+    await _groupsCollection(academyId).doc(groupId).update({
+      'formationData': formationData,
     });
-    
-    // Luego eliminamos el grupo
-    await _groupsCollection(academyId).doc(groupId).delete();
   }
 } 

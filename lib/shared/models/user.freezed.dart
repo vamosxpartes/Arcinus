@@ -28,6 +28,8 @@ mixin _$User {
   List<String> get academyIds => throw _privateConstructorUsedError;
   List<String> get customRoleIds =>
       throw _privateConstructorUsedError; // IDs de roles personalizados asignados
+  int? get number =>
+      throw _privateConstructorUsedError; // Número del jugador/atleta (para deportes de equipo)
   DateTime get createdAt => throw _privateConstructorUsedError;
   String? get profileImageUrl => throw _privateConstructorUsedError;
 
@@ -53,6 +55,7 @@ abstract class $UserCopyWith<$Res> {
       Map<String, bool> permissions,
       List<String> academyIds,
       List<String> customRoleIds,
+      int? number,
       DateTime createdAt,
       String? profileImageUrl});
 }
@@ -79,6 +82,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? permissions = null,
     Object? academyIds = null,
     Object? customRoleIds = null,
+    Object? number = freezed,
     Object? createdAt = null,
     Object? profileImageUrl = freezed,
   }) {
@@ -111,6 +115,10 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
           ? _value.customRoleIds
           : customRoleIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      number: freezed == number
+          ? _value.number
+          : number // ignore: cast_nullable_to_non_nullable
+              as int?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -138,6 +146,7 @@ abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
       Map<String, bool> permissions,
       List<String> academyIds,
       List<String> customRoleIds,
+      int? number,
       DateTime createdAt,
       String? profileImageUrl});
 }
@@ -161,6 +170,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? permissions = null,
     Object? academyIds = null,
     Object? customRoleIds = null,
+    Object? number = freezed,
     Object? createdAt = null,
     Object? profileImageUrl = freezed,
   }) {
@@ -193,6 +203,10 @@ class __$$UserImplCopyWithImpl<$Res>
           ? _value._customRoleIds
           : customRoleIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      number: freezed == number
+          ? _value.number
+          : number // ignore: cast_nullable_to_non_nullable
+              as int?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -216,6 +230,7 @@ class _$UserImpl implements _User {
       required final Map<String, bool> permissions,
       final List<String> academyIds = const [],
       final List<String> customRoleIds = const [],
+      this.number,
       required this.createdAt,
       this.profileImageUrl})
       : _permissions = permissions,
@@ -261,13 +276,16 @@ class _$UserImpl implements _User {
 
 // IDs de roles personalizados asignados
   @override
+  final int? number;
+// Número del jugador/atleta (para deportes de equipo)
+  @override
   final DateTime createdAt;
   @override
   final String? profileImageUrl;
 
   @override
   String toString() {
-    return 'User(id: $id, email: $email, name: $name, role: $role, permissions: $permissions, academyIds: $academyIds, customRoleIds: $customRoleIds, createdAt: $createdAt, profileImageUrl: $profileImageUrl)';
+    return 'User(id: $id, email: $email, name: $name, role: $role, permissions: $permissions, academyIds: $academyIds, customRoleIds: $customRoleIds, number: $number, createdAt: $createdAt, profileImageUrl: $profileImageUrl)';
   }
 
   @override
@@ -285,6 +303,7 @@ class _$UserImpl implements _User {
                 .equals(other._academyIds, _academyIds) &&
             const DeepCollectionEquality()
                 .equals(other._customRoleIds, _customRoleIds) &&
+            (identical(other.number, number) || other.number == number) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.profileImageUrl, profileImageUrl) ||
@@ -302,6 +321,7 @@ class _$UserImpl implements _User {
       const DeepCollectionEquality().hash(_permissions),
       const DeepCollectionEquality().hash(_academyIds),
       const DeepCollectionEquality().hash(_customRoleIds),
+      number,
       createdAt,
       profileImageUrl);
 
@@ -330,6 +350,7 @@ abstract class _User implements User {
       required final Map<String, bool> permissions,
       final List<String> academyIds,
       final List<String> customRoleIds,
+      final int? number,
       required final DateTime createdAt,
       final String? profileImageUrl}) = _$UserImpl;
 
@@ -349,6 +370,8 @@ abstract class _User implements User {
   List<String> get academyIds;
   @override
   List<String> get customRoleIds; // IDs de roles personalizados asignados
+  @override
+  int? get number; // Número del jugador/atleta (para deportes de equipo)
   @override
   DateTime get createdAt;
   @override

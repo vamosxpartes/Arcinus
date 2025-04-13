@@ -1,8 +1,10 @@
 import 'package:arcinus/shared/models/academy.dart';
+import 'package:arcinus/shared/models/sport_characteristics.dart';
 import 'package:arcinus/ux/features/academy/academy_provider.dart';
 import 'package:arcinus/ux/features/academy/academy_repository.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:developer' as developer;
 
 // Definir el provider para el controlador
 final academyControllerProvider = Provider((ref) => AcademyController(ref));
@@ -23,20 +25,30 @@ class AcademyController {
     String? location,
     String? taxId,
     String? description,
-    Map<String, dynamic>? sportCharacteristics,
+    Map<String, dynamic>? sportConfig,
     String subscription = 'free',
   }) async {
+    developer.log('DEBUG: AcademyController.createAcademy - Iniciando con name=$name, sport=$sport');
+    
     final user = _ref.read(authStateProvider).asData?.value;
     if (user == null) {
+      developer.log('ERROR: AcademyController.createAcademy - Usuario no autenticado');
       throw Exception('Usuario no autenticado');
     }
+    
+    developer.log('DEBUG: AcademyController.createAcademy - Usuario autenticado: ${user.id}, role=${user.role}');
 
     // Verificar si el usuario ya tiene academias
+    developer.log('DEBUG: AcademyController.createAcademy - Verificando academias existentes para usuario ${user.id}');
     final existingAcademies = await _academyRepository.getAcademiesByOwner(user.id);
+    developer.log('DEBUG: AcademyController.createAcademy - Academias encontradas: ${existingAcademies.length}');
+    
     if (existingAcademies.isNotEmpty) {
+      developer.log('DEBUG: AcademyController.createAcademy - El usuario ya tiene ${existingAcademies.length} academias');
       throw Exception('El propietario ya tiene una academia creada. No se permite crear múltiples academias.');
     }
 
+    developer.log('DEBUG: AcademyController.createAcademy - Llamando al repositorio para crear academia');
     final academy = await _academyRepository.createAcademy(
       name: name,
       ownerId: user.id,
@@ -45,17 +57,24 @@ class AcademyController {
       location: location,
       taxId: taxId,
       description: description,
-      sportCharacteristics: sportCharacteristics,
+      sportConfig: sportConfig,
       subscription: subscription,
     );
+    
+    developer.log('DEBUG: AcademyController.createAcademy - Academia creada exitosamente: ${academy.id}');
 
     // Actualizar la lista de academias
+    developer.log('DEBUG: AcademyController.createAcademy - Invalidando providers');
     _ref.invalidate(userAcademiesProvider);
     _ref.invalidate(needsAcademyCreationProvider);
     
     // Establecer como academia actual si es la primera
+    developer.log('DEBUG: AcademyController.createAcademy - Obteniendo academias actualizadas');
     final academies = await _ref.read(userAcademiesProvider.future);
+    developer.log('DEBUG: AcademyController.createAcademy - Academias actualizadas: ${academies.length}');
+    
     if (academies.length == 1) {
+      developer.log('DEBUG: AcademyController.createAcademy - Estableciendo como academia actual: ${academy.id}');
       _ref.read(currentAcademyProvider.notifier).state = academy;
     }
 

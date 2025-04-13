@@ -114,7 +114,7 @@ class FirebaseAuthRepository implements AuthRepository {
       final uid = userCredential.user!.uid;
       developer.log('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $role');
       
-      // Crear documento de usuario en Firestore
+      // Crear documento de usuario en Firestore en la colección apropiada
       final user = app.User(
         id: uid,
         email: email,
@@ -125,8 +125,21 @@ class FirebaseAuthRepository implements AuthRepository {
         createdAt: DateTime.now(),
       );
       
-      await _firestore.collection('users').doc(uid).set(_userToJson(user));
-      developer.log('DEBUG: Firebase - Documento de usuario creado en Firestore');
+      // Determinar colección según el rol del usuario
+      // Los superadmin y owners tienen sus propias colecciones
+      if (role == app.UserRole.superAdmin) {
+        await _firestore.collection('superadmins').doc(uid).set(_userToJson(user));
+        developer.log('DEBUG: Firebase - Documento de superadmin creado en Firestore');
+      } else if (role == app.UserRole.owner) {
+        await _firestore.collection('owners').doc(uid).set(_userToJson(user));
+        developer.log('DEBUG: Firebase - Documento de owner creado en Firestore');
+      } else {
+        // Para los otros roles, se guardarán en la subcolección de la academia correspondiente
+        // Esto se manejará en el UserService al asignar la academia
+        // Por ahora mantenemos la colección users para compatibilidad
+        await _firestore.collection('users').doc(uid).set(_userToJson(user));
+        developer.log('DEBUG: Firebase - Documento de usuario creado en Firestore (temporal, se moverá a la academia)');
+      }
       
       // Cerrar sesión del usuario recién creado para no permanecer autenticado como él
       await _firebaseAuth.signOut();
@@ -174,7 +187,17 @@ class FirebaseAuthRepository implements AuthRepository {
         createdAt: DateTime.now(),
       );
       
-      await _firestore.collection('users').doc(uid).set(_userToJson(user));
+      // Determinar colección según el rol del usuario
+      if (role == app.UserRole.superAdmin) {
+        await _firestore.collection('superadmins').doc(uid).set(_userToJson(user));
+      } else if (role == app.UserRole.owner) {
+        await _firestore.collection('owners').doc(uid).set(_userToJson(user));
+      } else {
+        // Para los otros roles, se guardarán en la subcolección de la academia correspondiente
+        // Esto se manejará en el UserService al asignar la academia
+        // Por ahora mantenemos la colección users para compatibilidad
+        await _firestore.collection('users').doc(uid).set(_userToJson(user));
+      }
       
       developer.log('DEBUG: Firebase - Documento de usuario creado en Firestore');
       return user;
@@ -222,7 +245,21 @@ class FirebaseAuthRepository implements AuthRepository {
   @override
   Future<app.User> updateUser(app.User user) async {
     try {
-      await _firestore.collection('users').doc(user.id).update(_userToJson(user));
+      // Determinar la colección correcta basada en el rol del usuario
+      if (user.role == app.UserRole.superAdmin) {
+        await _firestore.collection('superadmins').doc(user.id).update(_userToJson(user));
+      } else if (user.role == app.UserRole.owner) {
+        await _firestore.collection('owners').doc(user.id).update(_userToJson(user));
+      } else if (!user.academyIds.isEmpty) {
+        // Usuario con academia asignada - actualizar en la subcolección de la academia
+        for (final academyId in user.academyIds) {
+          await _firestore.collection('academies').doc(academyId).collection('users').doc(user.id).update(_userToJson(user));
+        }
+      } else {
+        // Para compatibilidad - actualizar en colección principal
+        await _firestore.collection('users').doc(user.id).update(_userToJson(user));
+      }
+      
       return user;
     } catch (e) {
       debugPrint('Error al actualizar usuario: $e');
@@ -266,16 +303,48 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<app.User?> _getUserData(String uid) async {
     try {
       developer.log('DEBUG: FirebaseAuthRepository._getUserData - Buscando usuario con ID: $uid');
-      final doc = await _firestore.collection('users').doc(uid).get();
       
-      if (!doc.exists) {
-        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Documento no existe en Firestore');
-        return null;
+      // Buscar primero en la colección de superadmins
+      var doc = await _firestore.collection('superadmins').doc(uid).get();
+      
+      if (doc.exists) {
+        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en colección superadmins');
+        return _userFromFirestore(doc);
       }
       
-      final user = _userFromFirestore(doc);
-      developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario recuperado: ${user.id}, rol: ${user.role}');
-      return user;
+      // Buscar en la colección de owners
+      doc = await _firestore.collection('owners').doc(uid).get();
+      
+      if (doc.exists) {
+        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en colección owners');
+        return _userFromFirestore(doc);
+      }
+      
+      // Buscar en la colección principal de users (para compatibilidad)
+      doc = await _firestore.collection('users').doc(uid).get();
+      
+      if (doc.exists) {
+        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en colección users');
+        return _userFromFirestore(doc);
+      }
+      
+      // Si no se encuentra en las colecciones principales, buscar en las subcolecciones de academias
+      // Primero necesitamos obtener todas las academias
+      final academiesSnapshot = await _firestore.collection('academies').get();
+      
+      for (final academyDoc in academiesSnapshot.docs) {
+        final academyId = academyDoc.id;
+        // Buscar en la subcolección users de cada academia
+        doc = await _firestore.collection('academies').doc(academyId).collection('users').doc(uid).get();
+        
+        if (doc.exists) {
+          developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en subcolección users de academia: $academyId');
+          return _userFromFirestore(doc);
+        }
+      }
+      
+      developer.log('DEBUG: FirebaseAuthRepository._getUserData - Documento no existe en ninguna colección de Firestore');
+      return null;
     } catch (e) {
       developer.log('ERROR: FirebaseAuthRepository._getUserData - Error: $e');
       return null;
@@ -328,6 +397,8 @@ class FirebaseAuthRepository implements AuthRepository {
         return Exception('Contraseña incorrecta');
       case 'invalid-email':
         return Exception('Email inválido');
+      case 'invalid-credential':
+        return Exception('Credenciales inválidas');
       case 'user-disabled':
         return Exception('Usuario deshabilitado');
       case 'email-already-in-use':

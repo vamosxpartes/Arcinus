@@ -57,12 +57,17 @@ class AuthState extends _$AuthState {
   
   /// Cierra la sesión del usuario actual
   Future<void> signOut() async {
-    state = const AsyncValue.loading();
-    
     try {
+      // Primero establecemos el estado a loading
+      state = const AsyncValue.loading();
+      
+      // Luego cerramos sesión en el repositorio
       await ref.read(authRepositoryProvider).signOut();
+      
+      // Finalmente actualizamos el estado a null (usuario desconectado)
       state = const AsyncValue.data(null);
     } catch (e, stack) {
+      // Si hay un error, lo capturamos en el estado
       state = AsyncValue.error(e, stack);
       rethrow;
     }

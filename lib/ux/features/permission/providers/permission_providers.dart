@@ -112,7 +112,7 @@ class PermissionService {
     if (_currentUser == null) return false;
     
     // Rutas públicas que no requieren permisos específicos
-    if (['/login', '/register', '/forgot-password'].contains(route)) {
+    if (['/login', '/signin', '/register', '/forgot-password'].contains(route)) {
       return true;
     }
     
@@ -135,6 +135,12 @@ class PermissionService {
           Permissions.createTraining,
           Permissions.viewAllTrainings,
           Permissions.editTraining,
+        ]);
+      case '/exercises':
+        return hasAnyPermission([
+          Permissions.createExercise,
+          Permissions.viewAllExercises,
+          Permissions.editExercise,
         ]);
       case '/profile':
         return true; // Todos pueden acceder a su perfil

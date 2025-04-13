@@ -536,14 +536,14 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
                 final exerciseService = ref.read(exerciseServiceProvider);
                 await exerciseService.deleteExercise(widget.exercise!.id);
                 
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Ejercicio eliminado con éxito')),
                   );
                   Navigator.pop(context, true);
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   setState(() => _isSaving = false);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error: ${e.toString()}')),

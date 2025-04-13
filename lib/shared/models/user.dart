@@ -23,6 +23,7 @@ class User with _$User {
     required Map<String, bool> permissions,
     @Default([]) List<String> academyIds,
     @Default([]) List<String> customRoleIds, // IDs de roles personalizados asignados
+    int? number, // Número del jugador/atleta (para deportes de equipo)
     required DateTime createdAt,
     String? profileImageUrl,
   }) = _User;

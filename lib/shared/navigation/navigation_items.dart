@@ -23,6 +23,12 @@ class NavigationItems {
       hasCreationFunction: true,
     ),
     const NavigationItem(
+      icon: Icons.fitness_center,
+      label: 'Ejercicios',
+      destination: '/exercises',
+      hasCreationFunction: true,
+    ),
+    const NavigationItem(
       icon: Icons.calendar_today,
       label: 'Calendario',
       destination: '/calendar',

@@ -32,6 +32,9 @@ mixin _$AthleteProfile {
       throw _privateConstructorUsedError;
   Map<String, dynamic>? get additionalInfo =>
       throw _privateConstructorUsedError;
+  Map<String, dynamic>? get sportStats => throw _privateConstructorUsedError;
+  List<String>? get specializations => throw _privateConstructorUsedError;
+  String? get position => throw _privateConstructorUsedError;
   @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
   DateTime get createdAt => throw _privateConstructorUsedError;
 
@@ -62,6 +65,9 @@ abstract class $AthleteProfileCopyWith<$Res> {
       Map<String, dynamic>? medicalInfo,
       Map<String, dynamic>? emergencyContacts,
       Map<String, dynamic>? additionalInfo,
+      Map<String, dynamic>? sportStats,
+      List<String>? specializations,
+      String? position,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       DateTime createdAt});
 }
@@ -91,6 +97,9 @@ class _$AthleteProfileCopyWithImpl<$Res, $Val extends AthleteProfile>
     Object? medicalInfo = freezed,
     Object? emergencyContacts = freezed,
     Object? additionalInfo = freezed,
+    Object? sportStats = freezed,
+    Object? specializations = freezed,
+    Object? position = freezed,
     Object? createdAt = null,
   }) {
     return _then(_value.copyWith(
@@ -134,6 +143,18 @@ class _$AthleteProfileCopyWithImpl<$Res, $Val extends AthleteProfile>
           ? _value.additionalInfo
           : additionalInfo // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      sportStats: freezed == sportStats
+          ? _value.sportStats
+          : sportStats // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
+      specializations: freezed == specializations
+          ? _value.specializations
+          : specializations // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
+      position: freezed == position
+          ? _value.position
+          : position // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -161,6 +182,9 @@ abstract class _$$AthleteProfileImplCopyWith<$Res>
       Map<String, dynamic>? medicalInfo,
       Map<String, dynamic>? emergencyContacts,
       Map<String, dynamic>? additionalInfo,
+      Map<String, dynamic>? sportStats,
+      List<String>? specializations,
+      String? position,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       DateTime createdAt});
 }
@@ -188,6 +212,9 @@ class __$$AthleteProfileImplCopyWithImpl<$Res>
     Object? medicalInfo = freezed,
     Object? emergencyContacts = freezed,
     Object? additionalInfo = freezed,
+    Object? sportStats = freezed,
+    Object? specializations = freezed,
+    Object? position = freezed,
     Object? createdAt = null,
   }) {
     return _then(_$AthleteProfileImpl(
@@ -231,6 +258,18 @@ class __$$AthleteProfileImplCopyWithImpl<$Res>
           ? _value._additionalInfo
           : additionalInfo // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      sportStats: freezed == sportStats
+          ? _value._sportStats
+          : sportStats // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
+      specializations: freezed == specializations
+          ? _value._specializations
+          : specializations // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
+      position: freezed == position
+          ? _value.position
+          : position // ignore: cast_nullable_to_non_nullable
+              as String?,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -241,7 +280,7 @@ class __$$AthleteProfileImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$AthleteProfileImpl implements _AthleteProfile {
+class _$AthleteProfileImpl extends _AthleteProfile {
   const _$AthleteProfileImpl(
       {required this.userId,
       required this.academyId,
@@ -253,13 +292,19 @@ class _$AthleteProfileImpl implements _AthleteProfile {
       final Map<String, dynamic>? medicalInfo,
       final Map<String, dynamic>? emergencyContacts,
       final Map<String, dynamic>? additionalInfo,
+      final Map<String, dynamic>? sportStats,
+      final List<String>? specializations,
+      this.position,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       required this.createdAt})
       : _groupIds = groupIds,
         _parentIds = parentIds,
         _medicalInfo = medicalInfo,
         _emergencyContacts = emergencyContacts,
-        _additionalInfo = additionalInfo;
+        _additionalInfo = additionalInfo,
+        _sportStats = sportStats,
+        _specializations = specializations,
+        super._();
 
   factory _$AthleteProfileImpl.fromJson(Map<String, dynamic> json) =>
       _$$AthleteProfileImplFromJson(json);
@@ -325,13 +370,35 @@ class _$AthleteProfileImpl implements _AthleteProfile {
     return EqualUnmodifiableMapView(value);
   }
 
+  final Map<String, dynamic>? _sportStats;
+  @override
+  Map<String, dynamic>? get sportStats {
+    final value = _sportStats;
+    if (value == null) return null;
+    if (_sportStats is EqualUnmodifiableMapView) return _sportStats;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
+
+  final List<String>? _specializations;
+  @override
+  List<String>? get specializations {
+    final value = _specializations;
+    if (value == null) return null;
+    if (_specializations is EqualUnmodifiableListView) return _specializations;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+  @override
+  final String? position;
   @override
   @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
   final DateTime createdAt;
 
   @override
   String toString() {
-    return 'AthleteProfile(userId: $userId, academyId: $academyId, birthDate: $birthDate, height: $height, weight: $weight, groupIds: $groupIds, parentIds: $parentIds, medicalInfo: $medicalInfo, emergencyContacts: $emergencyContacts, additionalInfo: $additionalInfo, createdAt: $createdAt)';
+    return 'AthleteProfile(userId: $userId, academyId: $academyId, birthDate: $birthDate, height: $height, weight: $weight, groupIds: $groupIds, parentIds: $parentIds, medicalInfo: $medicalInfo, emergencyContacts: $emergencyContacts, additionalInfo: $additionalInfo, sportStats: $sportStats, specializations: $specializations, position: $position, createdAt: $createdAt)';
   }
 
   @override
@@ -355,6 +422,12 @@ class _$AthleteProfileImpl implements _AthleteProfile {
                 .equals(other._emergencyContacts, _emergencyContacts) &&
             const DeepCollectionEquality()
                 .equals(other._additionalInfo, _additionalInfo) &&
+            const DeepCollectionEquality()
+                .equals(other._sportStats, _sportStats) &&
+            const DeepCollectionEquality()
+                .equals(other._specializations, _specializations) &&
+            (identical(other.position, position) ||
+                other.position == position) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt));
   }
@@ -373,6 +446,9 @@ class _$AthleteProfileImpl implements _AthleteProfile {
       const DeepCollectionEquality().hash(_medicalInfo),
       const DeepCollectionEquality().hash(_emergencyContacts),
       const DeepCollectionEquality().hash(_additionalInfo),
+      const DeepCollectionEquality().hash(_sportStats),
+      const DeepCollectionEquality().hash(_specializations),
+      position,
       createdAt);
 
   /// Create a copy of AthleteProfile
@@ -392,7 +468,7 @@ class _$AthleteProfileImpl implements _AthleteProfile {
   }
 }
 
-abstract class _AthleteProfile implements AthleteProfile {
+abstract class _AthleteProfile extends AthleteProfile {
   const factory _AthleteProfile(
       {required final String userId,
       required final String academyId,
@@ -404,8 +480,12 @@ abstract class _AthleteProfile implements AthleteProfile {
       final Map<String, dynamic>? medicalInfo,
       final Map<String, dynamic>? emergencyContacts,
       final Map<String, dynamic>? additionalInfo,
+      final Map<String, dynamic>? sportStats,
+      final List<String>? specializations,
+      final String? position,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       required final DateTime createdAt}) = _$AthleteProfileImpl;
+  const _AthleteProfile._() : super._();
 
   factory _AthleteProfile.fromJson(Map<String, dynamic> json) =
       _$AthleteProfileImpl.fromJson;
@@ -430,6 +510,12 @@ abstract class _AthleteProfile implements AthleteProfile {
   Map<String, dynamic>? get emergencyContacts;
   @override
   Map<String, dynamic>? get additionalInfo;
+  @override
+  Map<String, dynamic>? get sportStats;
+  @override
+  List<String>? get specializations;
+  @override
+  String? get position;
   @override
   @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
   DateTime get createdAt;

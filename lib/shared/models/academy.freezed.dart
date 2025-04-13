@@ -28,8 +28,7 @@ mixin _$Academy {
   String? get location => throw _privateConstructorUsedError;
   String? get taxId => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
-  Map<String, dynamic>? get sportCharacteristics =>
-      throw _privateConstructorUsedError;
+  SportCharacteristics? get sportConfig => throw _privateConstructorUsedError;
   List<String>? get groupIds => throw _privateConstructorUsedError;
   List<String>? get coachIds => throw _privateConstructorUsedError;
   List<String>? get athleteIds => throw _privateConstructorUsedError;
@@ -61,7 +60,7 @@ abstract class $AcademyCopyWith<$Res> {
       String? location,
       String? taxId,
       String? description,
-      Map<String, dynamic>? sportCharacteristics,
+      SportCharacteristics? sportConfig,
       List<String>? groupIds,
       List<String>? coachIds,
       List<String>? athleteIds,
@@ -69,6 +68,8 @@ abstract class $AcademyCopyWith<$Res> {
       String subscription,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       DateTime createdAt});
+
+  $SportCharacteristicsCopyWith<$Res>? get sportConfig;
 }
 
 /// @nodoc
@@ -94,7 +95,7 @@ class _$AcademyCopyWithImpl<$Res, $Val extends Academy>
     Object? location = freezed,
     Object? taxId = freezed,
     Object? description = freezed,
-    Object? sportCharacteristics = freezed,
+    Object? sportConfig = freezed,
     Object? groupIds = freezed,
     Object? coachIds = freezed,
     Object? athleteIds = freezed,
@@ -135,10 +136,10 @@ class _$AcademyCopyWithImpl<$Res, $Val extends Academy>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String?,
-      sportCharacteristics: freezed == sportCharacteristics
-          ? _value.sportCharacteristics
-          : sportCharacteristics // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
+      sportConfig: freezed == sportConfig
+          ? _value.sportConfig
+          : sportConfig // ignore: cast_nullable_to_non_nullable
+              as SportCharacteristics?,
       groupIds: freezed == groupIds
           ? _value.groupIds
           : groupIds // ignore: cast_nullable_to_non_nullable
@@ -165,6 +166,20 @@ class _$AcademyCopyWithImpl<$Res, $Val extends Academy>
               as DateTime,
     ) as $Val);
   }
+
+  /// Create a copy of Academy
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SportCharacteristicsCopyWith<$Res>? get sportConfig {
+    if (_value.sportConfig == null) {
+      return null;
+    }
+
+    return $SportCharacteristicsCopyWith<$Res>(_value.sportConfig!, (value) {
+      return _then(_value.copyWith(sportConfig: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -183,7 +198,7 @@ abstract class _$$AcademyImplCopyWith<$Res> implements $AcademyCopyWith<$Res> {
       String? location,
       String? taxId,
       String? description,
-      Map<String, dynamic>? sportCharacteristics,
+      SportCharacteristics? sportConfig,
       List<String>? groupIds,
       List<String>? coachIds,
       List<String>? athleteIds,
@@ -191,6 +206,9 @@ abstract class _$$AcademyImplCopyWith<$Res> implements $AcademyCopyWith<$Res> {
       String subscription,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       DateTime createdAt});
+
+  @override
+  $SportCharacteristicsCopyWith<$Res>? get sportConfig;
 }
 
 /// @nodoc
@@ -214,7 +232,7 @@ class __$$AcademyImplCopyWithImpl<$Res>
     Object? location = freezed,
     Object? taxId = freezed,
     Object? description = freezed,
-    Object? sportCharacteristics = freezed,
+    Object? sportConfig = freezed,
     Object? groupIds = freezed,
     Object? coachIds = freezed,
     Object? athleteIds = freezed,
@@ -255,10 +273,10 @@ class __$$AcademyImplCopyWithImpl<$Res>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String?,
-      sportCharacteristics: freezed == sportCharacteristics
-          ? _value._sportCharacteristics
-          : sportCharacteristics // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>?,
+      sportConfig: freezed == sportConfig
+          ? _value.sportConfig
+          : sportConfig // ignore: cast_nullable_to_non_nullable
+              as SportCharacteristics?,
       groupIds: freezed == groupIds
           ? _value._groupIds
           : groupIds // ignore: cast_nullable_to_non_nullable
@@ -299,7 +317,7 @@ class _$AcademyImpl implements _Academy {
       this.location,
       this.taxId,
       this.description,
-      final Map<String, dynamic>? sportCharacteristics,
+      this.sportConfig,
       final List<String>? groupIds,
       final List<String>? coachIds,
       final List<String>? athleteIds,
@@ -307,8 +325,7 @@ class _$AcademyImpl implements _Academy {
       required this.subscription,
       @JsonKey(fromJson: dateTimeFromString, toJson: dateTimeToString)
       required this.createdAt})
-      : _sportCharacteristics = sportCharacteristics,
-        _groupIds = groupIds,
+      : _groupIds = groupIds,
         _coachIds = coachIds,
         _athleteIds = athleteIds,
         _settings = settings;
@@ -332,17 +349,8 @@ class _$AcademyImpl implements _Academy {
   final String? taxId;
   @override
   final String? description;
-  final Map<String, dynamic>? _sportCharacteristics;
   @override
-  Map<String, dynamic>? get sportCharacteristics {
-    final value = _sportCharacteristics;
-    if (value == null) return null;
-    if (_sportCharacteristics is EqualUnmodifiableMapView)
-      return _sportCharacteristics;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(value);
-  }
-
+  final SportCharacteristics? sportConfig;
   final List<String>? _groupIds;
   @override
   List<String>? get groupIds {
@@ -391,7 +399,7 @@ class _$AcademyImpl implements _Academy {
 
   @override
   String toString() {
-    return 'Academy(id: $id, name: $name, ownerId: $ownerId, logo: $logo, sport: $sport, location: $location, taxId: $taxId, description: $description, sportCharacteristics: $sportCharacteristics, groupIds: $groupIds, coachIds: $coachIds, athleteIds: $athleteIds, settings: $settings, subscription: $subscription, createdAt: $createdAt)';
+    return 'Academy(id: $id, name: $name, ownerId: $ownerId, logo: $logo, sport: $sport, location: $location, taxId: $taxId, description: $description, sportConfig: $sportConfig, groupIds: $groupIds, coachIds: $coachIds, athleteIds: $athleteIds, settings: $settings, subscription: $subscription, createdAt: $createdAt)';
   }
 
   @override
@@ -409,8 +417,8 @@ class _$AcademyImpl implements _Academy {
             (identical(other.taxId, taxId) || other.taxId == taxId) &&
             (identical(other.description, description) ||
                 other.description == description) &&
-            const DeepCollectionEquality()
-                .equals(other._sportCharacteristics, _sportCharacteristics) &&
+            (identical(other.sportConfig, sportConfig) ||
+                other.sportConfig == sportConfig) &&
             const DeepCollectionEquality().equals(other._groupIds, _groupIds) &&
             const DeepCollectionEquality().equals(other._coachIds, _coachIds) &&
             const DeepCollectionEquality()
@@ -434,7 +442,7 @@ class _$AcademyImpl implements _Academy {
       location,
       taxId,
       description,
-      const DeepCollectionEquality().hash(_sportCharacteristics),
+      sportConfig,
       const DeepCollectionEquality().hash(_groupIds),
       const DeepCollectionEquality().hash(_coachIds),
       const DeepCollectionEquality().hash(_athleteIds),
@@ -468,7 +476,7 @@ abstract class _Academy implements Academy {
       final String? location,
       final String? taxId,
       final String? description,
-      final Map<String, dynamic>? sportCharacteristics,
+      final SportCharacteristics? sportConfig,
       final List<String>? groupIds,
       final List<String>? coachIds,
       final List<String>? athleteIds,
@@ -496,7 +504,7 @@ abstract class _Academy implements Academy {
   @override
   String? get description;
   @override
-  Map<String, dynamic>? get sportCharacteristics;
+  SportCharacteristics? get sportConfig;
   @override
   List<String>? get groupIds;
   @override

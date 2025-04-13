@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io' show Platform;
 
 import 'package:arcinus/config/firebase/analytics_service.dart';
+import 'package:arcinus/shared/models/exercise.dart';
 import 'package:arcinus/shared/models/training.dart';
 import 'package:arcinus/shared/models/user.dart';
 import 'package:arcinus/shared/theme/app_theme.dart';
@@ -10,6 +12,11 @@ import 'package:arcinus/ui/features/auth/screens/login_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/profile_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/register_screen.dart';
 import 'package:arcinus/ui/features/auth/screens/user_management_screen.dart';
+import 'package:arcinus/ui/features/auth/screens/signin_screen.dart';
+import 'package:arcinus/ui/features/academy/screens/create_academy_screen.dart';
+import 'package:arcinus/ui/features/exercises/exercise_detail_screen.dart';
+import 'package:arcinus/ui/features/exercises/exercise_library_screen.dart';
+import 'package:arcinus/ui/features/exercises/exercise_selector_screen.dart';
 import 'package:arcinus/ui/features/home/screens/main_screen.dart';
 import 'package:arcinus/ui/features/splash/splash_screen.dart';
 import 'package:arcinus/ui/features/trainings/attendance_screen.dart';
@@ -69,17 +76,17 @@ class ArcinusApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final analyticsObserver = AnalyticsService().getAnalyticsObserver();
-    final authState = ref.watch(authStateProvider);
+    final authStateChanges = ref.watch(authStateChangesProvider);
     final splashCompleted = ref.watch(splashCompletedProvider);
     
     // Asegurar que se cargue la academia automáticamente
     ref.watch(autoLoadAcademyProvider);
     
     // Crear un efecto para realizar carga inicial de academias cuando cambie el estado de autenticación
-    ref.listen(authStateProvider, (previous, next) {
+    ref.listen(authStateChangesProvider, (previous, next) {
       if (next.hasValue && next.valueOrNull != null) {
         // Cuando el usuario se autentica, iniciar la carga de academias
-        developer.log('DEBUG: App - Usuario autenticado, iniciando carga de academias');
+        developer.log('DEBUG: App - Usuario autenticado via stream, iniciando carga de academias');
         ref.invalidate(userAcademiesProvider);
       }
     });
@@ -101,11 +108,16 @@ class ArcinusApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
         darkTheme: AppTheme.darkTheme,
-        home: Consumer(
-          builder: (context, ref, _) {
-            // Simulamos una carga por 2 segundos y luego marcamos el splash como completado
-            Future.delayed(const Duration(seconds: 2), () {
-              ref.read(splashCompletedProvider.notifier).state = true;
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            // Usar initState en un StatefulBuilder para manejar correctamente la vida útil
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              // Agregar un delay y verificar si el contexto sigue siendo válido
+              Future.delayed(const Duration(seconds: 2), () {
+                if (context.mounted) {
+                  ref.read(splashCompletedProvider.notifier).state = true;
+                }
+              });
             });
             return const SplashScreen();
           },
@@ -156,14 +168,21 @@ class ArcinusApp extends ConsumerWidget {
           child: child!,
         );
       },
-      // Usamos un consumer builder para determinar si mostrar la pantalla de login o la de dashboard
-      home: authState.when(
-        loading: () => const LoadingScreen(),
-        error: (_, __) => const LoginScreen(),
+      // Usamos authStateChangesProvider para determinar la pantalla inicial
+      home: authStateChanges.when(
+        loading: () => const LoadingScreen(), // Mostrar pantalla de carga mientras se determina el estado
+        error: (error, stackTrace) {
+          // Loguear el error y mostrar LoginScreen como fallback
+          developer.log('ERROR: App - Error en authStateChanges stream', error: error, stackTrace: stackTrace);
+          return const LoginScreen(); 
+        },
         data: (user) {
+          // La lógica aquí permanece igual: si user es null -> Login, si no -> verificar academia o MainScreen
           if (user == null) {
+            developer.log('DEBUG: App - No hay usuario (authStateChanges), mostrando LoginScreen');
             return const LoginScreen();
           } else {
+            developer.log('DEBUG: App - Usuario autenticado (authStateChanges): ${user.id}, Rol: ${user.role}');
             // Verificar si el usuario es propietario y necesita crear academia
             return Consumer(
               builder: (context, ref, child) {
@@ -174,7 +193,7 @@ class ArcinusApp extends ConsumerWidget {
                     developer.log('DEBUG: Usuario autenticado, rol: ${user.role}, necesita crear academia: $needsCreation');
                     if (user.role == UserRole.owner && needsCreation) {
                       developer.log('DEBUG: Redirigiendo a crear academia');
-                      return const UnderDevelopmentScreen(title: 'Crear Academia');
+                      return const CreateAcademyScreen();
                     } else {
                       developer.log('DEBUG: Redirigiendo a dashboard');
                       return const MainScreen();
@@ -193,6 +212,7 @@ class ArcinusApp extends ConsumerWidget {
       ),
       routes: {
         '/login': (context) => const LoginScreen(),
+        '/signin': (context) => const SignInScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/profile': (context) => const ProfileScreen(),
@@ -211,73 +231,97 @@ class ArcinusApp extends ConsumerWidget {
         '/chats': (context) => const UnderDevelopmentScreen(title: 'Chats'),
         '/chat': (context) => const UnderDevelopmentScreen(title: 'Chat'),
         '/notifications': (context) => const UnderDevelopmentScreen(title: 'Notificaciones'),
-        '/trainings': (context) => TrainingListScreen(
-          academyId: ref.read(currentAcademyIdProvider) ?? '',
+        '/trainings': (context) => Consumer(
+          builder: (context, ref, _) => TrainingListScreen(
+            academyId: ref.read(currentAcademyIdProvider) ?? '',
+          ),
         ),
+        '/exercises': (context) => const ExerciseLibraryScreen(),
         '/calendar': (context) => const UnderDevelopmentScreen(title: 'Calendario'),
         '/stats': (context) => const UnderDevelopmentScreen(title: 'Estadísticas'),
         '/settings': (context) => const UnderDevelopmentScreen(title: 'Configuración'),
         '/payments': (context) => const UnderDevelopmentScreen(title: 'Pagos'),
         '/academies': (context) => const UnderDevelopmentScreen(title: 'Academias'),
-        '/create-academy': (context) => const UnderDevelopmentScreen(title: 'Crear Academia'),
+        '/create-academy': (context) => const CreateAcademyScreen(),
         '/academy-details': (context) => const UnderDevelopmentScreen(title: 'Detalles de Academia'),
       },
       onGenerateRoute: (settings) {
         if (settings.name?.startsWith('/trainings/') ?? false) {
+          // Usamos un builder que capture el ref actual para evitar problemas de widget disposed
+          return MaterialPageRoute(
+            builder: (context) {
+              return Consumer(
+                builder: (context, ref, _) {
+                  final academyId = ref.read(currentAcademyIdProvider) ?? '';
+                  
+                  switch (settings.name) {
+                    case '/trainings/new':
+                      return TrainingFormScreen(
+                        academyId: academyId,
+                      );
+                      
+                    case '/trainings/template/new':
+                      return TrainingFormScreen(
+                        academyId: academyId,
+                        isTemplate: true,
+                      );
+                      
+                    case '/trainings/edit':
+                      final training = settings.arguments as Training;
+                      return TrainingFormScreen(
+                        academyId: academyId,
+                        training: training,
+                        isTemplate: training.isTemplate,
+                      );
+                      
+                    case '/trainings/sessions':
+                      final trainingId = settings.arguments as String;
+                      return SessionListScreen(
+                        trainingId: trainingId,
+                        academyId: academyId,
+                      );
+                      
+                    case '/trainings/attendance':
+                      final sessionId = settings.arguments as String;
+                      return AttendanceScreen(
+                        sessionId: sessionId,
+                        academyId: academyId,
+                      );
+                      
+                    case '/trainings/performance':
+                      final args = settings.arguments as Map<String, dynamic>?;
+                      return PerformanceDashboardScreen(
+                        athleteId: args?['athleteId'] as String?,
+                        groupId: args?['groupId'] as String?,
+                        trainingId: args?['trainingId'] as String?,
+                        academyId: args?['academyId'] as String? ?? academyId,
+                      );
+                      
+                    case '/trainings/exercises':
+                      final args = settings.arguments as Map<String, dynamic>?;
+                      return ExerciseSelectorScreen(
+                        initiallySelectedExercises: args?['selectedExercises'] as List<Exercise>?,
+                        allowMultiple: args?['allowMultiple'] as bool? ?? true,
+                      );
+                    default:
+                      return const UnderDevelopmentScreen(title: 'Ruta no encontrada');
+                  }
+                },
+              );
+            },
+          );
+        }
+        
+        if (settings.name?.startsWith('/exercises/') ?? false) {
           final academyId = ref.read(currentAcademyIdProvider) ?? '';
           
           switch (settings.name) {
-            case '/trainings/new':
-              return MaterialPageRoute(
-                builder: (context) => TrainingFormScreen(
-                  academyId: academyId,
-                ),
-              );
-              
-            case '/trainings/template/new':
-              return MaterialPageRoute(
-                builder: (context) => TrainingFormScreen(
-                  academyId: academyId,
-                  isTemplate: true,
-                ),
-              );
-              
-            case '/trainings/edit':
-              final training = settings.arguments as Training;
-              return MaterialPageRoute(
-                builder: (context) => TrainingFormScreen(
-                  academyId: academyId,
-                  training: training,
-                  isTemplate: training.isTemplate,
-                ),
-              );
-              
-            case '/trainings/sessions':
-              final trainingId = settings.arguments as String;
-              return MaterialPageRoute(
-                builder: (context) => SessionListScreen(
-                  trainingId: trainingId,
-                  academyId: academyId,
-                ),
-              );
-              
-            case '/trainings/attendance':
-              final sessionId = settings.arguments as String;
-              return MaterialPageRoute(
-                builder: (context) => AttendanceScreen(
-                  sessionId: sessionId,
-                  academyId: academyId,
-                ),
-              );
-              
-            case '/trainings/performance':
+            case '/exercises/detail':
               final args = settings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(
-                builder: (context) => PerformanceDashboardScreen(
-                  athleteId: args?['athleteId'] as String?,
-                  groupId: args?['groupId'] as String?,
-                  trainingId: args?['trainingId'] as String?,
+                builder: (context) => ExerciseDetailScreen(
                   academyId: args?['academyId'] as String? ?? academyId,
+                  exercise: args?['exercise'] as Exercise?,
                 ),
               );
           }

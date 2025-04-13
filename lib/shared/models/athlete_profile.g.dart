@@ -24,6 +24,11 @@ _$AthleteProfileImpl _$$AthleteProfileImplFromJson(Map<String, dynamic> json) =>
       medicalInfo: json['medicalInfo'] as Map<String, dynamic>?,
       emergencyContacts: json['emergencyContacts'] as Map<String, dynamic>?,
       additionalInfo: json['additionalInfo'] as Map<String, dynamic>?,
+      sportStats: json['sportStats'] as Map<String, dynamic>?,
+      specializations: (json['specializations'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+      position: json['position'] as String?,
       createdAt: dateTimeFromString(json['createdAt'] as String),
     );
 
@@ -40,5 +45,8 @@ Map<String, dynamic> _$$AthleteProfileImplToJson(
       'medicalInfo': instance.medicalInfo,
       'emergencyContacts': instance.emergencyContacts,
       'additionalInfo': instance.additionalInfo,
+      'sportStats': instance.sportStats,
+      'specializations': instance.specializations,
+      'position': instance.position,
       'createdAt': dateTimeToString(instance.createdAt),
     };

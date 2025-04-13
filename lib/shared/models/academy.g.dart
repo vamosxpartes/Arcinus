@@ -16,8 +16,10 @@ _$AcademyImpl _$$AcademyImplFromJson(Map<String, dynamic> json) =>
       location: json['location'] as String?,
       taxId: json['taxId'] as String?,
       description: json['description'] as String?,
-      sportCharacteristics:
-          json['sportCharacteristics'] as Map<String, dynamic>?,
+      sportConfig: json['sportConfig'] == null
+          ? null
+          : SportCharacteristics.fromJson(
+              json['sportConfig'] as Map<String, dynamic>),
       groupIds: (json['groupIds'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
@@ -42,7 +44,7 @@ Map<String, dynamic> _$$AcademyImplToJson(_$AcademyImpl instance) =>
       'location': instance.location,
       'taxId': instance.taxId,
       'description': instance.description,
-      'sportCharacteristics': instance.sportCharacteristics,
+      'sportConfig': instance.sportConfig,
       'groupIds': instance.groupIds,
       'coachIds': instance.coachIds,
       'athleteIds': instance.athleteIds,

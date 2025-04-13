@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'sport_characteristics.dart';
 
 part 'academy.freezed.dart';
 part 'academy.g.dart';
@@ -18,7 +19,7 @@ class Academy with _$Academy {
     String? location,
     String? taxId,
     String? description,
-    Map<String, dynamic>? sportCharacteristics,
+    SportCharacteristics? sportConfig,
     List<String>? groupIds,
     List<String>? coachIds,
     List<String>? athleteIds,

@@ -145,12 +145,13 @@ class _GroupFormScreenState extends ConsumerState<GroupFormScreen> {
           }
         } else if (widget.mode == GroupFormMode.edit && widget.groupId != null) {
           await groupService.updateGroup(
-            groupId: widget.groupId!,
-            academyId: widget.academyId,
-            name: name,
-            description: description.isNotEmpty ? description : null,
-            coachId: _selectedCoachId,
-            athleteIds: _selectedAthleteIds.toList(),
+            widget.groupId!,
+            {
+              'name': name,
+              'description': description.isNotEmpty ? description : null,
+              'coachId': _selectedCoachId,
+              'athleteIds': _selectedAthleteIds.toList(),
+            },
           );
           
           if (mounted) {

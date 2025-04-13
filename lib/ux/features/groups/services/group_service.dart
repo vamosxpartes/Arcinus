@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/shared/models/group.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,42 @@ class GroupService {
 
   CollectionReference<Map<String, dynamic>> _groupsCollection(String academyId) {
     return firestore.collection('academies').doc(academyId).collection('groups');
+  }
+
+  // Método para obtener un grupo específico por ID
+  Future<Group> getGroup(String groupId) async {
+    // Buscar el grupo en todas las academias
+    final academiesSnapshot = await firestore.collection('academies').get();
+    for (final academy in academiesSnapshot.docs) {
+      try {
+        final groupDoc = await firestore
+            .collection('academies')
+            .doc(academy.id)
+            .collection('groups')
+            .doc(groupId)
+            .get();
+        
+        if (groupDoc.exists) {
+          final data = groupDoc.data()!;
+          data['id'] = groupDoc.id;
+          data['academyId'] = academy.id;
+          
+          // Convertir timestamps de Firestore a strings ISO8601
+          if (data['createdAt'] != null && data['createdAt'] is Timestamp) {
+            data['createdAt'] = (data['createdAt'] as Timestamp).toDate().toIso8601String();
+          }
+          if (data['updatedAt'] != null && data['updatedAt'] is Timestamp) {
+            data['updatedAt'] = (data['updatedAt'] as Timestamp).toDate().toIso8601String();
+          }
+          
+          return Group.fromJson(data);
+        }
+      } catch (e) {
+        developer.log('Error buscando grupo en academia ${academy.id}: $e');
+      }
+    }
+    
+    throw Exception('Grupo no encontrado con ID: $groupId');
   }
 
   Future<List<Group>> getGroupsByAcademy(String academyId) async {
@@ -108,6 +146,7 @@ class GroupService {
     List<String>? athleteIds,
     int? capacity,
     bool isPublic = true,
+    Map<String, dynamic>? formationData,
   }) async {
     final now = DateTime.now();
     final data = {
@@ -121,6 +160,10 @@ class GroupService {
       'createdAt': now.toIso8601String(),
       'updatedAt': now.toIso8601String(),
     };
+    
+    if (formationData != null) {
+      data['formationData'] = formationData;
+    }
 
     final docRef = await _groupsCollection(academyId).add(data);
     
@@ -133,46 +176,46 @@ class GroupService {
     return Group.fromJson({...data, 'id': docRef.id});
   }
 
-  Future<void> updateGroup({
-    required String groupId,
-    required String academyId,
-    String? name,
-    String? description,
-    String? coachId,
-    List<String>? athleteIds,
-    int? capacity,
-    bool? isPublic,
-  }) async {
-    // Primero obtenemos el grupo actual para verificar cambios en relaciones
-    final existingGroup = await getGroupById(groupId, academyId);
-    if (existingGroup == null) {
-      throw Exception('Grupo no encontrado');
+  Future<void> updateGroup(
+    String groupId,
+    Map<String, dynamic> data,
+  ) async {
+    // Buscar el grupo en todas las academias
+    final academiesSnapshot = await firestore.collection('academies').get();
+    bool found = false;
+    
+    for (final academy in academiesSnapshot.docs) {
+      try {
+        final groupDoc = await firestore
+            .collection('academies')
+            .doc(academy.id)
+            .collection('groups')
+            .doc(groupId)
+            .get();
+        
+        if (groupDoc.exists) {
+          // Añadir timestamp de actualización
+          data['updatedAt'] = DateTime.now().toIso8601String();
+          
+          // Actualizar el grupo
+          await firestore
+              .collection('academies')
+              .doc(academy.id)
+              .collection('groups')
+              .doc(groupId)
+              .update(data);
+          
+          found = true;
+          break;
+        }
+      } catch (e) {
+        developer.log('Error actualizando grupo en academia ${academy.id}: $e');
+      }
     }
     
-    final data = <String, dynamic>{
-      'updatedAt': DateTime.now().toIso8601String(),
-    };
-    
-    if (name != null) data['name'] = name;
-    if (description != null) data['description'] = description;
-    if (capacity != null) data['capacity'] = capacity;
-    if (isPublic != null) data['isPublic'] = isPublic;
-    
-    // Manejo de cambio de entrenador (requeriría actualizar referencias en coaches)
-    if (coachId != null && coachId != existingGroup.coachId) {
-      data['coachId'] = coachId;
-      
-      // Aquí se podrían actualizar referencias en la colección de coaches
+    if (!found) {
+      throw Exception('Grupo no encontrado con ID: $groupId');
     }
-    
-    // Manejo de cambio en atletas (requeriría actualizar referencias en atletas)
-    if (athleteIds != null) {
-      data['athleteIds'] = athleteIds;
-      
-      // Aquí se podrían actualizar referencias en la colección de atletas
-    }
-    
-    await _groupsCollection(academyId).doc(groupId).update(data);
   }
 
   Future<void> deleteGroup(String groupId, String academyId) async {

@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/shared/models/navigation_item.dart';
 import 'package:arcinus/ux/features/auth/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  
+  // Variables para control de errores
+  String? _emailError;
+  String? _passwordError;
+  String? _generalError;
 
   @override
   void dispose() {
@@ -29,9 +36,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
       _obscurePassword = !_obscurePassword;
     });
   }
+  
+  // Resetear todos los errores
+  void _resetErrors() {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+      _generalError = null;
+    });
+  }
 
   Future<void> _signIn() async {
+    // Validar el formulario
     if (!_formKey.currentState!.validate()) return;
+    
+    // Resetear errores previos
+    _resetErrors();
 
     setState(() {
       _isLoading = true;
@@ -47,9 +67,57 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
       // La navegación se maneja en ArcinusApp con base en el estado de autenticación
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      
+      // Manejar diferentes tipos de errores de autenticación
+      String errorMessage = e.toString().toLowerCase();
+      String finalEmailError = ''; // Usar variables locales temporales
+      String finalPasswordError = '';
+      String finalGeneralError = '';
+      
+      // Errores específicos para email
+      if (errorMessage.contains('user-not-found') || 
+          errorMessage.contains('usuario no encontrado')) {
+        finalEmailError = 'Correo electrónico no registrado.';
+      } 
+      // Errores específicos para contraseña
+      else if (errorMessage.contains('wrong-password') || 
+               errorMessage.contains('contraseña incorrecta')) {
+        finalPasswordError = 'Contraseña incorrecta.';
+      }
+      // Caso específico para credenciales inválidas (email o contraseña incorrectos)
+      else if (errorMessage.contains('invalid-credential') || // Detectar por código Firebase
+               errorMessage.contains('credenciales inválidas')) { // Detectar por nuestro mensaje
+        finalGeneralError = 'El correo electrónico o la contraseña son incorrectos.';
+      }
+      // Cuenta deshabilitada
+      else if (errorMessage.contains('user-disabled') ||
+               errorMessage.contains('usuario deshabilitado')) {
+        finalGeneralError = 'Esta cuenta ha sido deshabilitada. Contacta con soporte si crees que es un error.';
+      }
+      // Demasiados intentos
+      else if (errorMessage.contains('too-many-requests') ||
+               errorMessage.contains('demasiados intentos')) {
+        finalGeneralError = 'Demasiados intentos. Por seguridad, espera un momento y vuelve a intentarlo.';
+      }
+      // Errores de red
+      else if (errorMessage.contains('network-request-failed') ||
+               errorMessage.contains('error de red')) {
+        finalGeneralError = 'Error de conexión. Revisa tu conexión a internet.';
+      }
+      // Error general para otros casos
+      else {
+        // Evitar mostrar el error técnico directamente al usuario
+        finalGeneralError = 'Ocurrió un error inesperado al iniciar sesión. Por favor, inténtalo de nuevo.';
+        // Loguear el error real para depuración
+        developer.log('Error de inicio de sesión no manejado específicamente: $e');
+      }
+      
+      // Actualizar el estado con los errores finales
+      setState(() {
+        _emailError = finalEmailError.isNotEmpty ? finalEmailError : null;
+        _passwordError = finalPasswordError.isNotEmpty ? finalPasswordError : null;
+        _generalError = finalGeneralError.isNotEmpty ? finalGeneralError : null;
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -58,214 +126,117 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
       }
     }
   }
-  
-  // Construir un botón de navegación
-  // ignore: unused_element
-  Widget _buildNavigationButton(
-    NavigationItem item, {
-    required VoidCallback onTap,
-    bool isActive = false,
-  }) {
-    final theme = Theme.of(context);
-    
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 64,
-        height: 64,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icono con fondo
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? theme.colorScheme.primaryContainer
-                    : theme.colorScheme.surfaceContainerHighest.withAlpha(170),
-                borderRadius: BorderRadius.circular(12),
-                border: isActive
-                    ? Border.all(color: theme.colorScheme.primary, width: 2)
-                    : null,
-              ),
-              child: Center(
-                child: Icon(
-                  item.icon,
-                  color: isActive
-                      ? theme.colorScheme.primary
-                      : theme.colorScheme.onSurface,
-                  size: 24,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            // Etiqueta con elipsis
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                color: isActive ? theme.colorScheme.primary : null,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final screenHeight = MediaQuery.of(context).size.height;
     
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo según el tema
-              Center(
-                child: Image.asset(
-                  isDarkMode ? 'assets/icons/Logo_white.png' : 'assets/icons/Logo_black.png',
-                  height: 120,
-                  errorBuilder: (context, error, stackTrace) => 
-                    const Icon(Icons.sports, size: 120),
-                ),
-              ),
-              const SizedBox(height: 32),
-              
-              Text(
-                'Bienvenido a Arcinus',
-                style: theme.textTheme.headlineMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              
-              Text(
-                'Inicia sesión para continuar',
-                style: theme.textTheme.bodyLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              
-              // Formulario
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Campo de email
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Correo electrónico',
-                        prefixIcon: Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  constraints: BoxConstraints(minHeight: screenHeight - 40),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 40),
+                      
+                      // Logo
+                      Image.asset(
+                        isDarkMode ? 'assets/icons/Logo_white.png' : 'assets/icons/Logo_black.png',
+                        height: 120,
+                        errorBuilder: (context, error, stackTrace) => 
+                          const Icon(Icons.sports, size: 120),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa tu correo electrónico';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Por favor ingresa un correo electrónico válido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Campo de contraseña
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword 
-                                ? Icons.visibility_outlined 
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: _togglePasswordVisibility,
+                      
+                      const SizedBox(height: 30),
+                      
+                      // Títulos
+                      Text(
+                        'Bienvenido',
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        border: const OutlineInputBorder(),
+                        textAlign: TextAlign.center,
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa tu contraseña';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    
-                    // Olvidé mi contraseña
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pushNamed('/forgot-password');
-                        },
-                        child: const Text('¿Olvidaste tu contraseña?'),
+                      
+                      const SizedBox(height: 12),
+                      
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          'Entrena, compite y alcanza tus objetivos deportivos con Arcinus',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.textTheme.bodyLarge?.color?.withAlpha(180),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    // Botón de inicio de sesión
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: FilledButton(
-                        onPressed: _isLoading ? null : _signIn,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      
+                      const SizedBox(height: 60),
+                      
+                      // Botón de inicio de sesión
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed('/signin');
+                          },
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Iniciar Sesión',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.0,
-                                ),
-                              )
-                            : const Text(
-                                'Iniciar Sesión',
-                                style: TextStyle(fontSize: 16),
-                              ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Enlace para registro
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('¿No tienes una cuenta?'),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/register');
-                    },
-                    child: const Text('Regístrate'),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Botón de registro
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed('/register');
+                          },
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            side: BorderSide(color: theme.colorScheme.primary),
+                          ),
+                          child: const Text(
+                            'Registrarse',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 40),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

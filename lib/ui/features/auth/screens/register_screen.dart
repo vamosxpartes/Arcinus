@@ -293,11 +293,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text('¿Ya tienes una cuenta?'),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Iniciar sesión'),
+                  SizedBox(
+                    width: 150, // Ancho fijo para evitar ancho infinito
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Iniciar sesión'),
+                    ),
                   ),
                 ],
               ),
