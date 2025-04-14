@@ -18,8 +18,10 @@ import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/screens/profile_screen.dart';
 import 'package:arcinus/features/app/users/user/screens/user_management_screen.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
+import 'package:arcinus/features/auth/screens/activation_screen.dart';
 import 'package:arcinus/features/auth/screens/forgot_password_screen.dart';
 import 'package:arcinus/features/auth/screens/login_screen.dart';
+import 'package:arcinus/features/auth/screens/pre_register_screen.dart';
 import 'package:arcinus/features/auth/screens/signin_screen.dart';
 import 'package:arcinus/features/auth/ui/register_screen.dart';
 import 'package:arcinus/features/navigation/main_screen.dart';
@@ -215,6 +217,8 @@ class ArcinusApp extends ConsumerWidget {
         '/signin': (context) => const SignInScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/pre-register': (context) => const PreRegisterScreen(),
+        '/activate': (context) => const ActivationScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/dashboard': (context) {
           // En lugar de crear una nueva instancia, navegamos a MainScreen 

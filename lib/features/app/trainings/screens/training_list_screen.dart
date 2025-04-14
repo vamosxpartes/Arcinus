@@ -2,9 +2,7 @@ import 'dart:math' as math; // Para PageView Controller
 
 import 'package:arcinus/features/app/trainings/core/models/training.dart';
 import 'package:arcinus/features/app/trainings/core/services/training_service.dart';
-import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
-import 'package:arcinus/features/navigation/components/navigation_items.dart';
-import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -24,7 +22,6 @@ class TrainingListScreen extends ConsumerStatefulWidget {
 class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
   late DateTime _selectedDate;
   late List<DateTime> _allDaysInRange;
-  final NavigationService _navigationService = NavigationService();
   final int _yearRange = 5; // Años hacia atrás y adelante para generar días
   late PageController _monthPageController;
   late PageController _dayPageController; // Reemplaza ScrollController
@@ -176,36 +173,38 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // final trainingService = ref.watch(trainingServiceProvider); // Mover si es necesario para indicadores reales
     
-    return Scaffold(
-      backgroundColor: Colors.black, // Black Swarm del brandbook
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildCalendarStrip(),
-            Expanded(
-              child: _buildTrainingList(),
-            ),
-          ],
-        ),
+    return BaseScaffold(
+      appBar: AppBar(
+        title: const Text('Entrenamientos'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () {
+              // Lógica para filtrar entrenamientos
+            },
+            tooltip: 'Filtrar',
+          ),
+        ],
       ),
-      bottomNavigationBar: CustomNavigationBar(
-        pinnedItems: _navigationService.pinnedItems,
-        allItems: NavigationItems.allItems,
-        activeRoute: '/trainings',
-        onItemTap: (item) {
-          _navigationService.navigateToRoute(context, item.destination);
-        },
-        onItemLongPress: (item) {
-          if (_navigationService.togglePinItem(item, context: context)) {
-            setState(() {});
-          }
-        },
-        onAddButtonTap: () {
-          _showAddTrainingOptions();
-        },
+      body: Column(
+        children: [
+          _buildCalendarStrip(),
+          Expanded(
+            child: _buildTrainingList(),
+          ),
+        ],
       ),
+      onAddButtonTap: () {
+        Navigator.pushNamed(
+          context,
+          '/trainings/create',
+          arguments: {
+            'academyId': widget.academyId,
+            'date': _selectedDate,
+          },
+        );
+      },
     );
   }
 
@@ -561,95 +560,6 @@ class _TrainingListScreenState extends ConsumerState<TrainingListScreen> {
                   ],
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddTrainingOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E1E), // Dark Gray del brandbook
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Crear nuevo',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionButton(
-                icon: Icons.fitness_center,
-                label: 'Nuevo Entrenamiento',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/trainings/new');
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildOptionButton(
-                icon: Icons.content_copy,
-                label: 'Nueva Plantilla',
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/trainings/template/new');
-                },
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildOptionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF323232), // Medium Gray del brandbook
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: const Color(0xFFda1a32), // Bonfire Red del brandbook
-            ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
-            ),
-            const Spacer(),
-            const Icon(
-              Icons.arrow_forward_ios,
-              color: Colors.white,
-              size: 16,
-            ),
           ],
         ),
       ),

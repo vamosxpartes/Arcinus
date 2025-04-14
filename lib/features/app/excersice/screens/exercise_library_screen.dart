@@ -4,10 +4,8 @@ import 'package:arcinus/features/app/academy/core/services/academy_provider.dart
 import 'package:arcinus/features/app/excersice/core/models/exercise.dart';
 import 'package:arcinus/features/app/sports/core/models/sport_characteristics.dart';
 import 'package:arcinus/features/app/trainings/core/services/exercise_service.dart';
-import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
-import 'package:arcinus/features/navigation/components/navigation_items.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:arcinus/features/navigation/core/models/navigation_item.dart';
-import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
 import 'package:arcinus/features/theme/components/feedback/empty_state.dart';
 import 'package:arcinus/features/theme/components/feedback/error_display.dart';
 import 'package:arcinus/features/theme/components/loading/loading_indicator.dart';
@@ -250,23 +248,15 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
   Widget build(BuildContext context) {
     final academyId = _getAcademyId();
     final exerciseService = ref.watch(exerciseServiceProvider);
-    final navigationService = NavigationService();
     
-    return Scaffold(
-      backgroundColor: const Color(0xFF000000), // Black Swarm
+    return BaseScaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E), // Dark Gray
-        title: const Text(
-          'Biblioteca de Ejercicios',
-          style: TextStyle(
-            color: Color(0xFFFFFFFF), // Magnolia White
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Biblioteca de Ejercicios'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list, color: Color(0xFFFFFFFF)),
+            icon: const Icon(Icons.filter_list),
             onPressed: () => _showFilterDialog(context),
+            tooltip: 'Filtrar',
           ),
         ],
       ),
@@ -277,35 +267,33 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(color: Color(0xFFFFFFFF)), // Magnolia White
               decoration: InputDecoration(
-                hintText: 'Buscar ejercicios',
-                hintStyle: const TextStyle(color: Color(0xFF8A8A8A)), // Light Gray
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF8A8A8A)),
+                hintText: 'Buscar ejercicios...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
                 suffixIcon: _searchQuery.isNotEmpty 
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: Color(0xFF8A8A8A)),
+                      icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchController.clear();
-                        setState(() => _searchQuery = '');
+                        setState(() {
+                          _searchQuery = '';
+                        });
                       },
                     )
                   : null,
-                filled: true,
-                fillColor: const Color(0xFF323232), // Medium Gray
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(),
               ),
               onChanged: (value) {
-                setState(() => _searchQuery = value);
+                setState(() {
+                  _searchQuery = value;
+                });
               },
             ),
           ),
           
-          // Filtros activos (chips)
+          // Chips de filtros activos
           if (_selectedSport != 'All' || _selectedCategory != 'All' || _selectedDifficulty != 'All')
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -313,52 +301,59 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    const Text(
-                      'Filtros: ',
-                      style: TextStyle(
-                        color: Color(0xFF8A8A8A), // Light Gray
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
                     if (_selectedSport != 'All')
-                      Chip(
-                        label: Text(_selectedSport),
-                        backgroundColor: const Color(0xFFa00c30), // Embers
-                        labelStyle: const TextStyle(color: Color(0xFFFFFFFF)),
-                        deleteIcon: const Icon(Icons.clear, size: 18, color: Color(0xFFFFFFFF)),
-                        onDeleted: () {
-                          setState(() => _selectedSport = 'All');
-                        },
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Chip(
+                          label: Text(_selectedSport),
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedSport = 'All';
+                            });
+                          },
+                        ),
                       ),
-                    const SizedBox(width: 8),
                     if (_selectedCategory != 'All')
-                      Chip(
-                        label: Text(_selectedCategory),
-                        backgroundColor: const Color(0xFFa00c30), // Embers
-                        labelStyle: const TextStyle(color: Color(0xFFFFFFFF)),
-                        deleteIcon: const Icon(Icons.clear, size: 18, color: Color(0xFFFFFFFF)),
-                        onDeleted: () {
-                          setState(() => _selectedCategory = 'All');
-                        },
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Chip(
+                          label: Text(_selectedCategory),
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedCategory = 'All';
+                            });
+                          },
+                        ),
                       ),
-                    const SizedBox(width: 8),
                     if (_selectedDifficulty != 'All')
                       Chip(
                         label: Text(_selectedDifficulty),
-                        backgroundColor: const Color(0xFFa00c30), // Embers
-                        labelStyle: const TextStyle(color: Color(0xFFFFFFFF)),
-                        deleteIcon: const Icon(Icons.clear, size: 18, color: Color(0xFFFFFFFF)),
+                        deleteIcon: const Icon(Icons.close, size: 16),
                         onDeleted: () {
-                          setState(() => _selectedDifficulty = 'All');
+                          setState(() {
+                            _selectedDifficulty = 'All';
+                          });
                         },
                       ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedSport = 'All';
+                          _selectedCategory = 'All';
+                          _selectedDifficulty = 'All';
+                        });
+                      },
+                      child: const Text('Limpiar todo'),
+                    ),
                   ],
                 ),
               ),
             ),
-            
-          // Lista de ejercicios
+          
+          // Contenido principal
           Expanded(
             child: StreamBuilder<List<Exercise>>(
               stream: _searchQuery.isNotEmpty
@@ -370,44 +365,55 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                 }
                 
                 if (snapshot.hasError) {
-                  return ErrorDisplay(error: snapshot.error.toString());
+                  return ErrorDisplay(
+                    error: snapshot.error.toString(),
+                    onRetry: () {
+                      setState(() {});
+                    },
+                  );
                 }
                 
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildEmptyState();
+                  return const EmptyState(
+                    icon: Icons.fitness_center,
+                    message: 'No se encontraron ejercicios',
+                    suggestion: 'Intenta cambiar los filtros o crear un nuevo ejercicio',
+                  );
                 }
                 
                 final exercises = snapshot.data!;
                 
-                // Aplicar filtros adicionales (como no podemos filtrar en Firestore por todos los campos a la vez)
+                // Filtrar ejercicios
                 final filteredExercises = exercises.where((exercise) {
-                  bool matchesSport = _selectedSport == 'All' || exercise.sport == _selectedSport;
-                  bool matchesCategory = _selectedCategory == 'All' || exercise.category == _selectedCategory;
-                  bool matchesDifficulty = _selectedDifficulty == 'All' || exercise.difficulty == _selectedDifficulty;
+                  // Filtro por deporte
+                  final matchesSport = _selectedSport == 'All' || exercise.sport == _selectedSport;
+                  
+                  // Filtro por categoría
+                  final matchesCategory = _selectedCategory == 'All' || exercise.category == _selectedCategory;
+                  
+                  // Filtro por dificultad
+                  final matchesDifficulty = _selectedDifficulty == 'All' || exercise.difficulty == _selectedDifficulty;
                   
                   return matchesSport && matchesCategory && matchesDifficulty;
                 }).toList();
                 
                 if (filteredExercises.isEmpty) {
                   return const EmptyState(
-                    icon: Icons.filter_alt_off,
-                    message: 'No hay resultados',
-                    suggestion: 'Intenta con otros filtros',
+                    icon: Icons.fitness_center,
+                    message: 'No se encontraron ejercicios',
+                    suggestion: 'Intenta cambiar los filtros o crear un nuevo ejercicio',
                   );
                 }
                 
-                return GridView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.8,
-                    crossAxisSpacing: 16.0,
-                    mainAxisSpacing: 16.0,
-                  ),
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   itemCount: filteredExercises.length,
                   itemBuilder: (context, index) {
                     final exercise = filteredExercises[index];
-                    return _buildExerciseCard(context, exercise);
+                    return _buildExerciseCard(
+                      exercise: exercise,
+                      onTap: () => _navigateToExerciseDetail(context, exercise: exercise),
+                    );
                   },
                 );
               },
@@ -415,174 +421,166 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: CustomNavigationBar(
-        pinnedItems: navigationService.pinnedItems,
-        allItems: NavigationItems.allItems,
-        activeRoute: '/exercises',
-        onItemTap: (item) => navigationService.navigateToRoute(context, item.destination),
-        onItemLongPress: (item) => navigationService.togglePinItem(item, context: context),
-        onAddButtonTap: () => _navigateToExerciseDetail(context),
-      ),
+      onAddButtonTap: () => _navigateToExerciseDetail(context),
     );
   }
   
-  Widget _buildEmptyState() {
-    if (_sportCharacteristics != null) {
-      return EmptyState(
-        icon: Icons.fitness_center,
-        message: 'No hay ejercicios',
-        suggestion: 'Añade ejercicios para ${_sportCharacteristics!.predefinedExercises.isNotEmpty ? "empezar con estos ejercicios predefinidos: ${_sportCharacteristics!.predefinedExercises.take(3).join(", ")}..." : "tu deporte"}',
-      );
-    } else {
-      return const EmptyState(
-        icon: Icons.fitness_center,
-        message: 'No hay ejercicios',
-        suggestion: 'Crea tu primer ejercicio personalizado',
-      );
-    }
-  }
-  
-  Widget _buildExerciseCard(BuildContext context, Exercise exercise) {
+  // Widget para mostrar una tarjeta de ejercicio
+  Widget _buildExerciseCard({required Exercise exercise, required VoidCallback onTap}) {
     // Definir colores según la categoría
     Color cardColor;
     
-    switch (exercise.category.toLowerCase()) {
-      case 'cardio':
-      case 'resistencia':
-        cardColor = const Color(0xFF005082); // Azul
+    // Asignar color según la categoría
+    switch (exercise.category) {
+      case 'Cardio':
+        cardColor = const Color(0xFF1E88E5); // Azul
         break;
-      case 'fuerza':
-      case 'power':
-        cardColor = const Color(0xFF8B0000); // Rojo oscuro
+      case 'Fuerza':
+        cardColor = const Color(0xFFE53935); // Rojo
         break;
-      case 'técnica':
-      case 'técnico':
-      case 'tecnica':
-        cardColor = const Color(0xFF006400); // Verde oscuro
+      case 'Flexibilidad':
+        cardColor = const Color(0xFF43A047); // Verde
         break;
-      case 'velocidad':
-      case 'speed':
-        cardColor = const Color(0xFFFF8C00); // Naranja
+      case 'Técnica':
+        cardColor = const Color(0xFF8E24AA); // Púrpura
         break;
-      case 'flexibilidad':
-      case 'flexibility':
-        cardColor = const Color(0xFF4B0082); // Índigo
+      case 'Velocidad':
+        cardColor = const Color(0xFFEF6C00); // Naranja
+        break;
+      case 'Resistencia':
+        cardColor = const Color(0xFF0097A7); // Cyan
         break;
       default:
-        cardColor = const Color(0xFF1E1E1E); // Gray por defecto
+        cardColor = const Color(0xFF5C6BC0); // Índigo (por defecto)
     }
     
     return GestureDetector(
-      onTap: () => _navigateToExerciseDetail(context, exercise: exercise),
+      onTap: onTap,
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: cardColor,
-        elevation: 4,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Imagen de ejercicio o icono por defecto
-              Expanded(
-                child: Center(
-                  child: exercise.imageUrls.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            exercise.imageUrls.first,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.fitness_center,
-                                size: 60,
-                                color: Colors.white54,
-                              );
-                            },
-                          ),
-                        )
-                      : const Icon(
-                          Icons.fitness_center,
-                          size: 60,
-                          color: Colors.white54,
-                        ),
+        margin: const EdgeInsets.only(bottom: 16.0),
+        elevation: 4.0,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Encabezado con categoría y dificultad
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  topRight: Radius.circular(12),
                 ),
               ),
-              
-              const SizedBox(height: 12),
-              
-              // Nombre del ejercicio
-              Text(
-                exercise.name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              
-              const SizedBox(height: 4),
-              
-              // Deporte y categoría
-              Row(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.black45,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      exercise.sport,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white70,
-                      ),
+                  Text(
+                    exercise.category,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                     decoration: BoxDecoration(
-                      color: Colors.black45,
-                      borderRadius: BorderRadius.circular(4),
+                      color: Colors.white.withAlpha(50),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      exercise.category,
+                      exercise.difficulty,
                       style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white70,
+                        color: Colors.white,
+                        fontSize: 12,
                       ),
                     ),
                   ),
                 ],
               ),
-              
-              const SizedBox(height: 8),
-              
-              // Nivel de dificultad
-              Row(
-                children: [
-                  const Icon(
-                    Icons.signal_cellular_alt,
-                    size: 14,
-                    color: Colors.white70,
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Nombre del ejercicio
+            Text(
+              exercise.name,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            
+            const SizedBox(height: 4),
+            
+            // Deporte y categoría
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    exercise.difficulty,
+                  child: Text(
+                    exercise.sport,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 10,
                       color: Colors.white70,
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    exercise.category,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // Imagen de ejercicio o icono por defecto
+            Expanded(
+              child: Center(
+                child: exercise.imageUrls.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          exercise.imageUrls.first,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.fitness_center,
+                              size: 60,
+                              color: Colors.white54,
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons.fitness_center,
+                        size: 60,
+                        color: Colors.white54,
+                      ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

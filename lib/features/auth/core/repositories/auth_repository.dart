@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
+import 'package:arcinus/features/auth/core/models/pre_registered_user.dart';
 
 /// Interfaz para el repositorio de autenticación
 abstract class AuthRepository {
@@ -27,4 +28,19 @@ abstract class AuthRepository {
   
   /// Sube una imagen de perfil a Firebase Storage y devuelve la URL
   Future<String> uploadProfileImage(File imageFile, String userId);
+  
+  /// Crea un usuario pre-registrado y genera un código de activación
+  Future<PreRegisteredUser> createPreRegisteredUser(String email, String name, UserRole role, String createdBy);
+  
+  /// Verifica si un código de activación es válido
+  Future<PreRegisteredUser?> verifyActivationCode(String activationCode);
+  
+  /// Completa el registro de un usuario pre-registrado
+  Future<User> completeRegistration(String activationCode, String password);
+  
+  /// Obtiene todos los usuarios pre-registrados
+  Future<List<PreRegisteredUser>> getAllPreRegisteredUsers();
+  
+  /// Elimina un usuario pre-registrado
+  Future<void> deletePreRegisteredUser(String id);
 } 

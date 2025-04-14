@@ -1,6 +1,7 @@
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/excersice/core/models/exercise.dart';
 import 'package:arcinus/features/app/trainings/core/services/exercise_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:arcinus/features/theme/components/loading/loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -231,7 +232,17 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    if (_isLoading) {
+      return const BaseScaffold(
+        showNavigation: false,
+        body: LoadingIndicator(),
+      );
+    }
+    
+    Widget mainBody = _isEditing || widget.exercise == null ? _buildEditMode() : _buildViewMode();
+    
+    return BaseScaffold(
+      showNavigation: false,
       backgroundColor: const Color(0xFF000000), // Black Swarm
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1E1E), // Dark Gray
@@ -259,11 +270,11 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const LoadingIndicator()
-          : _buildBody(),
-      bottomNavigationBar: _isEditing
-          ? Container(
+      body: Column(
+        children: [
+          Expanded(child: mainBody),
+          if (_isEditing)
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               color: const Color(0xFF1E1E1E), // Dark Gray
               child: Row(
@@ -295,17 +306,10 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
                   ),
                 ],
               ),
-            )
-          : null,
+            ),
+        ],
+      ),
     );
-  }
-
-  Widget _buildBody() {
-    if (widget.exercise != null && !_isEditing) {
-      return _buildViewMode();
-    } else {
-      return _buildEditMode();
-    }
   }
 
   Widget _buildViewMode() {
@@ -749,10 +753,6 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
               keyboardType: TextInputType.url,
             ),
             const SizedBox(height: 24),
-            
-            // Botón de guardar para móvil (ya tenemos uno en la barra inferior)
-            if (MediaQuery.of(context).size.width < 600)
-              const SizedBox(height: 80), // Espacio para el botón de la barra inferior
           ],
         ),
       ),

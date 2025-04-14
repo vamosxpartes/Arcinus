@@ -2,6 +2,7 @@ import 'package:arcinus/features/app/academy/core/models/academy_model.dart';
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:arcinus/features/theme/core/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,7 +46,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user = authState.valueOrNull;
     final isOwner = user?.role == UserRole.owner;
     
-    return Scaffold(
+    return BaseScaffold(
       body: Column(
         children: [
           Expanded(

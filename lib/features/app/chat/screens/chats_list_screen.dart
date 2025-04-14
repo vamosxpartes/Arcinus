@@ -1,3 +1,4 @@
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +7,7 @@ class ChatsListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
+    return BaseScaffold(
       appBar: AppBar(
         title: const Text('Mensajes'),
         actions: [

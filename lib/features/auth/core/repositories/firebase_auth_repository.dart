@@ -1,7 +1,9 @@
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:math';
 
 import 'package:arcinus/features/app/users/user/core/models/user.dart' as app;
+import 'package:arcinus/features/auth/core/models/pre_registered_user.dart';
 import 'package:arcinus/features/permissions/core/models/permissions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
@@ -411,5 +413,235 @@ class FirebaseAuthRepository implements AuthRepository {
       default:
         return Exception('Error de autenticación: ${e.message}');
     }
+  }
+  
+  // Implementación de métodos de pre-registro
+  
+  @override
+  Future<PreRegisteredUser> createPreRegisteredUser(
+    String email, 
+    String name, 
+    app.UserRole role, 
+    String createdBy
+  ) async {
+    try {
+      developer.log('DEBUG: Firebase - Creando usuario pre-registrado: $email - lib/features/auth/core/repositories/firebase_auth_repository.dart - createPreRegisteredUser');
+      
+      // Verificar si ya existe un pre-registro con este email
+      final querySnapshot = await _firestore
+          .collection('preRegisteredUsers')
+          .where('email', isEqualTo: email)
+          .where('isUsed', isEqualTo: false)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        throw Exception('Ya existe un pre-registro activo para este correo electrónico');
+      }
+      
+      // Generar código de activación único
+      final activationCode = _generateActivationCode();
+      
+      // Crear documento de usuario pre-registrado en Firestore
+      final preRegisteredUser = PreRegisteredUser(
+        id: _firestore.collection('preRegisteredUsers').doc().id,
+        email: email,
+        name: name,
+        role: role,
+        activationCode: activationCode,
+        expiresAt: DateTime.now().add(const Duration(days: 7)), // Expira en 7 días
+        createdAt: DateTime.now(),
+        createdBy: createdBy,
+      );
+      
+      // Guardar en Firestore
+      await _firestore
+          .collection('preRegisteredUsers')
+          .doc(preRegisteredUser.id)
+          .set(_preRegisteredUserToJson(preRegisteredUser));
+      
+      developer.log('DEBUG: Firebase - Usuario pre-registrado creado: ${preRegisteredUser.id} con código: $activationCode - lib/features/auth/core/repositories/firebase_auth_repository.dart - createPreRegisteredUser');
+      
+      return preRegisteredUser;
+    } catch (e) {
+      developer.log('DEBUG: Firebase - Error al crear usuario pre-registrado: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - createPreRegisteredUser');
+      rethrow;
+    }
+  }
+  
+  @override
+  Future<PreRegisteredUser?> verifyActivationCode(String activationCode) async {
+    try {
+      developer.log('DEBUG: Firebase - Verificando código de activación: $activationCode - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
+      
+      // Buscar el pre-registro con este código de activación
+      final querySnapshot = await _firestore
+          .collection('preRegisteredUsers')
+          .where('activationCode', isEqualTo: activationCode)
+          .where('isUsed', isEqualTo: false)
+          .get();
+      
+      if (querySnapshot.docs.isEmpty) {
+        developer.log('DEBUG: Firebase - Código de activación no encontrado o ya usado - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
+        return null;
+      }
+      
+      final preRegDoc = querySnapshot.docs.first;
+      final preRegisteredUser = _preRegisteredUserFromFirestore(preRegDoc);
+      
+      // Verificar si el código ha expirado
+      if (preRegisteredUser.expiresAt.isBefore(DateTime.now())) {
+        developer.log('DEBUG: Firebase - Código de activación expirado - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
+        return null;
+      }
+      
+      return preRegisteredUser;
+    } catch (e) {
+      developer.log('DEBUG: Firebase - Error al verificar código de activación: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
+      return null;
+    }
+  }
+  
+  @override
+  Future<app.User> completeRegistration(String activationCode, String password) async {
+    try {
+      developer.log('DEBUG: Firebase - Completando registro con código: $activationCode - lib/features/auth/core/repositories/firebase_auth_repository.dart - completeRegistration');
+      
+      // Verificar el código de activación
+      final preRegisteredUser = await verifyActivationCode(activationCode);
+      
+      if (preRegisteredUser == null) {
+        throw Exception('Código de activación inválido o expirado');
+      }
+      
+      // Crear usuario en Firebase Auth
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: preRegisteredUser.email,
+        password: password,
+      );
+      
+      final uid = userCredential.user!.uid;
+      
+      // Crear el usuario en Firestore basado en la información pre-registrada
+      final user = app.User(
+        id: uid,
+        email: preRegisteredUser.email,
+        name: preRegisteredUser.name,
+        role: preRegisteredUser.role,
+        permissions: Permissions.getDefaultPermissions(preRegisteredUser.role),
+        academyIds: [],
+        createdAt: DateTime.now(),
+      );
+      
+      // Guardar usuario en la colección correspondiente según su rol
+      if (preRegisteredUser.role == app.UserRole.superAdmin) {
+        await _firestore.collection('superadmins').doc(uid).set(_userToJson(user));
+      } else if (preRegisteredUser.role == app.UserRole.owner) {
+        await _firestore.collection('owners').doc(uid).set(_userToJson(user));
+      } else {
+        await _firestore.collection('users').doc(uid).set(_userToJson(user));
+      }
+      
+      // Marcar pre-registro como usado
+      await _firestore
+          .collection('preRegisteredUsers')
+          .doc(preRegisteredUser.id)
+          .update({'isUsed': true});
+      
+      developer.log('DEBUG: Firebase - Registro completado para: ${preRegisteredUser.email} - lib/features/auth/core/repositories/firebase_auth_repository.dart - completeRegistration');
+      
+      return user;
+    } catch (e) {
+      developer.log('DEBUG: Firebase - Error al completar registro: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - completeRegistration');
+      throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al completar registro: $e'));
+    }
+  }
+  
+  @override
+  Future<List<PreRegisteredUser>> getAllPreRegisteredUsers() async {
+    try {
+      developer.log('DEBUG: Firebase - Obteniendo todos los usuarios pre-registrados - lib/features/auth/core/repositories/firebase_auth_repository.dart - getAllPreRegisteredUsers');
+      
+      final querySnapshot = await _firestore
+          .collection('preRegisteredUsers')
+          .orderBy('createdAt', descending: true)
+          .get();
+      
+      return querySnapshot.docs
+          .map((doc) => _preRegisteredUserFromFirestore(doc))
+          .toList();
+    } catch (e) {
+      developer.log('DEBUG: Firebase - Error al obtener usuarios pre-registrados: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - getAllPreRegisteredUsers');
+      return [];
+    }
+  }
+  
+  @override
+  Future<void> deletePreRegisteredUser(String id) async {
+    try {
+      developer.log('DEBUG: Firebase - Eliminando usuario pre-registrado: $id - lib/features/auth/core/repositories/firebase_auth_repository.dart - deletePreRegisteredUser');
+      
+      await _firestore
+          .collection('preRegisteredUsers')
+          .doc(id)
+          .delete();
+    } catch (e) {
+      developer.log('DEBUG: Firebase - Error al eliminar usuario pre-registrado: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - deletePreRegisteredUser');
+      rethrow;
+    }
+  }
+  
+  // Helpers para pre-registro
+  
+  /// Genera un código de activación único y seguro
+  String _generateActivationCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final random = Random.secure();
+    final codeBuffer = StringBuffer();
+    
+    // Generar un código de 8 caracteres
+    for (var i = 0; i < 8; i++) {
+      codeBuffer.write(chars[random.nextInt(chars.length)]);
+    }
+    
+    return codeBuffer.toString();
+  }
+  
+  /// Convierte un documento de Firestore a un objeto PreRegisteredUser
+  PreRegisteredUser _preRegisteredUserFromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    
+    return PreRegisteredUser(
+      id: doc.id,
+      email: data['email'] as String,
+      name: data['name'] as String,
+      role: app.UserRole.values.firstWhere(
+        (role) => role.toString() == data['role'],
+        orElse: () => app.UserRole.guest,
+      ),
+      activationCode: data['activationCode'] as String,
+      expiresAt: (data['expiresAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      isUsed: data['isUsed'] as bool? ?? false,
+      createdBy: data['createdBy'] as String?,
+    );
+  }
+  
+  /// Convierte un objeto PreRegisteredUser a un Map para Firestore
+  Map<String, dynamic> _preRegisteredUserToJson(PreRegisteredUser user) {
+    final map = {
+      'email': user.email,
+      'name': user.name,
+      'role': user.role.toString(),
+      'activationCode': user.activationCode,
+      'expiresAt': Timestamp.fromDate(user.expiresAt),
+      'createdAt': Timestamp.fromDate(user.createdAt),
+      'isUsed': user.isUsed,
+    };
+    
+    if (user.createdBy != null) {
+      map['createdBy'] = user.createdBy!;
+    }
+    
+    return map;
   }
 } 

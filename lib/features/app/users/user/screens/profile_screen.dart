@@ -1,6 +1,7 @@
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:arcinus/features/theme/core/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,8 +33,8 @@ class ProfileScreen extends ConsumerWidget {
   }
   
   Widget _buildNotLoggedInView() {
-    return const Scaffold(
-      backgroundColor: AppTheme.blackSwarm,
+    return const BaseScaffold(
+      showNavigation: false,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -58,22 +59,24 @@ class ProfileScreen extends ConsumerWidget {
   }
   
   Widget _buildProfileContent(BuildContext context, WidgetRef ref, User user) {
-    return Scaffold(
-      backgroundColor: AppTheme.blackSwarm,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildProfileHeader(context, user),
-              _buildRoleSpecificContent(context, ref, user),
-              const SizedBox(height: 20),
-              _buildProfileOptions(context, ref),
-              const SizedBox(height: 20),
-              _buildFooter(context),
-            ],
-          ),
+    return BaseScaffold(
+      appBar: AppBar(
+        title: const Text('Mi Perfil'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildProfileHeader(context, user),
+            _buildRoleSpecificContent(context, ref, user),
+            const SizedBox(height: 20),
+            _buildProfileOptions(context, ref),
+            const SizedBox(height: 20),
+            _buildFooter(context),
+          ],
         ),
       ),
     );

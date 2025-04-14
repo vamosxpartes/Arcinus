@@ -112,7 +112,7 @@ class PermissionService {
     if (_currentUser == null) return false;
     
     // Rutas públicas que no requieren permisos específicos
-    if (['/login', '/signin', '/register', '/forgot-password'].contains(route)) {
+    if (['/login', '/signin', '/register', '/forgot-password', '/activate'].contains(route)) {
       return true;
     }
     
@@ -125,6 +125,8 @@ class PermissionService {
           Permissions.manageUsers,
           Permissions.manageCoaches,
         ]);
+      case '/pre-register':
+        return hasPermission(Permissions.manageUsers);
       case '/create-academy':
         return hasPermission(Permissions.createAcademy);
       case '/academies':

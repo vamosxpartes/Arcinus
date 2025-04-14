@@ -11,6 +11,7 @@
 * `lib/features/navigation/core/models/navigation_item.dart` - Modelo para representar elementos de navegación
 * `lib/features/navigation/components/custom_navigation_bar.dart` - Barra de navegación personalizada
 * `lib/features/navigation/components/navigation_items.dart` - Definición de elementos de navegación disponibles
+* `lib/features/navigation/components/base_scaffold.dart` - Scaffold personalizado que integra la navegación
 
 ## 3. Componentes Principales (Código)
 ### Pantallas (Screens)
@@ -18,6 +19,7 @@
 
 ### Widgets Reutilizables
 * `CustomNavigationBar` - Barra de navegación personalizada con soporte para anclar elementos
+* `BaseScaffold` - Scaffold personalizado que encapsula la lógica de navegación común
 * Componentes de transición entre pantallas
 
 ### Proveedores (Providers)
@@ -61,8 +63,38 @@
 * Sistema de anclaje de elementos para personalización
 * Acciones contextuales según la sección activa
 * Compatibilidad con navegación anidada dentro de cada sección
+* `BaseScaffold` que encapsula la lógica de navegación común para reducir duplicación y garantizar consistencia
 
 ## 9. Registro de Cambios
 * Implementación inicial del sistema de navegación por tabs
 * Adición del sistema de elementos anclados
 * Implementación de acciones contextuales por sección
+* Creación del BaseScaffold para estandarizar la estructura de pantallas
+* Actualización de pantallas para usar BaseScaffold en módulos de chat y notificaciones
+* Refactorización de pantallas para adaptar el uso correcto de BaseScaffold en lugar de Scaffold
+
+## 10. Pantallas que Deben Usar BaseScaffold
+
+Las siguientes pantallas deben actualizarse para usar el BaseScaffold:
+
+### Pantallas en el módulo de App
+* `lib/features/app/academy/screens/*.dart`
+* `lib/features/app/excersice/screens/*.dart`
+* `lib/features/app/trainings/screens/*.dart`
+* `lib/features/app/users/user/screens/*.dart`
+
+### Pantallas en el módulo de Permisos
+* `lib/features/permissions/ui/screens/*.dart`
+
+### Pantallas en el módulo de Roles
+* `lib/features/roles/management/screens/*.dart`
+* `lib/features/roles/assignment/screens/*.dart`
+
+### Pantallas en el módulo de Navegación
+* `lib/features/navigation/screens/*.dart` (excepto SplashScreen)
+
+### Notas sobre el uso de BaseScaffold
+* Pantallas de formularios: Usar con `showNavigation: false`
+* Pantallas de autenticación: No usar BaseScaffold
+* Pantallas de detalles: Usar con AppBar personalizado
+* Pantallas principales: Usar con navegación completa

@@ -27,6 +27,12 @@ class NavigationService {
   /// Getter para obtener los elementos fijados
   List<NavigationItem> get pinnedItems => _pinnedItems;
   
+  /// Método para obtener los elementos fijados en la barra de navegación
+  List<NavigationItem> getPinnedItems() => _pinnedItems;
+  
+  /// Método para obtener todos los elementos de navegación disponibles
+  List<NavigationItem> getAllItems() => NavigationItems.allItems;
+  
   /// Método para fijar o soltar un elemento de navegación
   /// Retorna true si la operación fue exitosa, false si no se pudo realizar
   bool togglePinItem(NavigationItem item, {required BuildContext context}) {

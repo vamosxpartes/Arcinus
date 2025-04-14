@@ -3,9 +3,7 @@ import 'package:arcinus/features/app/academy/core/services/academy_controller.da
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
-import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
-import 'package:arcinus/features/navigation/components/navigation_items.dart';
-import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,147 +12,104 @@ class AcademyListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final NavigationService navigationService = NavigationService();
     final userAcademies = ref.watch(userAcademiesProvider);
     final userAsync = ref.watch(authStateProvider);
     
-    return Scaffold(
+    return BaseScaffold(
+      appBar: AppBar(
+        title: const Text('Mis Academias'),
+        actions: [
+          userAsync.whenData((user) {
+            if (user?.role == UserRole.owner) {
+              return IconButton(
+                icon: const Icon(Icons.add_circle),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/create-academy');
+                },
+                tooltip: 'Crear Academia',
+              );
+            }
+            return const SizedBox.shrink();
+          }).valueOrNull ?? const SizedBox.shrink(),
+        ],
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  // Header
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Mis Academias',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          // Solo mostramos el botón de crear si el usuario es propietario
-                          userAsync.whenData((user) {
-                            if (user?.role == UserRole.owner) {
-                              return IconButton(
-                                icon: const Icon(Icons.add_circle),
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/create-academy');
-                                },
-                                tooltip: 'Crear Academia',
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          }).valueOrNull ?? const SizedBox.shrink(),
-                        ],
+        child: userAcademies.when(
+          data: (academies) {
+            if (academies.isEmpty) {
+              return const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.school_outlined,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'No tienes academias',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Crea una nueva academia o únete a una existente',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              );
+            }
+            
+            return GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.75,
+              ),
+              itemCount: academies.length,
+              itemBuilder: (context, index) {
+                final academy = academies[index];
+                return _AcademyCard(
+                  academy: academy,
+                  onTap: () {
+                    ref.read(academyControllerProvider).selectAcademy(academy);
+                    // Navegar a los detalles de la academia
+                    Navigator.pushNamed(context, '/academy-details');
+                  },
+                );
+              },
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
                   ),
-                  
-                  // Lista de academias
-                  userAcademies.when(
-                    data: (academies) {
-                      if (academies.isEmpty) {
-                        return const SliverFillRemaining(
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.school_outlined,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'No tienes academias',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Crea una nueva academia o únete a una existente',
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      
-                      return SliverPadding(
-                        padding: const EdgeInsets.all(16),
-                        sliver: SliverGrid(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: 0.75,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final academy = academies[index];
-                              return _AcademyCard(
-                                academy: academy,
-                                onTap: () {
-                                  ref.read(academyControllerProvider).selectAcademy(academy);
-                                  // Navegar a los detalles de la academia
-                                  Navigator.pushNamed(context, '/academy-details');
-                                },
-                              );
-                            },
-                            childCount: academies.length,
-                          ),
-                        ),
-                      );
+                  const SizedBox(height: 16),
+                  Text('Error: $error'),
+                  TextButton(
+                    onPressed: () {
+                      ref.invalidate(userAcademiesProvider);
                     },
-                    loading: () => const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                    error: (error, stack) => SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 16),
-                            Text('Error: $error'),
-                            TextButton(
-                              onPressed: () {
-                                ref.invalidate(userAcademiesProvider);
-                              },
-                              child: const Text('Reintentar'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: const Text('Reintentar'),
                   ),
                 ],
               ),
             ),
-            // Barra de navegación
-            CustomNavigationBar(
-              pinnedItems: navigationService.pinnedItems,
-              allItems: NavigationItems.allItems,
-              activeRoute: '/academies',
-              onItemTap: (item) => navigationService.navigateToRoute(context, item.destination),
-              onItemLongPress: (item) => navigationService.togglePinItem(item, context: context),
-            ),
-          ],
+          ),
         ),
       ),
     );

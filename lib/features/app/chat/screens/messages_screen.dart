@@ -1,3 +1,4 @@
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 
 class MessagesScreen extends StatelessWidget {
@@ -5,7 +6,7 @@ class MessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BaseScaffold(
       appBar: AppBar(
         title: const Text('Mensajes'),
       ),

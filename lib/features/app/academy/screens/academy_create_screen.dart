@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:arcinus/features/app/academy/core/services/academy_controller.dart';
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/sports/core/models/sport_characteristics.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -181,7 +182,8 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
   Widget build(BuildContext context) {
     final needsAcademyCreation = ref.watch(needsAcademyCreationProvider);
     
-    return Scaffold(
+    return BaseScaffold(
+      showNavigation: false,
       appBar: AppBar(
         title: const Text('Crear Academia'),
         // Mostrar botón de cancelar solo si no es obligatoria la creación
@@ -190,203 +192,201 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
           orElse: () => const BackButton(),
         ),
       ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ListView(
-              children: [
-                // Si es obligatorio crear academia, mostrar mensaje explicativo
-                needsAcademyCreation.maybeWhen(
-                  data: (needsCreation) => needsCreation
-                      ? Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.only(bottom: 24),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.info_outline,
-                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Información',
-                                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                      color: Theme.of(context).colorScheme.onSecondaryContainer,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Para comenzar a usar la aplicación, primero debes crear una academia deportiva.',
-                                style: TextStyle(
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ListView(
+            children: [
+              // Si es obligatorio crear academia, mostrar mensaje explicativo
+              needsAcademyCreation.maybeWhen(
+                data: (needsCreation) => needsCreation
+                    ? Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
                                   color: Theme.of(context).colorScheme.onSecondaryContainer,
                                 ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Información',
+                                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                                    color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Para comenzar a usar la aplicación, primero debes crear una academia deportiva.',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSecondaryContainer,
                               ),
-                            ],
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                  orElse: () => const SizedBox.shrink(),
-                ),
-                
-                // Logo
-                Center(
-                  child: GestureDetector(
-                    onTap: _pickImage,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        shape: BoxShape.circle,
-                        image: _logoFile != null
-                            ? DecorationImage(
-                                image: FileImage(_logoFile!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: _logoFile == null
-                          ? const Icon(
-                              Icons.add_a_photo,
-                              size: 40,
-                              color: Colors.grey,
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+                orElse: () => const SizedBox.shrink(),
+              ),
+              
+              // Logo
+              Center(
+                child: GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      shape: BoxShape.circle,
+                      image: _logoFile != null
+                          ? DecorationImage(
+                              image: FileImage(_logoFile!),
+                              fit: BoxFit.cover,
                             )
                           : null,
                     ),
+                    child: _logoFile == null
+                        ? const Icon(
+                            Icons.add_a_photo,
+                            size: 40,
+                            color: Colors.grey,
+                          )
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 24),
-                
-                // Campo de nombre
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de la Academia',
-                    hintText: 'Ej. Academia Deportiva Campeones',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor ingresa un nombre';
-                    }
-                    return null;
-                  },
+              ),
+              const SizedBox(height: 24),
+              
+              // Campo de nombre
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de la Academia',
+                  hintText: 'Ej. Academia Deportiva Campeones',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                
-                // Selector de deporte
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Deporte',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _selectedSport,
-                  hint: const Text('Selecciona un deporte'),
-                  items: _sports.entries.map((entry) {
-                    return DropdownMenuItem<String>(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    );
-                  }).toList(),
-                  onChanged: (String? value) {
-                    setState(() {
-                      _selectedSport = value;
-                    });
-                  },
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor ingresa un nombre';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // Selector de deporte
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Deporte',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                
-                // NUEVOS CAMPOS
-                
-                // Campo de ubicación
-                TextFormField(
-                  controller: _locationController,
-                  decoration: const InputDecoration(
-                    labelText: 'Ubicación',
-                    hintText: 'Ej. Calle 123 # 45-67, Ciudad',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
+                value: _selectedSport,
+                hint: const Text('Selecciona un deporte'),
+                items: _sports.entries.map((entry) {
+                  return DropdownMenuItem<String>(
+                    value: entry.key,
+                    child: Text(entry.value),
+                  );
+                }).toList(),
+                onChanged: (String? value) {
+                  setState(() {
+                    _selectedSport = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              // NUEVOS CAMPOS
+              
+              // Campo de ubicación
+              TextFormField(
+                controller: _locationController,
+                decoration: const InputDecoration(
+                  labelText: 'Ubicación',
+                  hintText: 'Ej. Calle 123 # 45-67, Ciudad',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on_outlined),
                 ),
-                const SizedBox(height: 16),
-                
-                // Campo de NIT
-                TextFormField(
-                  controller: _taxIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'NIT o Identificador Fiscal',
-                    hintText: 'Ej. 901.234.567-8',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.assignment_outlined),
-                  ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Campo de NIT
+              TextFormField(
+                controller: _taxIdController,
+                decoration: const InputDecoration(
+                  labelText: 'NIT o Identificador Fiscal',
+                  hintText: 'Ej. 901.234.567-8',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.assignment_outlined),
                 ),
-                const SizedBox(height: 16),
-                
-                // Campo de descripción
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Descripción',
-                    hintText: 'Describe brevemente tu academia deportiva',
-                    border: OutlineInputBorder(),
-                    alignLabelWithHint: true,
-                  ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Campo de descripción
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Descripción',
+                  hintText: 'Describe brevemente tu academia deportiva',
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
                 ),
-                const SizedBox(height: 32),
-                
-                // Botones
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: OutlinedButton(
-                          onPressed: needsAcademyCreation.maybeWhen(
-                            data: (needsCreation) => needsCreation 
-                              ? null  // Deshabilitamos si es obligatorio crear
-                              : (_isLoading ? null : () => Navigator.pop(context)),
-                            orElse: () => _isLoading ? null : () => Navigator.pop(context),
-                          ),
-                          child: const Text('Cancelar'),
+              ),
+              const SizedBox(height: 32),
+              
+              // Botones
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: OutlinedButton(
+                        onPressed: needsAcademyCreation.maybeWhen(
+                          data: (needsCreation) => needsCreation 
+                            ? null  // Deshabilitamos si es obligatorio crear
+                            : (_isLoading ? null : () => Navigator.pop(context)),
+                          orElse: () => _isLoading ? null : () => Navigator.pop(context),
                         ),
+                        child: const Text('Cancelar'),
                       ),
                     ),
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _createAcademy,
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Crear Academia'),
-                        ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _createAcademy,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('Crear Academia'),
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20), // Espacio adicional al final
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20), // Espacio adicional al final
+            ],
           ),
         ),
       ),

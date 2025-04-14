@@ -1,4 +1,5 @@
 import 'package:arcinus/features/app/trainings/core/services/performance_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:arcinus/features/theme/components/feedback/empty_state.dart';
 import 'package:arcinus/features/theme/components/feedback/error_display.dart';
 import 'package:arcinus/features/theme/components/loading/loading_indicator.dart';
@@ -137,36 +138,24 @@ class _PerformanceDashboardScreenState extends ConsumerState<PerformanceDashboar
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF000000), // Black Swarm
+    return BaseScaffold(
+      showNavigation: false,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E1E), // Dark Gray
-        title: const Text(
-          'Métricas de Rendimiento',
-          style: TextStyle(
-            color: Color(0xFFFFFFFF), // Magnolia White
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFFFFFFF)),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: const Text('Métricas de Rendimiento'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.date_range, color: Color(0xFFFFFFFF)),
+            icon: const Icon(Icons.date_range),
             onPressed: _showDateRangePicker,
+            tooltip: 'Seleccionar rango de fechas',
           ),
           IconButton(
-            icon: const Icon(Icons.refresh, color: Color(0xFFFFFFFF)),
+            icon: const Icon(Icons.refresh),
             onPressed: _loadData,
+            tooltip: 'Actualizar datos',
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: const Color(0xFFa00c30), // Embers
-          labelColor: const Color(0xFFFFFFFF), // Magnolia White
-          unselectedLabelColor: const Color(0xFF8A8A8A), // Light Gray
           tabs: const [
             Tab(text: 'General'),
             Tab(text: 'Asistencia'),

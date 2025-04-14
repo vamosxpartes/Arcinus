@@ -3,6 +3,7 @@ import 'package:arcinus/features/app/trainings/core/services/session_service.dar
 import 'package:arcinus/features/app/users/athlete/core/services/athlete_repository.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,114 +30,92 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   Widget build(BuildContext context) {
     final sessionService = ref.watch(sessionServiceProvider);
     
-    return Scaffold(
+    return BaseScaffold(
+      showNavigation: false,
+      appBar: AppBar(
+        title: const Text('Registro de Asistencia'),
+      ),
       body: Stack(
         children: [
-          Column(
-            children: [
-              const SizedBox(height: 50),
-              Padding(
+          StreamBuilder<Session>(
+            stream: sessionService.getSessionById(widget.sessionId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Error: ${snapshot.error}'),
+                );
+              }
+              
+              final session = snapshot.data;
+              
+              if (session == null) {
+                return const Center(
+                  child: Text('No se encontró la sesión'),
+                );
+              }
+              
+              // Inicializar la asistencia si es necesario
+              if (_attendance.isEmpty && !_isLoading) {
+                setState(() {
+                  _isLoading = true;
+                });
+                
+                // Cargar asistentes para esta sesión
+                _loadAttendees(session);
+                
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              return Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Registro de Asistencia',
-                      style: TextStyle(
-                        fontSize: 24,
+                    Text(
+                      session.name,
+                      style: const TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Fecha: ${session.scheduledDate.day}/${session.scheduledDate.month}/${session.scheduledDate.year}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Asistentes',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _buildAttendeesListView(),
+                    ),
+                    if (_attendance.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: ElevatedButton(
+                          onPressed: _isSaving ? null : () => _saveAttendance(session),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(50),
+                          ),
+                          child: _isSaving
+                              ? const CircularProgressIndicator()
+                              : const Text('Guardar Asistencia'),
+                        ),
+                      ),
                   ],
                 ),
-              ),
-              Expanded(
-                child: StreamBuilder<Session>(
-                  stream: sessionService.getSessionById(widget.sessionId),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text('Error: ${snapshot.error}'),
-                      );
-                    }
-                    
-                    final session = snapshot.data;
-                    
-                    if (session == null) {
-                      return const Center(
-                        child: Text('No se encontró la sesión'),
-                      );
-                    }
-                    
-                    // Inicializar la asistencia si es necesario
-                    if (_attendance.isEmpty && !_isLoading) {
-                      setState(() {
-                        _isLoading = true;
-                      });
-                      
-                      // Cargar asistentes para esta sesión
-                      _loadAttendees(session);
-                      
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    
-                    return Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            session.name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Fecha: ${session.scheduledDate.day}/${session.scheduledDate.month}/${session.scheduledDate.year}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Asistentes',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Expanded(
-                            child: _buildAttendeesListView(),
-                          ),
-                          if (_attendance.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16.0),
-                              child: ElevatedButton(
-                                onPressed: _isSaving ? null : () => _saveAttendance(session),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: const Size.fromHeight(50),
-                                ),
-                                child: _isSaving
-                                    ? const CircularProgressIndicator()
-                                    : const Text('Guardar Asistencia'),
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              );
+            },
           ),
           if (_isSaving)
             Container(

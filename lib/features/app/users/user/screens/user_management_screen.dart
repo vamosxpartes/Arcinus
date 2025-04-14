@@ -17,9 +17,7 @@ import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/models/user_form_container.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_management_provider.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
-import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
-import 'package:arcinus/features/navigation/components/navigation_items.dart';
-import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,9 +38,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
     
-  // Instancia del servicio de navegación
-  final NavigationService _navigationService = NavigationService();
-  
   @override
   void initState() {
     super.initState();
@@ -84,96 +79,73 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     final isSuperAdmin = user?.role == UserRole.superAdmin;
     final userManagementState = ref.watch(userManagementProvider);
     
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [            
-            // TabBar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabs: [
-                  const Tab(text: 'Managers'),
-                  const Tab(text: 'Entrenadores'),
-                  const Tab(text: 'Atletas'),
-                  const Tab(text: 'Grupos'),
-                  const Tab(text: 'Padres'),
-                  if (isSuperAdmin) const Tab(text: 'Owners'),
-                ],
-              ),
-            ),
-            
-            // Contenido principal
-            Expanded(
-              child: Stack(
-                children: [
-                  TabBarView(
-                    controller: _tabController,
-                    children: [
-                      // Tab de Managers
-                      ManagerTab(searchController: _searchController),
-                      
-                      // Tab de Coaches
-                      CoachTab(searchController: _searchController),
-                      
-                      // Tab de Atletas
-                      AthleteTab(searchController: _searchController),
-                      
-                      // Tab de Grupos
-                      GroupTab(searchController: _searchController),
-                      
-                      // Tab de Padres
-                      ParentTab(searchController: _searchController),
-                      
-                      // Tab de Owners (condicional)
-                      if (isSuperAdmin) OwnerTab(searchController: _searchController),
-                    ],
-                  ),
-                  
-                  // Formulario de invitación deslizable
-                  if (userManagementState.showInviteForm)
-                    UserFormContainer(
-                      canManageAllUsers: user?.role == UserRole.owner || user?.role == UserRole.manager,
-                      onCancel: () => ref.read(userManagementProvider.notifier).toggleInviteForm(),
-                      onSubmit: (UserRole role) {
-                        // Cerrar el formulario y mostrar mensaje de éxito
-                        ref.read(userManagementProvider.notifier).toggleInviteForm();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Usuario creado correctamente')),
-                        );
-                        
-                        // Refrescar datos según el rol
-                        _refreshDataByRole(role);
-                      },
-                    ),
-                ],
-              ),
-            ),
+    return BaseScaffold(
+      appBar: AppBar(
+        title: const Text('Gestión de Usuarios'),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: [
+            const Tab(text: 'Managers'),
+            const Tab(text: 'Entrenadores'),
+            const Tab(text: 'Atletas'),
+            const Tab(text: 'Grupos'),
+            const Tab(text: 'Padres'),
+            if (isSuperAdmin) const Tab(text: 'Owners'),
           ],
         ),
       ),
-      // Usar el componente centralizado para la barra de navegación
-      bottomNavigationBar: CustomNavigationBar(
-        pinnedItems: _navigationService.pinnedItems,
-        allItems: NavigationItems.allItems,
-        activeRoute: '/users-management',
-        onItemTap: (item) => _navigationService.navigateToRoute(context, item.destination),
-        onItemLongPress: (item) {
-          if (_navigationService.togglePinItem(item, context: context)) {
-            setState(() {
-              // Actualizar la UI para reflejar cambios en elementos fijados
-            });
-          }
-        },
-        onAddButtonTap: () {
-          // Dependiendo de la pestaña seleccionada, mostrar la pantalla de creación correspondiente
-          final currentRole = ref.read(userManagementProvider).selectedRole;
-          _showCreateUserForm(currentRole);
-        },
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab de Managers
+                ManagerTab(searchController: _searchController),
+                
+                // Tab de Coaches
+                CoachTab(searchController: _searchController),
+                
+                // Tab de Atletas
+                AthleteTab(searchController: _searchController),
+                
+                // Tab de Grupos
+                GroupTab(searchController: _searchController),
+                
+                // Tab de Padres
+                ParentTab(searchController: _searchController),
+                
+                // Tab de Owners (condicional)
+                if (isSuperAdmin) OwnerTab(searchController: _searchController),
+              ],
+            ),
+            
+            // Formulario de invitación deslizable
+            if (userManagementState.showInviteForm)
+              UserFormContainer(
+                canManageAllUsers: user?.role == UserRole.owner || user?.role == UserRole.manager,
+                onCancel: () => ref.read(userManagementProvider.notifier).toggleInviteForm(),
+                onSubmit: (UserRole role) {
+                  // Cerrar el formulario y mostrar mensaje de éxito
+                  ref.read(userManagementProvider.notifier).toggleInviteForm();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Usuario creado correctamente')),
+                  );
+                  
+                  // Refrescar datos según el rol
+                  _refreshDataByRole(role);
+                },
+              ),
+          ],
+        ),
       ),
+      onAddButtonTap: () {
+        // Dependiendo de la pestaña seleccionada, mostrar la pantalla de creación correspondiente
+        final currentRole = ref.read(userManagementProvider).selectedRole;
+        _showCreateUserForm(currentRole);
+      },
     );
   }
 

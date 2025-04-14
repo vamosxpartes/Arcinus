@@ -2,9 +2,7 @@ import 'package:arcinus/features/app/chat/screens/messages_screen.dart';
 import 'package:arcinus/features/app/dashboard/screens/dashboard_screen.dart';
 import 'package:arcinus/features/app/groups/screen/group_list_screen.dart';
 import 'package:arcinus/features/app/users/user/screens/profile_screen.dart';
-import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
-import 'package:arcinus/features/navigation/components/navigation_items.dart';
-import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
+import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,21 +14,15 @@ class MainScreen extends ConsumerStatefulWidget {
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
-  int _currentTab = 0;
-  // Instancia del servicio de navegación
-  final NavigationService _navigationService = NavigationService();
-  
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentTab = index;
-    });
-  }
+  final int _currentTab = 0;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BaseScaffold(
       body: _buildBody(),
-      bottomNavigationBar: _buildCustomNavigationBar(),
+      onAddButtonTap: () {
+        _handleAddButtonTap();
+      },
     );
   }
 
@@ -49,54 +41,6 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       default:
         return const DashboardScreen();
     }
-  }
-
-  Widget _buildCustomNavigationBar() {
-    return CustomNavigationBar(
-      pinnedItems: _navigationService.pinnedItems,
-      allItems: NavigationItems.allItems,
-      activeRoute: _getActiveRoute(),
-      onItemTap: (item) {
-        // Resolver la navegación basada en el índice de tab
-        final route = item.destination;
-        switch (route) {
-          case '/dashboard':
-            // Simplemente cambiar al tab de dashboard en lugar de crear una nueva instancia
-            _onTabTapped(0);
-            // Si ya estamos en alguna ruta dentro de la aplicación, regresamos a la raíz
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              // No usamos pushReplacementNamed para evitar crear una nueva instancia
-            }
-            break;
-          case '/calendar':
-            _onTabTapped(1);
-            break;
-          case '/groups':
-            _onTabTapped(2);
-            break;
-          case '/chats':
-            _onTabTapped(3);
-            break;
-          case '/profile':
-            _onTabTapped(4);
-            break;
-          default:
-            // Para otras rutas, navegar directamente
-            _navigationService.navigateToRoute(context, route);
-        }
-      },
-      onItemLongPress: (item) {
-        if (_navigationService.togglePinItem(item, context: context)) {
-          setState(() {
-            // Actualizar la UI para reflejar cambios en elementos fijados
-          });
-        }
-      },
-      onAddButtonTap: () {
-        _handleAddButtonTap();
-      },
-    );
   }
   
   void _handleAddButtonTap() {
