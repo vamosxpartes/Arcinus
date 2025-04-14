@@ -260,29 +260,88 @@ La gestión de usuarios se organiza por categorías:
 
 ## Estructura del Proyecto
 
+La aplicación utiliza una arquitectura de módulos funcionales donde cada funcionalidad importante está organizada en su propio directorio con una estructura consistente:
+
 ```
 lib/
 ├── main.dart
 ├── app.dart
-├── ui/                  # Capa de Interfaz de Usuario
-│   ├── shared/          # Componentes UI compartidos
-│   └── features/        # Características organizadas por módulos
-│       ├── auth/        # Autenticación
-│       ├── dashboard/
-│       ├── roles/       # Gestión de roles personalizados
-│       ├── permissions/ # Administración de permisos
-│       ├── chat/        # Sistema de chat interno
-│       ├── notifications/ # Gestión de notificaciones
-│       ├── academy_management/
-│       └── ...
-├── ux/                  # Capa de Lógica de Negocio
-│   ├── shared/          # Utilidades y servicios compartidos
-│   └── features/        # Características organizadas por dominio
-└── shared/              # Recursos compartidos entre UI y UX
-    ├── models/          # Modelos de datos (generados con Freezed)
-    ├── constants/       # Constantes de la aplicación
-    └── utils/           # Utilidades compartidas
+├── firebase_options.dart
+├── state.md
+└── features/            # Características organizadas por módulos
+    ├── academy/         # Gestión de academias
+    │
+    ├── auth/            # Autenticación
+    │   ├── core/        # Componentes principales de autenticación
+    │   │   ├── models/  # Modelos de datos
+    │   │   ├── providers/# Proveedores 
+    │   │   └── repositories/# Repositorios
+    │   ├── login/       # Flujo de inicio de sesión
+    │   │   ├── screens/ # Pantallas de login
+    │   │   └── controllers/# Controladores
+    │   ├── register/    # Flujo de registro
+    │   │   └── screens/ # Pantallas de registro
+    │   ├── recovery/    # Recuperación de contraseña
+    │   │   └── screens/ # Pantallas de recuperación
+    │   └── auth.dart    # Archivo barril para exportaciones
+    │
+    ├── navigation/      # Sistema de navegación
+    │   ├── core/        # Componentes principales
+    │   │   ├── models/  # Modelos para navegación 
+    │   │   └── services/# Servicios de navegación
+    │   ├── components/  # Componentes de UI para navegación
+    │   ├── main/        # Pantalla principal
+    │   │   └── screens/ # Pantallas de navegación principal
+    │   └── splash/      # Pantalla de inicio
+    │       └── screens/ # Pantalla de splash
+    │
+    ├── permissions/     # Administración de permisos
+    │   ├── core/        # Componentes principales
+    │   │   ├── models/  # Definiciones de permisos
+    │   │   └── services/# Servicios para permisos
+    │   ├── providers/   # Proveedores de permisos
+    │   └── ui/          # Interfaz para gestión de permisos
+    │       ├── screens/ # Pantallas de gestión
+    │       └── widgets/ # Widgets para permisos
+    │
+    ├── roles/           # Gestión de roles
+    │   ├── core/        # Componentes principales
+    │   │   ├── models/  # Modelos de roles
+    │   │   └── services/# Servicios para roles
+    │   ├── management/  # Gestión de roles
+    │   │   ├── screens/ # Pantallas de gestión
+    │   │   ├── widgets/ # Widgets específicos
+    │   │   └── controllers/# Controladores
+    │   └── assignment/  # Asignación de roles
+    │       ├── screens/ # Pantallas de asignación
+    │       └── controllers/# Controladores
+    │
+    ├── storage/         # Gestión de almacenamiento
+    │   ├── core/        # Configuración principal
+    │   ├── firebase/    # Integración con Firebase
+    │   │   ├── auth/    # Autenticación Firebase
+    │   │   ├── firestore/# Firestore
+    │   │   └── storage/ # Storage
+    │   ├── hive/        # Almacenamiento local
+    │   │   ├── models/  # Modelos para persistencia
+    │   │   └── services/# Servicios de almacenamiento
+    │   └── sync/        # Sincronización de datos
+    │       └── strategies/# Estrategias de sincronización
+    │
+    └── theme/           # Temas y estilos
+        ├── core/        # Definiciones principales
+        └── components/  # Componentes de UI temáticos
+            ├── loading/ # Indicadores de carga
+            ├── feedback/# Componentes de feedback
+            └── inputs/  # Componentes de entrada
 ```
+
+Esta arquitectura de módulos funcionales proporciona:
+
+1. **Mayor cohesión** - Los componentes relacionados están agrupados juntos
+2. **Menor acoplamiento** - Cada módulo funcional puede evolucionar con menos dependencias
+3. **Mejor mantenibilidad** - Estructura predecible que facilita encontrar y modificar código
+4. **Escalabilidad** - Nuevos módulos pueden ser añadidos siguiendo el mismo patrón
 
 ## Tecnologías Utilizadas
 

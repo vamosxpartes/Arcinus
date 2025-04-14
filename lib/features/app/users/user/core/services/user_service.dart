@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/features/app/users/athlete/core/models/athlete_profile.dart';
 import 'package:arcinus/features/app/users/athlete/core/services/athlete_repository.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
@@ -309,8 +311,14 @@ class UserService {
     String? academyId,
     bool isDirectRegistration = false,
     int? number,
+    String? profileImageUrl,
   }) async {
     try {
+      developer.log(
+        'Iniciando creación de usuario: $name - $email - rol: $role',
+        name: 'UserService',
+      );
+      
       // Verificar conectividad
       final hasConnectivity = await _connectivityService.hasConnectivity();
       
@@ -333,6 +341,7 @@ class UserService {
             user = user.copyWith(
               academyIds: [academyId],
               number: number,
+              profileImageUrl: profileImageUrl,
             );
           }
         } else {
@@ -354,6 +363,7 @@ class UserService {
             academyIds: academyId != null ? [academyId] : [],
             number: number,
             createdAt: DateTime.now(),
+            profileImageUrl: profileImageUrl,
           );
         }
         
@@ -379,13 +389,21 @@ class UserService {
             '${role.toString().split('.').last}Ids': FieldValue.arrayUnion([user.id]),
           });
         } else {
-          // Usuario sin academia (caso temporal o de migración)
-          await _usersCollection.doc(user.id).set(userData);
+          // Si un usuario regular no tiene academia, mostrar advertencia
+          developer.log(
+            'ADVERTENCIA: Creando usuario sin academia. Esta funcionalidad está en desuso.',
+            name: 'UserService',
+          );
+          throw Exception('Se requiere una academia para crear un usuario regular');
         }
         
         // Guardar en DB local
         await _localUserRepository.saveUser(user);
         
+        developer.log(
+          'Usuario creado exitosamente: ${user.id} - ${user.name}',
+          name: 'UserService',
+        );
         return user;
       } else {
         // Sin conectividad, implementar como proceso local y sincronizar después
@@ -393,7 +411,11 @@ class UserService {
         throw Exception('No hay conectividad para crear usuario');
       }
     } catch (e) {
-      debugPrint('Error al crear usuario: $e');
+      developer.log(
+        'Error al crear usuario: $e',
+        name: 'UserService',
+        error: e,
+      );
       throw Exception('Error al crear usuario: $e');
     }
   }
@@ -415,8 +437,12 @@ class UserService {
           await _academyUsersCollection(academyId).doc(user.id).set(userData);
         }
       } else {
-        // Caso de compatibilidad/migración
-        await _usersCollection.doc(user.id).set(userData);
+        // Lanzar error si es un usuario regular sin academia
+        developer.log(
+          'ADVERTENCIA: Intento de crear usuario sin academia. Esta funcionalidad está en desuso.',
+          name: 'UserService',
+        );
+        throw Exception('Se requiere una academia para crear un usuario regular');
       }
       
       return user;
@@ -429,6 +455,11 @@ class UserService {
   // Actualizar un usuario existente
   Future<User> updateUser(User user) async {
     try {
+      developer.log(
+        'Iniciando actualización de usuario: ${user.id} - ${user.name}',
+        name: 'UserService',
+      );
+      
       final hasConnectivity = await _connectivityService.hasConnectivity();
       
       if (hasConnectivity) {
@@ -443,42 +474,521 @@ class UserService {
         debugPrint('Usuario actualizado localmente y encolado para sincronización: ${user.id}');
       }
       
+      developer.log(
+        'Usuario actualizado exitosamente: ${user.id} - ${user.name}',
+        name: 'UserService',
+      );
       return user;
     } catch (e) {
-      debugPrint('Error al actualizar usuario: $e');
+      developer.log(
+        'Error al actualizar usuario: $e',
+        name: 'UserService',
+        error: e,
+      );
       throw Exception('Error al actualizar usuario: $e');
     }
   }
 
-  // Eliminar un usuario (desactivar o eliminar completamente)
-  Future<void> deleteUser(String userId) async {
+  // Método para eliminar un usuario
+  Future<void> deleteUser({
+    required String userId,
+    required String academyId,
+    required UserRole role,
+  }) async {
     try {
-      final hasConnectivity = await _connectivityService.hasConnectivity();
+      developer.log(
+        '----INICIO: Proceso de eliminación de usuario----',
+        name: 'UserService-Delete',
+      );
       
-      if (hasConnectivity) {
-        // Primero obtener el usuario para verificar sus datos
-        final user = await getUserById(userId);
-        if (user == null) {
-          throw Exception('Usuario no encontrado');
+      developer.log(
+        'Parámetros: userId=$userId, academyId=$academyId, role=$role',
+        name: 'UserService-Delete',
+      );
+      
+      // Determinar la colección basada en el rol
+      String collection;
+      switch (role) {
+        case UserRole.manager:
+          collection = 'managers';
+          break;
+        case UserRole.coach:
+          collection = 'coaches';
+          break;
+        case UserRole.athlete:
+          collection = 'athletes';
+          break;
+        case UserRole.parent:
+          collection = 'parents';
+          break;
+        case UserRole.owner:
+          collection = 'owners';
+          break;
+        default:
+          developer.log(
+            'ERROR: Rol no válido para eliminar usuario: $role',
+            name: 'UserService-Delete',
+          );
+          throw Exception('Rol no válido para eliminar usuario');
+      }
+      
+      developer.log(
+        'Colección determinada: $collection',
+        name: 'UserService-Delete',
+      );
+      
+      // Referencia al documento del usuario en Firestore
+      final userRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection(collection)
+          .doc(userId);
+      
+      developer.log(
+        'Ruta del documento: academies/$academyId/$collection/$userId',
+        name: 'UserService-Delete',
+      );
+      
+      developer.log(
+        'Verificando existencia del documento...',
+        name: 'UserService-Delete',
+      );
+      
+      // Obtener documento para verificar si existe
+      final userDoc = await userRef.get();
+      
+      if (!userDoc.exists) {
+        developer.log(
+          'ADVERTENCIA: Usuario no encontrado en Firestore: $userId en $collection',
+          name: 'UserService-Delete',
+        );
+        // No lanzamos excepción, continuamos el proceso para limpiar cualquier referencia local
+        developer.log(
+          'Continuando con el proceso para limpiar referencias locales',
+          name: 'UserService-Delete',
+        );
+      } else {
+        developer.log(
+          'Usuario encontrado en Firestore, datos: ${userDoc.data()}',
+          name: 'UserService-Delete',
+        );
+        
+        developer.log(
+          'Iniciando proceso de limpieza de dependencias...',
+          name: 'UserService-Delete',
+        );
+        
+        // Si es un padre, desasociar de los atletas relacionados
+        if (role == UserRole.parent) {
+          developer.log(
+            'Eliminando padre: desasociando de atletas relacionados',
+            name: 'UserService-Delete',
+          );
+          await _removeParentFromAthletes(userId, academyId);
         }
         
-        // Eliminar de Firestore
-        await _usersCollection.doc(userId).delete();
+        // Si es un atleta, desasociar de los grupos a los que pertenece
+        if (role == UserRole.athlete) {
+          developer.log(
+            'Eliminando atleta: desasociando de grupos relacionados',
+            name: 'UserService-Delete',
+          );
+          await _removeAthleteFromGroups(userId, academyId);
+        }
         
-        // Eliminar también de local
-        await _localUserRepository.deleteUser(userId);
-      } else {
-        // Solo eliminar en local y encolar para sincronización
-        await _localUserRepository.deleteUserWithSync(userId);
-        debugPrint('Usuario eliminado localmente y encolado para sincronización: $userId');
+        // Si es un entrenador, desasociar de los grupos que entrena
+        if (role == UserRole.coach) {
+          developer.log(
+            'Eliminando entrenador: desasociando de grupos relacionados',
+            name: 'UserService-Delete',
+          );
+          await _removeCoachFromGroups(userId, academyId);
+        }
+        
+        developer.log(
+          'Limpieza de dependencias completada. Procediendo a eliminar documento...',
+          name: 'UserService-Delete',
+        );
+        
+        try {
+          // Eliminar el documento de Firestore
+          await userRef.delete();
+          
+          developer.log(
+            'Documento eliminado exitosamente de Firestore',
+            name: 'UserService-Delete',
+          );
+        } catch (deleteError) {
+          developer.log(
+            'ERROR al eliminar documento: $deleteError',
+            name: 'UserService-Delete',
+            error: deleteError,
+          );
+          // No lanzamos excepción para permitir que se limpie la DB local
+          developer.log(
+            'Continuando con la limpieza local a pesar del error en Firestore',
+            name: 'UserService-Delete',
+          );
+        }
       }
+      
+      // Intenta eliminar el usuario de Authentication si es posible
+      try {
+        // Obtener UID de Firebase Auth asociado al usuario
+        String? email;
+        if (userDoc.exists) {
+          email = userDoc.data()?['email'] as String?;
+        }
+        
+        if (email != null) {
+          developer.log(
+            'Intentando eliminar usuario de Authentication con email: $email',
+            name: 'UserService-Delete',
+          );
+          // Esta operación requiere acceso a la API de Admin de Firebase
+          developer.log(
+            'NOTA: La eliminación en Authentication requiere backend/funciones',
+            name: 'UserService-Delete',
+          );
+        } else {
+          developer.log(
+            'No se encontró email para eliminar usuario de Authentication',
+            name: 'UserService-Delete',
+          );
+        }
+      } catch (authError) {
+        // No podemos eliminar el usuario de Auth, pero sí de Firestore
+        developer.log(
+          'ERROR al intentar eliminar usuario de Authentication: $authError',
+          name: 'UserService-Delete',
+          error: authError,
+        );
+        // No relanzan la excepción para permitir que el proceso continúe
+      }
+      
+      // Eliminar de base de datos local si existe
+      try {
+        await _localUserRepository.deleteUser(userId);
+        developer.log(
+          'Usuario eliminado de la base de datos local',
+          name: 'UserService-Delete',
+        );
+      } catch (localError) {
+        developer.log(
+          'ERROR al eliminar usuario de base de datos local: $localError',
+          name: 'UserService-Delete',
+          error: localError,
+        );
+        // No relanzamos excepción para permitir que el proceso continúe
+      }
+      
+      developer.log(
+        '----FIN: Proceso de eliminación completado exitosamente----',
+        name: 'UserService-Delete',
+      );
     } catch (e) {
-      debugPrint('Error al eliminar usuario: $e');
-      throw Exception('Error al eliminar usuario: $e');
+      developer.log(
+        '----ERROR FATAL: Fallo en proceso de eliminación: $e----',
+        name: 'UserService-Delete',
+        error: e,
+      );
+      developer.log(
+        'Stack trace: ${StackTrace.current}',
+        name: 'UserService-Delete',
+      );
+      rethrow;
+    }
+  }
+  
+  // Método auxiliar para desvincular un padre de sus atletas
+  Future<void> _removeParentFromAthletes(String parentId, String academyId) async {
+    try {
+      developer.log(
+        'Iniciando desvinculación del padre $parentId de atletas',
+        name: 'UserService-ParentRemove',
+      );
+      
+      // Buscar atletas asociados a este padre
+      final athletesRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('athletes');
+      
+      developer.log(
+        'Buscando atletas que tienen a este padre: $parentId',
+        name: 'UserService-ParentRemove',
+      );
+      
+      final athletes = await athletesRef
+          .where('parentIds', arrayContains: parentId)
+          .get();
+      
+      developer.log(
+        'Atletas encontrados: ${athletes.docs.length}',
+        name: 'UserService-ParentRemove',
+      );
+      
+      if (athletes.docs.isEmpty) {
+        developer.log(
+          'No se encontraron atletas asociados a este padre',
+          name: 'UserService-ParentRemove',
+        );
+        return;
+      }
+      
+      // Batch para actualizar múltiples documentos
+      final batch = _firestore.batch();
+      
+      developer.log(
+        'Creando batch para actualizar ${athletes.docs.length} documentos',
+        name: 'UserService-ParentRemove',
+      );
+      
+      for (final athleteDoc in athletes.docs) {
+        developer.log(
+          'Procesando atleta: ${athleteDoc.id}',
+          name: 'UserService-ParentRemove',
+        );
+        
+        // Obtener la lista actual de padres y eliminar el ID del padre
+        final parentIds = athleteDoc.data()['parentIds'];
+        if (parentIds is List) {
+          final updatedParentIds = List<String>.from(parentIds)..remove(parentId);
+          
+          developer.log(
+            'Actualizando parentIds de ${parentIds.length} a ${updatedParentIds.length}',
+            name: 'UserService-ParentRemove',
+          );
+          
+          // Actualizar el documento
+          batch.update(athleteDoc.reference, {'parentIds': updatedParentIds});
+        } else {
+          developer.log(
+            'Campo parentIds no es una lista válida para atleta ${athleteDoc.id}',
+            name: 'UserService-ParentRemove',
+          );
+        }
+      }
+      
+      // Ejecutar el batch
+      developer.log(
+        'Ejecutando batch de actualizaciones',
+        name: 'UserService-ParentRemove',
+      );
+      
+      await batch.commit();
+      
+      developer.log(
+        'Batch completado exitosamente',
+        name: 'UserService-ParentRemove',
+      );
+    } catch (e) {
+      developer.log(
+        'ERROR al desvincular padre de atletas: $e',
+        name: 'UserService-ParentRemove',
+        error: e,
+      );
+      developer.log(
+        'Stack trace: ${StackTrace.current}',
+        name: 'UserService-ParentRemove',
+      );
+      // No lanzamos excepción para permitir que el proceso principal continúe
+    }
+  }
+  
+  // Método auxiliar para desvincular un atleta de sus grupos
+  Future<void> _removeAthleteFromGroups(String athleteId, String academyId) async {
+    try {
+      developer.log(
+        'Iniciando desvinculación del atleta $athleteId de grupos',
+        name: 'UserService-AthleteRemove',
+      );
+      
+      // Buscar grupos a los que pertenece este atleta
+      final groupsRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('groups');
+      
+      developer.log(
+        'Buscando grupos que contienen a este atleta: $athleteId',
+        name: 'UserService-AthleteRemove',
+      );
+      
+      final groups = await groupsRef
+          .where('athleteIds', arrayContains: athleteId)
+          .get();
+      
+      developer.log(
+        'Grupos encontrados: ${groups.docs.length}',
+        name: 'UserService-AthleteRemove',
+      );
+      
+      if (groups.docs.isEmpty) {
+        developer.log(
+          'No se encontraron grupos asociados a este atleta',
+          name: 'UserService-AthleteRemove',
+        );
+        return;
+      }
+      
+      // Batch para actualizar múltiples documentos
+      final batch = _firestore.batch();
+      
+      developer.log(
+        'Creando batch para actualizar ${groups.docs.length} grupos',
+        name: 'UserService-AthleteRemove',
+      );
+      
+      for (final groupDoc in groups.docs) {
+        developer.log(
+          'Procesando grupo: ${groupDoc.id}',
+          name: 'UserService-AthleteRemove',
+        );
+        
+        // Obtener la lista actual de atletas y eliminar el ID del atleta
+        final athleteIds = groupDoc.data()['athleteIds'];
+        if (athleteIds is List) {
+          final updatedAthleteIds = List<String>.from(athleteIds)..remove(athleteId);
+          
+          developer.log(
+            'Actualizando athleteIds de ${athleteIds.length} a ${updatedAthleteIds.length}',
+            name: 'UserService-AthleteRemove',
+          );
+          
+          // Actualizar el documento
+          batch.update(groupDoc.reference, {'athleteIds': updatedAthleteIds});
+        } else {
+          developer.log(
+            'Campo athleteIds no es una lista válida para grupo ${groupDoc.id}',
+            name: 'UserService-AthleteRemove',
+          );
+        }
+      }
+      
+      // Ejecutar el batch
+      developer.log(
+        'Ejecutando batch de actualizaciones',
+        name: 'UserService-AthleteRemove',
+      );
+      
+      await batch.commit();
+      
+      developer.log(
+        'Batch completado exitosamente',
+        name: 'UserService-AthleteRemove',
+      );
+    } catch (e) {
+      developer.log(
+        'ERROR al desvincular atleta de grupos: $e',
+        name: 'UserService-AthleteRemove',
+        error: e,
+      );
+      developer.log(
+        'Stack trace: ${StackTrace.current}',
+        name: 'UserService-AthleteRemove',
+      );
+    }
+  }
+  
+  // Método auxiliar para desvincular un entrenador de sus grupos
+  Future<void> _removeCoachFromGroups(String coachId, String academyId) async {
+    try {
+      developer.log(
+        'Iniciando desvinculación del entrenador $coachId de grupos',
+        name: 'UserService-CoachRemove',
+      );
+      
+      // Buscar grupos que entrena este coach
+      final groupsRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('groups');
+      
+      developer.log(
+        'Buscando grupos que contienen a este entrenador: $coachId',
+        name: 'UserService-CoachRemove',
+      );
+      
+      final groups = await groupsRef
+          .where('coachIds', arrayContains: coachId)
+          .get();
+      
+      developer.log(
+        'Grupos encontrados: ${groups.docs.length}',
+        name: 'UserService-CoachRemove',
+      );
+      
+      if (groups.docs.isEmpty) {
+        developer.log(
+          'No se encontraron grupos asociados a este entrenador',
+          name: 'UserService-CoachRemove',
+        );
+        return;
+      }
+      
+      // Batch para actualizar múltiples documentos
+      final batch = _firestore.batch();
+      
+      developer.log(
+        'Creando batch para actualizar ${groups.docs.length} grupos',
+        name: 'UserService-CoachRemove',
+      );
+      
+      for (final groupDoc in groups.docs) {
+        developer.log(
+          'Procesando grupo: ${groupDoc.id}',
+          name: 'UserService-CoachRemove',
+        );
+        
+        // Obtener la lista actual de coaches y eliminar el ID del coach
+        final coachIds = groupDoc.data()['coachIds'];
+        if (coachIds is List) {
+          final updatedCoachIds = List<String>.from(coachIds)..remove(coachId);
+          
+          developer.log(
+            'Actualizando coachIds de ${coachIds.length} a ${updatedCoachIds.length}',
+            name: 'UserService-CoachRemove',
+          );
+          
+          // Actualizar el documento
+          batch.update(groupDoc.reference, {'coachIds': updatedCoachIds});
+        } else {
+          developer.log(
+            'Campo coachIds no es una lista válida para grupo ${groupDoc.id}',
+            name: 'UserService-CoachRemove',
+          );
+        }
+      }
+      
+      // Ejecutar el batch
+      developer.log(
+        'Ejecutando batch de actualizaciones',
+        name: 'UserService-CoachRemove',
+      );
+      
+      await batch.commit();
+      
+      developer.log(
+        'Batch completado exitosamente',
+        name: 'UserService-CoachRemove',
+      );
+    } catch (e) {
+      developer.log(
+        'ERROR al desvincular entrenador de grupos: $e',
+        name: 'UserService-CoachRemove',
+        error: e,
+      );
+      developer.log(
+        'Stack trace: ${StackTrace.current}',
+        name: 'UserService-CoachRemove',
+      );
     }
   }
 
-  // Crear un nuevo atleta con su perfil
+  // MÉTODOS ESPECÍFICOS PARA ATLETAS
+  
+  // Crear un nuevo atleta y su perfil
   Future<Map<String, dynamic>> createAthlete({
     required String email,
     required String password,
@@ -496,6 +1006,7 @@ class UserService {
     List<String>? specializations,
     Map<String, dynamic>? sportStats,
     int? number,
+    String? profileImageUrl,
   }) async {
     try {
       // 1. Crear el usuario básico
@@ -506,6 +1017,7 @@ class UserService {
         role: UserRole.athlete,
         academyId: academyId,
         number: number,
+        profileImageUrl: profileImageUrl,
       );
       
       // 2. Crear el perfil de atleta
@@ -589,7 +1101,7 @@ class UserService {
       
       // 3. Si no pertenece a otras academias, eliminar el usuario por completo
       if (user.academyIds.length <= 1) {
-        await deleteUser(userId);
+        await deleteUser(userId: userId, academyId: academyId, role: UserRole.athlete);
       } else {
         // 4. Si pertenece a otras academias, solo actualizar la lista de academias
         final updatedAcademyIds = user.academyIds.where((id) => id != academyId).toList();
@@ -608,6 +1120,7 @@ class UserService {
     required String password,
     required String name,
     required String academyId,
+    String? profileImageUrl,
   }) async {
     try {
       final coach = await createUser(
@@ -616,6 +1129,7 @@ class UserService {
         name: name,
         role: UserRole.coach,
         academyId: academyId,
+        profileImageUrl: profileImageUrl,
       );
       
       // Actualizar la academia con el nuevo coach
@@ -656,7 +1170,7 @@ class UserService {
       if (user == null) return;
       
       if (user.academyIds.length <= 1) {
-        await deleteUser(userId);
+        await deleteUser(userId: userId, academyId: academyId, role: UserRole.coach);
       } else {
         final updatedAcademyIds = user.academyIds.where((id) => id != academyId).toList();
         await updateUser(user.copyWith(academyIds: updatedAcademyIds));
@@ -674,6 +1188,7 @@ class UserService {
     required String password,
     required String name,
     required String academyId,
+    String? profileImageUrl,
   }) async {
     try {
       final manager = await createUser(
@@ -682,6 +1197,7 @@ class UserService {
         name: name,
         role: UserRole.manager,
         academyId: academyId,
+        profileImageUrl: profileImageUrl,
       );
       
       return manager;
@@ -734,6 +1250,7 @@ class UserService {
     required String name,
     required String academyId,
     Map<String, dynamic>? parentData,
+    String? profileImageUrl,
   }) async {
     try {
       // 1. Crear el usuario básico
@@ -743,6 +1260,7 @@ class UserService {
         name: name,
         role: UserRole.parent,
         academyId: academyId,
+        profileImageUrl: profileImageUrl,
       );
       
       // 2. Guardar datos adicionales del padre si existen
@@ -764,6 +1282,7 @@ class UserService {
     required String name,
     required String email,
     Map<String, dynamic>? parentData,
+    String? profileImageUrl,
   }) async {
     try {
       // 1. Obtener el usuario actual
@@ -776,6 +1295,7 @@ class UserService {
       final updatedUser = currentUser.copyWith(
         name: name,
         email: email,
+        profileImageUrl: profileImageUrl ?? currentUser.profileImageUrl,
       );
       
       await updateUser(updatedUser);
@@ -802,7 +1322,7 @@ class UserService {
       
       // Si no pertenece a otras academias, eliminar el usuario por completo
       if (user.academyIds.length <= 1) {
-        await deleteUser(userId);
+        await deleteUser(userId: userId, academyId: academyId, role: UserRole.parent);
       } else {
         // Si pertenece a otras academias, solo actualizar la lista de academias
         final updatedAcademyIds = user.academyIds.where((id) => id != academyId).toList();

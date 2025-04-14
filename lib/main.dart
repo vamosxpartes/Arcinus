@@ -1,6 +1,6 @@
-import 'package:arcinus/config/firebase/analytics_service.dart';
-import 'package:arcinus/config/firebase/firebase_config.dart';
-import 'package:arcinus/config/local_storage/hive_config.dart';
+import 'package:arcinus/features/storage/hive/hive_config.dart';
+import 'package:arcinus/features/storage/storage_firebase/analytics_service.dart';
+import 'package:arcinus/features/storage/storage_firebase/firebase_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';

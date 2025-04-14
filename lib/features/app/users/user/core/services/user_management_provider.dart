@@ -17,7 +17,7 @@ class UserManagementState {
     this.currentTabIndex = 0,
     this.showInviteForm = false,
     this.searchQuery = '',
-    this.selectedRole = UserRole.coach,
+    this.selectedRole = UserRole.manager,
   });
 
   UserManagementState copyWith({
