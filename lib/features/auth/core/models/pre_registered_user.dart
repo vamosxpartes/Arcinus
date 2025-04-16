@@ -8,7 +8,7 @@ part 'pre_registered_user.g.dart';
 class PreRegisteredUser with _$PreRegisteredUser {
   const factory PreRegisteredUser({
     required String id,
-    required String email,
+    String? email,
     required String name,
     required UserRole role,
     required String activationCode,

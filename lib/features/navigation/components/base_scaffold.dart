@@ -1,4 +1,6 @@
 import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
+import 'package:arcinus/features/navigation/core/models/navigation_item.dart';
+import 'package:arcinus/features/navigation/core/providers/navigation_providers.dart';
 import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,15 +48,15 @@ class BaseScaffold extends ConsumerWidget {
   
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Obtener el servicio de navegación
-    final navigationService = NavigationService();
+    // Obtener el servicio de navegación desde el provider
+    final navigationService = ref.read(navigationServiceProvider);
     
-    // Obtener la ruta actual
-    final currentRoute = ModalRoute.of(context)?.settings.name ?? '/';
+    // Obtener la ruta actual y los items fijados desde los providers
+    final String currentRoute = ref.watch(currentRouteProvider);
+    final List<NavigationItem> pinnedItems = ref.watch(pinnedItemsProvider);
     
-    // Obtener los elementos de navegación
-    final pinnedItems = navigationService.getPinnedItems();
-    final allItems = navigationService.getAllItems();
+    // Obtener todos los items (podría obtenerse del servicio o directamente)
+    final List<NavigationItem> allItems = navigationService.getAllItems(); // O NavigationItems.allItems
     
     return Scaffold(
       appBar: appBar,
@@ -67,11 +69,15 @@ class BaseScaffold extends ConsumerWidget {
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: showNavigation 
           ? CustomNavigationBar(
-              pinnedItems: pinnedItems,
+              pinnedItems: pinnedItems, // Usar items del provider
               allItems: allItems,
-              activeRoute: currentRoute,
+              activeRoute: currentRoute, // Usar ruta del provider
               onItemTap: (item) => navigationService.navigateToRoute(context, item.destination),
-              onItemLongPress: (item) => navigationService.togglePinItem(item, context: context),
+              onItemLongPress: (item) {
+                // Llamar a togglePinItem. El provider se actualizará y reconstruirá este widget.
+                navigationService.togglePinItem(item, context: context);
+                // No necesitamos setState aquí porque el watch del provider lo maneja.
+              },
               onAddButtonTap: onAddButtonTap,
             )
           : null,

@@ -63,63 +63,73 @@ class UserService {
   // Obtener un usuario por ID
   Future<User?> getUserById(String userId) async {
     try {
+      developer.log(
+        'getUserById: Buscando usuario con ID: $userId',
+        name: 'UserDetails-Delete',
+      );
+      
       // Primero intentar obtener desde la base de datos local
       final localUser = await _localUserRepository.getUserById(userId);
+      
+      developer.log(
+        'getUserById: Resultado local: ${localUser != null ? "Usuario encontrado localmente" : "Usuario NO encontrado localmente"}',
+        name: 'UserDetails-Delete',
+      );
+      
       if (localUser != null) {
         debugPrint('Usuario obtenido desde DB local: $userId');
         return localUser;
       }
       
+      developer.log(
+        'getUserById: Usuario no encontrado localmente, buscando remotamente...',
+        name: 'UserDetails-Delete',
+      );
+      
       // Si no está en local y no hay conectividad, retornar null
       if (!await _connectivityService.hasConnectivity()) {
         debugPrint('Sin conectividad, no se puede obtener usuario remoto');
+        developer.log(
+          'getUserById: Sin conectividad para buscar remotamente',
+          name: 'UserDetails-Delete',
+        );
         return null;
       }
       
+      developer.log(
+        'getUserById: Buscando en diferentes colecciones de Firestore',
+        name: 'UserDetails-Delete',
+      );
+      
       // Buscar en las diferentes colecciones
       // 1. Superadmins
-      var docSnap = await _superadminsCollection.doc(userId).get();
-      if (docSnap.exists) {
-        final data = docSnap.data()!;
-        data['id'] = docSnap.id;
-        final user = User.fromJson(data);
-        await _localUserRepository.saveUser(user);
-        return user;
-      }
-      
-      // 2. Owners
-      docSnap = await _ownersCollection.doc(userId).get();
-      if (docSnap.exists) {
-        final data = docSnap.data()!;
-        data['id'] = docSnap.id;
-        final user = User.fromJson(data);
-        await _localUserRepository.saveUser(user);
-        return user;
-      }
-      
-      // 3. Buscar en las academias
-      final academiesSnap = await _firestore.collection('academies').get();
-      for (final academyDoc in academiesSnap.docs) {
-        final academyId = academyDoc.id;
-        docSnap = await _academyUsersCollection(academyId).doc(userId).get();
-        
-        if (docSnap.exists) {
-          final data = docSnap.data()!;
-          data['id'] = docSnap.id;
-          final user = User.fromJson(data);
-          await _localUserRepository.saveUser(user);
-          return user;
+      final superadminsQuery = await _superadminsCollection.get();
+      for (final doc in superadminsQuery.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        if (data['id'] == userId) {
+          return User.fromJson(data);
         }
       }
       
-      // 4. Para compatibilidad - colección principal
-      docSnap = await _usersCollection.doc(userId).get();
-      if (docSnap.exists) {
-        final data = docSnap.data()!;
-        data['id'] = docSnap.id;
-        final user = User.fromJson(data);
-        await _localUserRepository.saveUser(user);
-        return user;
+      // 2. Owners
+      final ownersQuery = await _ownersCollection.get();
+      for (final doc in ownersQuery.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        if (data['id'] == userId) {
+          return User.fromJson(data);
+        }
+      }
+      
+      // 3. Usuarios regulares
+      final regularUsersQuery = await _usersCollection.get();
+      for (final doc in regularUsersQuery.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        if (data['id'] == userId) {
+          return User.fromJson(data);
+        }
       }
       
       return null;
@@ -302,125 +312,90 @@ class UserService {
     }
   }
 
-  // Crear un nuevo usuario
+  // Crear un nuevo usuario (solo registro en Firestore)
   Future<User> createUser({
-    required String email,
-    required String password,
     required String name,
     required UserRole role,
     String? academyId,
-    bool isDirectRegistration = false,
     int? number,
     String? profileImageUrl,
   }) async {
     try {
       developer.log(
-        'Iniciando creación de usuario: $name - $email - rol: $role',
+        'Iniciando creación de usuario (Firestore): $name - rol: $role',
         name: 'UserService',
       );
       
-      // Verificar conectividad
-      final hasConnectivity = await _connectivityService.hasConnectivity();
+      // Verificar conectividad (necesaria para obtener ID y guardar)
+      if (!await _connectivityService.hasConnectivity()) {
+        throw Exception('No hay conectividad para crear usuario en Firestore');
+      }
       
-      // Determinar qué método usar según si es registro directo o interno
-      User user;
-      
-      if (hasConnectivity) {
-        // Hay conectividad, crear usuario directamente en Firebase
-        if (isDirectRegistration) {
-          // Registro directo - inicia sesión automáticamente (usado solo en pantalla de registro)
-          user = await _authRepository.signUpWithEmailAndPassword(
-            email,
-            password,
-            name,
-            role,
-          );
-          
-          // Agregar academia si se proporciona
-          if (academyId != null) {
-            user = user.copyWith(
-              academyIds: [academyId],
-              number: number,
-              profileImageUrl: profileImageUrl,
-            );
-          }
-        } else {
-          // Crear usuario sin iniciar sesión (para crear usuarios desde admin)
-          final firebaseAuthRepo = _authRepository as FirebaseAuthRepository;
-          final authUser = await firebaseAuthRepo.createUserWithoutSignIn(
-            email,
-            password,
-            name,
-            role,
-          );
-          
-          user = User(
-            id: authUser.id,
-            name: name, 
-            email: email,
-            role: role,
-            permissions: Permissions.getDefaultPermissions(role),
-            academyIds: academyId != null ? [academyId] : [],
-            number: number,
-            createdAt: DateTime.now(),
-            profileImageUrl: profileImageUrl,
-          );
-        }
-        
-        // Guardar usuario según su rol y academia
-        final userData = user.toJson();
-        userData.remove('id'); // No incluir ID en los datos a guardar
-        
-        if (role == UserRole.superAdmin) {
-          // Superadmin va en su propia colección
-          await _superadminsCollection.doc(user.id).set(userData);
-        } else if (role == UserRole.owner) {
-          // Owner va en su propia colección
-          await _ownersCollection.doc(user.id).set(userData);
-        } else if (academyId != null) {
-          // Usuario regular asociado a una academia
-          // Guardar en la subcolección de usuarios de la academia
-          await _academyUsersCollection(academyId).doc(user.id).set(userData);
-          
-          // También actualizar la academia para añadir el ID de usuario según su rol
-          await _firestore.collection('academies').doc(academyId).update({
-            'userIds': FieldValue.arrayUnion([user.id]),
-            // También podemos agregar a listas específicas según rol si es necesario
-            '${role.toString().split('.').last}Ids': FieldValue.arrayUnion([user.id]),
-          });
-        } else {
-          // Si un usuario regular no tiene academia, mostrar advertencia
-          developer.log(
-            'ADVERTENCIA: Creando usuario sin academia. Esta funcionalidad está en desuso.',
-            name: 'UserService',
-          );
-          throw Exception('Se requiere una academia para crear un usuario regular');
-        }
-        
-        // Guardar en DB local
-        await _localUserRepository.saveUser(user);
-        
+      // Determinar la colección y generar un ID
+      DocumentReference userRef;
+      if (role == UserRole.superAdmin) {
+        userRef = _superadminsCollection.doc(); 
+      } else if (role == UserRole.owner) {
+        userRef = _ownersCollection.doc();
+      } else if (academyId != null) {
+        userRef = _academyUsersCollection(academyId).doc();
+      } else {
         developer.log(
-          'Usuario creado exitosamente: ${user.id} - ${user.name}',
+          'ADVERTENCIA: Creando usuario sin academia. Esta funcionalidad está en desuso.',
           name: 'UserService',
         );
-        return user;
-      } else {
-        // Sin conectividad, implementar como proceso local y sincronizar después
-        // (Implementación completa pendiente)
-        throw Exception('No hay conectividad para crear usuario');
+        throw Exception('Se requiere una academia para crear un usuario regular');
       }
+      
+      final userId = userRef.id;
+
+      // Crear el objeto User (sin email por defecto, podría ser añadido después)
+      final user = User(
+        id: userId,
+        name: name, 
+        email: '', // Inicializar email como vacío o nulo según el modelo
+        role: role,
+        permissions: Permissions.getDefaultPermissions(role),
+        academyIds: academyId != null ? [academyId] : [],
+        number: number,
+        createdAt: DateTime.now(),
+        profileImageUrl: profileImageUrl,
+      );
+
+      // Guardar usuario según su rol y academia
+      final userData = user.toJson();
+      userData.remove('id'); // No incluir ID en los datos a guardar
+
+      await userRef.set(userData);
+      
+      // Actualizar la academia si es un usuario regular
+      if (role != UserRole.superAdmin && role != UserRole.owner && academyId != null) {
+        await _firestore.collection('academies').doc(academyId).update({
+          'userIds': FieldValue.arrayUnion([user.id]),
+          '${role.toString().split('.').last}Ids': FieldValue.arrayUnion([user.id]),
+        });
+      }
+      
+      // Guardar en DB local
+      await _localUserRepository.saveUser(user);
+      
+      developer.log(
+        'Usuario creado (Firestore) exitosamente: ${user.id} - ${user.name}',
+        name: 'UserService',
+      );
+      return user;
+      
     } catch (e) {
       developer.log(
-        'Error al crear usuario: $e',
+        'Error al crear usuario (Firestore): $e',
         name: 'UserService',
         error: e,
       );
-      throw Exception('Error al crear usuario: $e');
+      throw Exception('Error al crear usuario (Firestore): $e');
     }
   }
 
-  // Crear un usuario sin iniciar sesión (usado para sincronización)
+  // Crear un usuario sin iniciar sesión (usado para sincronización) - Ya no necesita email/pass
   Future<User> createUserOnly(User user) async {
     try {
       final userData = user.toJson();
@@ -456,15 +431,38 @@ class UserService {
   Future<User> updateUser(User user) async {
     try {
       developer.log(
-        'Iniciando actualización de usuario: ${user.id} - ${user.name}',
+        'Iniciando actualización de usuario (Firestore): ${user.id} - ${user.name}',
         name: 'UserService',
       );
       
       final hasConnectivity = await _connectivityService.hasConnectivity();
       
       if (hasConnectivity) {
-        // Actualizar en Firebase
-        await _authRepository.updateUser(user);
+        // Actualizar SOLO en Firestore
+        // Removed: await _authRepository.updateUser(user);
+        
+        // Determinar la colección correcta para actualizar
+        DocumentReference userRef;
+        if (user.role == UserRole.superAdmin) {
+          userRef = _superadminsCollection.doc(user.id);
+        } else if (user.role == UserRole.owner) {
+          userRef = _ownersCollection.doc(user.id);
+        } else if (user.academyIds.isNotEmpty) {
+          // Asumimos que actualizamos en la primera academia por simplicidad,
+          // o podríamos requerir academyId si la lógica de actualización es específica
+          // Por ahora, actualizamos en la primera academia encontrada.
+          // Idealmente, la actualización debería ocurrir en todas las academias relevantes.
+          // Considerar una estrategia de actualización más robusta si un usuario puede
+          // tener datos diferentes por academia.
+          String academyIdToUpdate = user.academyIds.first;
+          userRef = _academyUsersCollection(academyIdToUpdate).doc(user.id);
+        } else {
+           throw Exception('Usuario regular sin academia no puede ser actualizado.');
+        }
+
+        final userData = user.toJson();
+        userData.remove('id');
+        await userRef.update(userData);
         
         // Actualizar también en local
         await _localUserRepository.updateUser(user);
@@ -475,17 +473,17 @@ class UserService {
       }
       
       developer.log(
-        'Usuario actualizado exitosamente: ${user.id} - ${user.name}',
+        'Usuario actualizado (Firestore) exitosamente: ${user.id} - ${user.name}',
         name: 'UserService',
       );
       return user;
     } catch (e) {
       developer.log(
-        'Error al actualizar usuario: $e',
+        'Error al actualizar usuario (Firestore): $e',
         name: 'UserService',
         error: e,
       );
-      throw Exception('Error al actualizar usuario: $e');
+      throw Exception('Error al actualizar usuario (Firestore): $e');
     }
   }
 
@@ -497,60 +495,31 @@ class UserService {
   }) async {
     try {
       developer.log(
-        '----INICIO: Proceso de eliminación de usuario----',
+        '====== INICIANDO ELIMINACIÓN DE USUARIO [Método principal deleteUser] ======',
         name: 'UserService-Delete',
       );
       
       developer.log(
-        'Parámetros: userId=$userId, academyId=$academyId, role=$role',
+        'Parámetros recibidos: userId=$userId, academyId=$academyId, role=$role',
         name: 'UserService-Delete',
       );
       
-      // Determinar la colección basada en el rol
-      String collection;
-      switch (role) {
-        case UserRole.manager:
-          collection = 'managers';
-          break;
-        case UserRole.coach:
-          collection = 'coaches';
-          break;
-        case UserRole.athlete:
-          collection = 'athletes';
-          break;
-        case UserRole.parent:
-          collection = 'parents';
-          break;
-        case UserRole.owner:
-          collection = 'owners';
-          break;
-        default:
-          developer.log(
-            'ERROR: Rol no válido para eliminar usuario: $role',
-            name: 'UserService-Delete',
-          );
-          throw Exception('Rol no válido para eliminar usuario');
-      }
-      
+      // Registrar el inicio de cada paso importante
       developer.log(
-        'Colección determinada: $collection',
+        '>> PASO 1: Buscando documento de usuario en la nueva estructura...',
         name: 'UserService-Delete',
       );
       
-      // Referencia al documento del usuario en Firestore
+      // Con la nueva estructura, todos los usuarios regulares están en la subcolección 'users'
+      // independientemente de su rol (manager, coach, athlete, parent)
       final userRef = _firestore
           .collection('academies')
           .doc(academyId)
-          .collection(collection)
+          .collection('users')
           .doc(userId);
       
       developer.log(
-        'Ruta del documento: academies/$academyId/$collection/$userId',
-        name: 'UserService-Delete',
-      );
-      
-      developer.log(
-        'Verificando existencia del documento...',
+        'Intentando acceder a ruta: academies/$academyId/users/$userId',
         name: 'UserService-Delete',
       );
       
@@ -559,118 +528,218 @@ class UserService {
       
       if (!userDoc.exists) {
         developer.log(
-          'ADVERTENCIA: Usuario no encontrado en Firestore: $userId en $collection',
-          name: 'UserService-Delete',
-        );
-        // No lanzamos excepción, continuamos el proceso para limpiar cualquier referencia local
-        developer.log(
-          'Continuando con el proceso para limpiar referencias locales',
-          name: 'UserService-Delete',
-        );
-      } else {
-        developer.log(
-          'Usuario encontrado en Firestore, datos: ${userDoc.data()}',
+          'Documento NO ENCONTRADO en la nueva estructura users',
           name: 'UserService-Delete',
         );
         
         developer.log(
-          'Iniciando proceso de limpieza de dependencias...',
+          '>> PASO 1B: Buscando en estructura antigua por compatibilidad...',
           name: 'UserService-Delete',
         );
         
-        // Si es un padre, desasociar de los atletas relacionados
-        if (role == UserRole.parent) {
-          developer.log(
-            'Eliminando padre: desasociando de atletas relacionados',
-            name: 'UserService-Delete',
-          );
-          await _removeParentFromAthletes(userId, academyId);
+        // Si no está en la subcolección 'users', verificar en colecciones específicas (para compatibilidad con v1.2)
+        String oldCollection;
+        switch (role) {
+          case UserRole.manager:
+            oldCollection = 'managers';
+            break;
+          case UserRole.coach:
+            oldCollection = 'coaches';
+            break;
+          case UserRole.athlete:
+            oldCollection = 'athletes';
+            break;
+          case UserRole.parent:
+            oldCollection = 'parents';
+            break;
+          case UserRole.owner:
+            oldCollection = 'owners';
+            break;
+          default:
+            oldCollection = 'users';
         }
         
-        // Si es un atleta, desasociar de los grupos a los que pertenece
-        if (role == UserRole.athlete) {
-          developer.log(
-            'Eliminando atleta: desasociando de grupos relacionados',
-            name: 'UserService-Delete',
-          );
-          await _removeAthleteFromGroups(userId, academyId);
-        }
-        
-        // Si es un entrenador, desasociar de los grupos que entrena
-        if (role == UserRole.coach) {
-          developer.log(
-            'Eliminando entrenador: desasociando de grupos relacionados',
-            name: 'UserService-Delete',
-          );
-          await _removeCoachFromGroups(userId, academyId);
-        }
-        
+        final oldUserRef = _firestore
+            .collection('academies')
+            .doc(academyId)
+            .collection(oldCollection)
+            .doc(userId);
+            
         developer.log(
-          'Limpieza de dependencias completada. Procediendo a eliminar documento...',
+          'Intentando acceder a ruta antigua: academies/$academyId/$oldCollection/$userId',
           name: 'UserService-Delete',
         );
         
-        try {
-          // Eliminar el documento de Firestore
-          await userRef.delete();
+        final oldUserDoc = await oldUserRef.get();
+        
+        if (oldUserDoc.exists) {
+          developer.log(
+            'Usuario ENCONTRADO en estructura antigua: $oldCollection',
+            name: 'UserService-Delete',
+          );
           
           developer.log(
-            'Documento eliminado exitosamente de Firestore',
+            '>> PASO 2A: Procesando eliminación desde colección antigua...',
             name: 'UserService-Delete',
           );
-        } catch (deleteError) {
-          developer.log(
-            'ERROR al eliminar documento: $deleteError',
-            name: 'UserService-Delete',
-            error: deleteError,
-          );
-          // No lanzamos excepción para permitir que se limpie la DB local
-          developer.log(
-            'Continuando con la limpieza local a pesar del error en Firestore',
-            name: 'UserService-Delete',
-          );
+          
+          // Continuar con la antigua referencia
+          await _processUserDeletion(oldUserRef, oldUserDoc, userId, academyId, role);
+        } else {
+          // También verificar en la colección de owners si es un owner
+          if (role == UserRole.owner) {
+            developer.log(
+              '>> PASO 1C: Verificando si es un owner en colección principal...',
+              name: 'UserService-Delete',
+            );
+            
+            final ownerRef = _firestore.collection('owners').doc(userId);
+            developer.log(
+              'Intentando acceder a ruta de owner: owners/$userId',
+              name: 'UserService-Delete',
+            );
+            
+            final ownerDoc = await ownerRef.get();
+            
+            if (ownerDoc.exists) {
+              developer.log(
+                'Owner ENCONTRADO en colección principal owners',
+                name: 'UserService-Delete',
+              );
+              
+              developer.log(
+                '>> PASO 2B: Procesando eliminación de owner...',
+                name: 'UserService-Delete',
+              );
+              
+              await _processUserDeletion(ownerRef, ownerDoc, userId, academyId, role);
+            } else {
+              developer.log(
+                'ADVERTENCIA: ¡Usuario NO ENCONTRADO en ninguna colección!',
+                name: 'UserService-Delete',
+              );
+              
+              developer.log(
+                '>> Continuando con limpieza local por seguridad',
+                name: 'UserService-Delete',
+              );
+            }
+          } else {
+            developer.log(
+              'ADVERTENCIA: ¡Usuario NO ENCONTRADO en ninguna colección!',
+              name: 'UserService-Delete',
+            );
+            
+            developer.log(
+              '>> Continuando con limpieza local por seguridad',
+              name: 'UserService-Delete',
+            );
+          }
         }
+      } else {
+        // Usuario encontrado en la subcolección 'users'
+        developer.log(
+          'Usuario ENCONTRADO en estructura nueva users',
+          name: 'UserService-Delete',
+        );
+        
+        developer.log(
+          '>> PASO 2: Procesando eliminación desde colección users...',
+          name: 'UserService-Delete',
+        );
+        
+        await _processUserDeletion(userRef, userDoc, userId, academyId, role);
       }
       
-      // Intenta eliminar el usuario de Authentication si es posible
+      // Actualizar el documento de la academia para eliminar la referencia al usuario
+      developer.log(
+        '>> PASO 3: Actualizando documento de academia para eliminar referencias...',
+        name: 'UserService-Delete',
+      );
+      
       try {
-        // Obtener UID de Firebase Auth asociado al usuario
-        String? email;
-        if (userDoc.exists) {
-          email = userDoc.data()?['email'] as String?;
+        final academyRef = _firestore.collection('academies').doc(academyId);
+        
+        // Verificar si existe la academia
+        final academyDoc = await academyRef.get();
+        if (!academyDoc.exists) {
+          developer.log(
+            'ERROR: Academia no encontrada para actualizar referencias',
+            name: 'UserService-Delete',
+          );
+          throw Exception('Academia no encontrada');
         }
         
-        if (email != null) {
-          developer.log(
-            'Intentando eliminar usuario de Authentication con email: $email',
-            name: 'UserService-Delete',
-          );
-          // Esta operación requiere acceso a la API de Admin de Firebase
-          developer.log(
-            'NOTA: La eliminación en Authentication requiere backend/funciones',
-            name: 'UserService-Delete',
-          );
-        } else {
-          developer.log(
-            'No se encontró email para eliminar usuario de Authentication',
-            name: 'UserService-Delete',
-          );
-        }
-      } catch (authError) {
-        // No podemos eliminar el usuario de Auth, pero sí de Firestore
         developer.log(
-          'ERROR al intentar eliminar usuario de Authentication: $authError',
+          'Academia encontrada para actualización: ${academyDoc.data()?['name']}',
           name: 'UserService-Delete',
-          error: authError,
         );
-        // No relanzan la excepción para permitir que el proceso continúe
+        
+        // Determinar qué campo actualizar según el rol
+        String roleField;
+        switch (role) {
+          case UserRole.manager:
+            roleField = 'managerIds';
+            break;
+          case UserRole.coach:
+            roleField = 'coachIds';
+            break;
+          case UserRole.athlete:
+            roleField = 'athleteIds';
+            break;
+          case UserRole.parent:
+            roleField = 'parentIds';
+            break;
+          default:
+            roleField = 'userIds';
+        }
+        
+        developer.log(
+          'Eliminando referencia de campo $roleField en la academia',
+          name: 'UserService-Delete',
+        );
+        
+        // Actualizar los IDs específicos del rol y la lista general de userIds
+        await academyRef.update({
+          roleField: FieldValue.arrayRemove([userId]),
+          'userIds': FieldValue.arrayRemove([userId]),
+        });
+        
+        developer.log(
+          'Academia actualizada exitosamente',
+          name: 'UserService-Delete',
+        );
+      } catch (academyError) {
+        developer.log(
+          'ERROR al actualizar la academia: $academyError',
+          name: 'UserService-Delete',
+          error: academyError,
+        );
+        developer.log(
+          'Stack trace: ${StackTrace.current}',
+          name: 'UserService-Delete',
+        );
+        // No lanzamos excepción para permitir que el proceso continúe
       }
       
       // Eliminar de base de datos local si existe
+      developer.log(
+        '>> PASO 4: Eliminando de base de datos local...',
+        name: 'UserService-Delete',
+      );
+      
       try {
+        developer.log(
+          'Intentando llamar a _localUserRepository.deleteUser($userId)',
+          name: 'UserService-Delete',
+        );
         await _localUserRepository.deleteUser(userId);
         developer.log(
-          'Usuario eliminado de la base de datos local',
+          '_localUserRepository.deleteUser($userId) completado',
+          name: 'UserService-Delete',
+        );
+        developer.log(
+          'Usuario eliminado exitosamente de la base de datos local',
           name: 'UserService-Delete',
         );
       } catch (localError) {
@@ -679,16 +748,20 @@ class UserService {
           name: 'UserService-Delete',
           error: localError,
         );
+        developer.log(
+          'Stack trace: ${StackTrace.current}',
+          name: 'UserService-Delete',
+        );
         // No relanzamos excepción para permitir que el proceso continúe
       }
       
       developer.log(
-        '----FIN: Proceso de eliminación completado exitosamente----',
+        '====== ELIMINACIÓN DE USUARIO COMPLETADA EXITOSAMENTE ======',
         name: 'UserService-Delete',
       );
     } catch (e) {
       developer.log(
-        '----ERROR FATAL: Fallo en proceso de eliminación: $e----',
+        '====== ERROR FATAL EN PROCESO DE ELIMINACIÓN ======',
         name: 'UserService-Delete',
         error: e,
       );
@@ -698,6 +771,136 @@ class UserService {
       );
       rethrow;
     }
+  }
+  
+  // Método auxiliar para procesar la eliminación del usuario
+  Future<void> _processUserDeletion(
+    DocumentReference userRef,
+    DocumentSnapshot userDoc,
+    String userId,
+    String academyId,
+    UserRole role,
+  ) async {
+    developer.log(
+      '----INICIO: Proceso de eliminación de documento de usuario----',
+      name: 'UserService-ProcessDeletion',
+    );
+    
+    developer.log(
+      'Datos del documento: ${userDoc.exists ? "Existe" : "No existe"}, Ruta: ${userRef.path}',
+      name: 'UserService-ProcessDeletion',
+    );
+    
+    // Si es un padre, desasociar de los atletas relacionados
+    if (role == UserRole.parent) {
+      developer.log(
+        'Eliminando padre: desasociando de atletas relacionados',
+        name: 'UserService-ProcessDeletion',
+      );
+      await _removeParentFromAthletes(userId, academyId);
+    }
+    
+    // Si es un atleta, desasociar de los grupos a los que pertenece
+    if (role == UserRole.athlete) {
+      developer.log(
+        'Eliminando atleta: desasociando de grupos relacionados',
+        name: 'UserService-ProcessDeletion',
+      );
+      await _removeAthleteFromGroups(userId, academyId);
+    }
+    
+    // Si es un entrenador, desasociar de los grupos que entrena
+    if (role == UserRole.coach) {
+      developer.log(
+        'Eliminando entrenador: desasociando de grupos relacionados',
+        name: 'UserService-ProcessDeletion',
+      );
+      await _removeCoachFromGroups(userId, academyId);
+    }
+    
+    // Si es un manager, verificar si hay dependencias que limpiar
+    if (role == UserRole.manager) {
+      developer.log(
+        'Eliminando manager: verificando dependencias',
+        name: 'UserService-ProcessDeletion',
+      );
+      // Implementar lógica específica para managers si es necesario
+    }
+    
+    developer.log(
+      'Limpieza de dependencias completada. Procediendo a eliminar documento...',
+      name: 'UserService-ProcessDeletion',
+    );
+    
+    try {
+      developer.log(
+        'Eliminando documento en ruta: ${userRef.path}',
+        name: 'UserService-ProcessDeletion',
+      );
+      
+      // Eliminar el documento de Firestore
+      await userRef.delete();
+      
+      developer.log(
+        'Documento eliminado exitosamente de Firestore',
+        name: 'UserService-ProcessDeletion',
+      );
+    } catch (deleteError) {
+      developer.log(
+        'ERROR al eliminar documento: $deleteError, Tipo: ${deleteError.runtimeType}',
+        name: 'UserService-ProcessDeletion',
+        error: deleteError,
+      );
+      developer.log(
+        'Stack trace: ${StackTrace.current}',
+        name: 'UserService-ProcessDeletion',
+      );
+      // No lanzamos excepción para permitir que se limpie la DB local
+      developer.log(
+        'Continuando con la limpieza local a pesar del error en Firestore',
+        name: 'UserService-ProcessDeletion',
+      );
+    }
+    
+    // Intenta eliminar el usuario de Authentication si es posible
+    try {
+      // Obtener email del usuario
+      String? email;
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>?;
+        email = userData?['email'] as String?;
+      }
+      
+      if (email != null) {
+        developer.log(
+          'Intentando eliminar usuario de Authentication con email: $email',
+          name: 'UserService-ProcessDeletion',
+        );
+        // Esta operación requiere acceso a la API de Admin de Firebase
+        developer.log(
+          'NOTA: La eliminación en Authentication requiere backend/funciones',
+          name: 'UserService-ProcessDeletion',
+        );
+      } else {
+        developer.log(
+          'No se encontró email para eliminar usuario de Authentication',
+          name: 'UserService-ProcessDeletion',
+        );
+      }
+    } catch (authError) {
+      // No podemos eliminar el usuario de Auth, pero sí de Firestore
+      developer.log(
+        'ERROR al intentar eliminar usuario de Authentication: $authError',
+        name: 'UserService-ProcessDeletion',
+        error: authError,
+      );
+      // No relanzan la excepción para permitir que el proceso continúe
+    }
+    
+    developer.log(
+      '----FIN: Proceso de eliminación de documento completado----',
+      name: 'UserService-ProcessDeletion',
+    );
   }
   
   // Método auxiliar para desvincular un padre de sus atletas
@@ -988,10 +1191,8 @@ class UserService {
 
   // MÉTODOS ESPECÍFICOS PARA ATLETAS
   
-  // Crear un nuevo atleta y su perfil
+  // Crear un nuevo atleta y su perfil (sin email/password)
   Future<Map<String, dynamic>> createAthlete({
-    required String email,
-    required String password,
     required String name,
     required String academyId,
     DateTime? birthDate,
@@ -1009,10 +1210,8 @@ class UserService {
     String? profileImageUrl,
   }) async {
     try {
-      // 1. Crear el usuario básico
+      // 1. Crear el usuario básico (Firestore)
       final athlete = await createUser(
-        email: email,
-        password: password,
         name: name,
         role: UserRole.athlete,
         academyId: academyId,
@@ -1114,18 +1313,14 @@ class UserService {
 
   // MÉTODOS ESPECÍFICOS PARA COACHES
 
-  // Crear un nuevo coach
+  // Crear un nuevo coach (sin email/password)
   Future<User> createCoach({
-    required String email,
-    required String password,
     required String name,
     required String academyId,
     String? profileImageUrl,
   }) async {
     try {
       final coach = await createUser(
-        email: email,
-        password: password,
         name: name,
         role: UserRole.coach,
         academyId: academyId,
@@ -1182,18 +1377,14 @@ class UserService {
   
   // MÉTODOS ESPECÍFICOS PARA MANAGERS
 
-  // Crear un nuevo manager
+  // Crear un nuevo manager (sin email/password)
   Future<User> createManager({
-    required String email,
-    required String password,
     required String name,
     required String academyId,
     String? profileImageUrl,
   }) async {
     try {
       final manager = await createUser(
-        email: email,
-        password: password,
         name: name,
         role: UserRole.manager,
         academyId: academyId,
@@ -1203,6 +1394,259 @@ class UserService {
       return manager;
     } catch (e) {
       throw Exception('Error al crear manager: $e');
+    }
+  }
+
+  // Eliminar manager
+  Future<void> deleteManager(String userId, String academyId) async {
+    try {
+      developer.log(
+        '====== INICIANDO ELIMINACIÓN DE MANAGER [Método específico] ======',
+        name: 'UserService-Manager',
+      );
+      
+      developer.log(
+        'Parámetros recibidos: userId=$userId, academyId=$academyId',
+        name: 'UserService-Manager',
+      );
+
+      // Log adicional para depuración
+      developer.log(
+        '>> PASO 0: Verificación de inicio de eliminación de manager',
+        name: 'UserDetails-Delete',
+      );
+      
+      // 1. Verificar si el documento de academia existe
+      developer.log(
+        '>> PASO 1: Verificando existencia de academia...',
+        name: 'UserService-Manager',
+      );
+      
+      final academyRef = _firestore.collection('academies').doc(academyId);
+      final academyDoc = await academyRef.get();
+      
+      developer.log(
+        'Accediendo al documento de academia en Firestore',
+        name: 'UserDetails-Delete',
+      );
+      
+      if (!academyDoc.exists) {
+        developer.log(
+          'ERROR: Academia no encontrada con ID: $academyId',
+          name: 'UserService-Manager',
+        );
+        developer.log(
+          'ERROR: Academia no encontrada para eliminación de manager',
+          name: 'UserDetails-Delete',
+        );
+        throw Exception('Academia no encontrada');
+      }
+      
+      developer.log(
+        'Academia encontrada: ${academyDoc.data()?['name']}',
+        name: 'UserService-Manager',
+      );
+      
+      // 2. Verificar si el usuario existe
+      developer.log(
+        '>> PASO 2: Verificando existencia de usuario manager...',
+        name: 'UserService-Manager',
+      );
+      
+      developer.log(
+        'Buscando información del usuario manager',
+        name: 'UserDetails-Delete',
+      );
+      
+      final user = await getUserById(userId);
+      
+      developer.log(
+        'Resultado de getUserById: ${user != null ? "Usuario encontrado" : "Usuario NO encontrado"}',
+        name: 'UserDetails-Delete',
+      );
+      
+      if (user == null) {
+        developer.log(
+          'ERROR: Manager no encontrado con ID: $userId',
+          name: 'UserService-Manager',
+        );
+        developer.log(
+          'ERROR: Usuario manager no encontrado en la base de datos',
+          name: 'UserDetails-Delete',
+        );
+        throw Exception('Manager no encontrado');
+      }
+      
+      developer.log(
+        'Manager encontrado: ${user.name} (${user.id}), Rol: ${user.role}',
+        name: 'UserService-Manager',
+      );
+      
+      // 3. Eliminar referencia del manager en la academia
+      developer.log(
+        '>> PASO 3: Eliminando referencia de manager en academia...',
+        name: 'UserService-Manager',
+      );
+      
+      try {
+        developer.log(
+          'Verificando campo managerIds en documento de academia...',
+          name: 'UserService-Manager',
+        );
+        
+        // Verificar si el campo 'managerIds' existe en el documento
+        final academyData = academyDoc.data();
+        if (academyData == null) {
+          developer.log(
+            'ERROR: Datos de academia son nulos',
+            name: 'UserService-Manager',
+          );
+          throw Exception('Datos de academia no disponibles');
+        }
+        
+        // Registro de todos los campos existentes para diagnóstico
+        developer.log(
+          'Campos disponibles en documento de academia: ${academyData.keys.join(', ')}',
+          name: 'UserService-Manager',
+        );
+        
+        // Si no existe el campo managerIds, crearlo como lista vacía
+        if (!academyData.containsKey('managerIds')) {
+          developer.log(
+            'ADVERTENCIA: Campo managerIds no existe en la academia, creando campo vacío',
+            name: 'UserService-Manager',
+          );
+          await academyRef.update({
+            'managerIds': [],
+          });
+          developer.log(
+            'Campo managerIds creado exitosamente',
+            name: 'UserService-Manager',
+          );
+        } else {
+          // Si existe, mostrar los valores actuales
+          final currentManagerIds = academyData['managerIds'];
+          if (currentManagerIds is List) {
+            developer.log(
+              'Campo managerIds contiene: ${currentManagerIds.join(', ')}',
+              name: 'UserService-Manager',
+            );
+          }
+        }
+        
+        developer.log(
+          'Actualizando academia: eliminando userId=$userId de managerIds y userIds',
+          name: 'UserService-Manager',
+        );
+        
+        // Ahora sí eliminar la referencia
+        await academyRef.update({
+          'managerIds': FieldValue.arrayRemove([userId]),
+          'userIds': FieldValue.arrayRemove([userId]), // También eliminar de userIds general
+        });
+        
+        developer.log(
+          'Referencia de manager eliminada correctamente de la academia',
+          name: 'UserService-Manager',
+        );
+      } catch (academyError) {
+        developer.log(
+          'ERROR al actualizar academia: $academyError',
+          name: 'UserService-Manager',
+          error: academyError,
+        );
+        developer.log(
+          'Stack trace: ${StackTrace.current}',
+          name: 'UserService-Manager',
+        );
+        // No lanzamos excepción, seguimos con el proceso
+      }
+      
+      // 4. Verificar si pertenece a otras academias
+      developer.log(
+        '>> PASO 4: Verificando si el manager pertenece a otras academias...',
+        name: 'UserService-Manager',
+      );
+      
+      developer.log(
+        'Academias actuales del manager: ${user.academyIds.length} - ${user.academyIds}',
+        name: 'UserService-Manager',
+      );
+      
+      if (user.academyIds.length <= 1) {
+        developer.log(
+          '>> PASO 5A: Manager solo pertenece a esta academia, eliminando por completo...',
+          name: 'UserService-Manager',
+        );
+        
+        // Si solo está en esta academia, eliminar completamente
+        try {
+          developer.log(
+            'Llamando a método deleteUser para eliminación completa...',
+            name: 'UserService-Manager',
+          );
+          
+          await deleteUser(userId: userId, academyId: academyId, role: UserRole.manager);
+          
+          developer.log(
+            'Manager eliminado completamente con éxito mediante deleteUser',
+            name: 'UserService-Manager',
+          );
+        } catch (deleteError) {
+          developer.log(
+            'ERROR en deleteUser durante eliminación completa: $deleteError',
+            name: 'UserService-Manager',
+            error: deleteError,
+          );
+          rethrow;
+        }
+      } else {
+        developer.log(
+          '>> PASO 5B: Manager pertenece a múltiples academias, solo eliminando de la academia actual...',
+          name: 'UserService-Manager',
+        );
+        
+        // Si pertenece a otras academias, solo actualizar la lista de academias
+        try {
+          final updatedAcademyIds = user.academyIds.where((id) => id != academyId).toList();
+          
+          developer.log(
+            'Actualizando lista de academias: ${updatedAcademyIds.length} - $updatedAcademyIds',
+            name: 'UserService-Manager',
+          );
+          
+          final updatedUser = user.copyWith(academyIds: updatedAcademyIds);
+          await updateUser(updatedUser);
+          
+          developer.log(
+            'Usuario manager actualizado exitosamente con nuevas academias',
+            name: 'UserService-Manager',
+          );
+        } catch (updateError) {
+          developer.log(
+            'ERROR al actualizar manager con nuevas academias: $updateError',
+            name: 'UserService-Manager',
+            error: updateError,
+          );
+          rethrow;
+        }
+      }
+      
+      developer.log(
+        '====== ELIMINACIÓN DE MANAGER COMPLETADA EXITOSAMENTE ======',
+        name: 'UserService-Manager',
+      );
+    } catch (e) {
+      developer.log(
+        '====== ERROR FATAL EN PROCESO DE ELIMINACIÓN DE MANAGER: $e ======',
+        name: 'UserService-Manager',
+        error: e,
+      );
+      developer.log(
+        'Stack trace: ${StackTrace.current}',
+        name: 'UserService-Manager',
+      );
+      rethrow;
     }
   }
 
@@ -1245,18 +1689,14 @@ class UserService {
   
   // Crear un nuevo padre con sus datos adicionales
   Future<User> createParent({
-    required String email,
-    required String password,
     required String name,
     required String academyId,
     Map<String, dynamic>? parentData,
     String? profileImageUrl,
   }) async {
     try {
-      // 1. Crear el usuario básico
+      // 1. Crear el usuario básico (Firestore)
       final parent = await createUser(
-        email: email,
-        password: password,
         name: name,
         role: UserRole.parent,
         academyId: academyId,
@@ -1280,9 +1720,8 @@ class UserService {
   Future<void> updateParent({
     required String userId,
     required String name,
-    required String email,
     Map<String, dynamic>? parentData,
-    String? profileImageUrl,
+    String? profileImageUrl, required String email,
   }) async {
     try {
       // 1. Obtener el usuario actual
@@ -1291,14 +1730,14 @@ class UserService {
         throw Exception('Usuario no encontrado');
       }
       
-      // 2. Actualizar datos básicos del usuario
+      // 2. Actualizar datos básicos del usuario (solo Firestore)
+      // El email se mantiene como está en el objeto currentUser
       final updatedUser = currentUser.copyWith(
         name: name,
-        email: email,
         profileImageUrl: profileImageUrl ?? currentUser.profileImageUrl,
       );
       
-      await updateUser(updatedUser);
+      await updateUser(updatedUser); // updateUser ya no toca Auth
       
       // 3. Actualizar datos adicionales si existen
       if (parentData != null && parentData.isNotEmpty) {
@@ -1411,5 +1850,4 @@ class UserService {
       throw Exception('Error al obtener usuarios por IDs: $e');
     }
   }
-
 } 

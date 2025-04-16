@@ -54,7 +54,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
         builder: (context) => GroupFormScreen(
           mode: GroupFormMode.edit,
           groupId: group.id,
-          academyId: currentAcademy.id,
+          academyId: currentAcademy.academyId,
         ),
       ),
     );
@@ -92,7 +92,7 @@ class _GroupListScreenState extends ConsumerState<GroupListScreen> {
     
     return Scaffold(
       body: Expanded(
-        child: _buildGroupList(currentAcademy.id),
+        child: _buildGroupList(currentAcademy.academyId),
       ),
     );
   }

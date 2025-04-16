@@ -11,26 +11,32 @@ String dateTimeToString(DateTime dateTime) => dateTime.toIso8601String();
 @freezed
 class Academy with _$Academy {
   const factory Academy({
-    required String id,
-    required String name,
-    required String ownerId,
-    String? logo,
-    required String sport,
-    String? location,
-    String? taxId,
-    String? description,
-    SportCharacteristics? sportConfig,
-    List<String>? groupIds,
-    List<String>? coachIds,
-    List<String>? athleteIds,
-    Map<String, dynamic>? settings,
-    required String subscription,
+    required String       academyId,
+    required String       academyName,
+    required String       academyOwnerId,
+    required String       academySport,
+    required String       academySubscription,
     @JsonKey(
       fromJson: dateTimeFromString,
       toJson: dateTimeToString,
     )
-    required DateTime createdAt,
+    required DateTime     createdAt,
+    String?               academyLogo,
+    String?               academyFormattedAddress,
+    double?               academyLatitude,
+    double?               academyLongitude,
+    String?               academyGooglePlaceId,
+    String?               academyTaxId,
+    String?               academyDescription,
+    SportCharacteristics? academySportConfig,
+    List<String>?         academyGroupIds,
+    List<String>?         academyCoachIds,
+    List<String>?         academyAthleteIds,
+    Map<String, dynamic>? academySettings,
+     String? academyLocation,
   }) = _Academy;
+
+  const Academy._();
 
   factory Academy.fromJson(Map<String, dynamic> json) => _$AcademyFromJson(json);
 } 

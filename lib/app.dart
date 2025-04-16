@@ -1,31 +1,16 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'dart:io' show Platform;
 
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/academy/screens/academy_create_screen.dart';
-import 'package:arcinus/features/app/excersice/core/models/exercise.dart';
-import 'package:arcinus/features/app/excersice/screens/exercise_detail_screen.dart';
-import 'package:arcinus/features/app/excersice/screens/exercise_library_screen.dart';
-import 'package:arcinus/features/app/excersice/screens/exercise_selector_screen.dart';
-import 'package:arcinus/features/app/trainings/core/models/training.dart';
-import 'package:arcinus/features/app/trainings/screens/attendance_screen.dart';
-import 'package:arcinus/features/app/trainings/screens/performance_dashboard_screen.dart';
-import 'package:arcinus/features/app/trainings/screens/session_list_screen.dart';
-import 'package:arcinus/features/app/trainings/screens/training_form_screen.dart';
-import 'package:arcinus/features/app/trainings/screens/training_list_screen.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
-import 'package:arcinus/features/app/users/user/screens/profile_screen.dart';
-import 'package:arcinus/features/app/users/user/screens/user_management_screen.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
-import 'package:arcinus/features/auth/screens/activation_screen.dart';
-import 'package:arcinus/features/auth/screens/forgot_password_screen.dart';
 import 'package:arcinus/features/auth/screens/login_screen.dart';
-import 'package:arcinus/features/auth/screens/pre_register_screen.dart';
-import 'package:arcinus/features/auth/screens/signin_screen.dart';
-import 'package:arcinus/features/auth/ui/register_screen.dart';
+import 'package:arcinus/features/navigation/core/app_router.dart';
+import 'package:arcinus/features/navigation/core/services/route_observer.dart';
 import 'package:arcinus/features/navigation/main_screen.dart';
 import 'package:arcinus/features/navigation/screens/splash_screen.dart';
+import 'package:arcinus/features/navigation/utils/exit_confirmation.dart';
 import 'package:arcinus/features/storage/storage_firebase/analytics_service.dart';
 import 'package:arcinus/features/theme/core/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -42,44 +27,14 @@ final confirmExitProvider = StateProvider<bool>((ref) => true);
 class ArcinusApp extends ConsumerWidget {
   const ArcinusApp({super.key});
 
-  // Método para confirmar la salida de la aplicación
-  Future<bool> _confirmExit(BuildContext context, WidgetRef ref) async {
-    // Si la característica está desactivada, permitir salir directamente
-    if (!ref.read(confirmExitProvider)) {
-      return true;
-    }
-    
-    // En iOS, no es común mostrar diálogos de confirmación para salir
-    if (Platform.isIOS) {
-      return true;
-    }
-    
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('¿Seguro que quieres salir?'),
-        content: const Text('¿Estás seguro de que quieres salir de Arcinus?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Salir'),
-          ),
-        ],
-      ),
-    );
-    
-    return result ?? false;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final analyticsObserver = AnalyticsService().getAnalyticsObserver();
     final authStateChanges = ref.watch(authStateChangesProvider);
     final splashCompleted = ref.watch(splashCompletedProvider);
+    
+    // Observador de rutas personalizado
+    final appRouteObserver = AppRouteObserver(ref);
     
     // Asegurar que se cargue la academia automáticamente
     ref.watch(autoLoadAcademyProvider);
@@ -97,7 +52,7 @@ class ArcinusApp extends ConsumerWidget {
     ref.listen(currentAcademyProvider, (previous, current) {
       if (current != previous) {
         if (current != null) {
-          developer.log('DEBUG: App - Academia actual cambiada: ${current.id} - ${current.name}');
+          developer.log('DEBUG: App - Academia actual cambiada: ${current.academyId} - ${current.academyName}');
         } else {
           developer.log('DEBUG: App - Academia actual limpiada (null)');
         }
@@ -143,13 +98,13 @@ class ArcinusApp extends ConsumerWidget {
       ],
       navigatorObservers: [
         if (analyticsObserver != null) analyticsObserver,
+        appRouteObserver,
       ],
       builder: (context, child) {
-        // Envolver la aplicación en WillPopScope para manejar el botón de retroceso en Android
+        // Envolver la aplicación en PopScope para manejar el botón de retroceso en Android
         return PopScope(
           canPop: false,
-          // ignore: deprecated_member_use
-          onPopInvoked: (didPop) async {
+          onPopInvokedWithResult: (bool didPop, dynamic result) async {
             if (didPop) return;
             
             final navigatorState = Navigator.of(context);
@@ -161,7 +116,7 @@ class ArcinusApp extends ConsumerWidget {
             }
             
             // Si no se puede hacer pop, mostrar diálogo de confirmación
-            final shouldExit = await _confirmExit(context, ref);
+            final shouldExit = await confirmAppExit(context, ref); // Usar la función importada
             if (shouldExit) {
               // Salir de la aplicación
               await SystemNavigator.pop();
@@ -172,7 +127,7 @@ class ArcinusApp extends ConsumerWidget {
       },
       // Usamos authStateChangesProvider para determinar la pantalla inicial
       home: authStateChanges.when(
-        loading: () => const LoadingScreen(), // Mostrar pantalla de carga mientras se determina el estado
+        loading: () => const LoadingScreen(), // Usar el widget importado
         error: (error, stackTrace) {
           // Loguear el error y mostrar LoginScreen como fallback
           developer.log('ERROR: App - Error en authStateChanges stream', error: error, stackTrace: stackTrace);
@@ -197,14 +152,15 @@ class ArcinusApp extends ConsumerWidget {
                       developer.log('DEBUG: Redirigiendo a crear academia');
                       return const CreateAcademyScreen();
                     } else {
-                      developer.log('DEBUG: Redirigiendo a dashboard');
+                      developer.log('DEBUG: Redirigiendo a dashboard (MainScreen)');
                       return const MainScreen();
                     }
                   },
-                  loading: () => const LoadingScreen(),
+                  loading: () => const LoadingScreen(), // Usar el widget importado
                   error: (error, stack) {
                     developer.log('DEBUG: Error verificando si necesita crear academia: $error');
-                    return const MainScreen();
+                    // Fallback a MainScreen en caso de error
+                    return const MainScreen(); 
                   },
                 );
               },
@@ -212,134 +168,9 @@ class ArcinusApp extends ConsumerWidget {
           }
         },
       ),
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/signin': (context) => const SignInScreen(),
-        '/register': (context) => const RegisterScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/pre-register': (context) => const PreRegisterScreen(),
-        '/activate': (context) => const ActivationScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/dashboard': (context) {
-          // En lugar de crear una nueva instancia, navegamos a MainScreen 
-          // que ya contiene el DashboardScreen y establecemos el índice a 0
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const MainScreen())
-            );
-          });
-          // Devolvemos un widget temporal mientras se realiza la navegación
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        },
-        '/users-management': (context) => const UserManagementScreen(),
-        '/chats': (context) => const UnderDevelopmentScreen(title: 'Chats'),
-        '/chat': (context) => const UnderDevelopmentScreen(title: 'Chat'),
-        '/notifications': (context) => const UnderDevelopmentScreen(title: 'Notificaciones'),
-        '/trainings': (context) => Consumer(
-          builder: (context, ref, _) => TrainingListScreen(
-            academyId: ref.read(currentAcademyIdProvider) ?? '',
-          ),
-        ),
-        '/exercises': (context) => const ExerciseLibraryScreen(),
-        '/calendar': (context) => const UnderDevelopmentScreen(title: 'Calendario'),
-        '/stats': (context) => const UnderDevelopmentScreen(title: 'Estadísticas'),
-        '/settings': (context) => const UnderDevelopmentScreen(title: 'Configuración'),
-        '/payments': (context) => const UnderDevelopmentScreen(title: 'Pagos'),
-        '/academies': (context) => const UnderDevelopmentScreen(title: 'Academias'),
-        '/create-academy': (context) => const CreateAcademyScreen(),
-        '/academy-details': (context) => const UnderDevelopmentScreen(title: 'Detalles de Academia'),
-      },
-      onGenerateRoute: (settings) {
-        if (settings.name?.startsWith('/trainings/') ?? false) {
-          // Usamos un builder que capture el ref actual para evitar problemas de widget disposed
-          return MaterialPageRoute(
-            builder: (context) {
-              return Consumer(
-                builder: (context, ref, _) {
-                  final academyId = ref.read(currentAcademyIdProvider) ?? '';
-                  
-                  switch (settings.name) {
-                    case '/trainings/new':
-                      return TrainingFormScreen(
-                        academyId: academyId,
-                      );
-                      
-                    case '/trainings/template/new':
-                      return TrainingFormScreen(
-                        academyId: academyId,
-                        isTemplate: true,
-                      );
-                      
-                    case '/trainings/edit':
-                      final training = settings.arguments as Training;
-                      return TrainingFormScreen(
-                        academyId: academyId,
-                        training: training,
-                        isTemplate: training.isTemplate,
-                      );
-                      
-                    case '/trainings/sessions':
-                      final trainingId = settings.arguments as String;
-                      return SessionListScreen(
-                        trainingId: trainingId,
-                        academyId: academyId,
-                      );
-                      
-                    case '/trainings/attendance':
-                      final sessionId = settings.arguments as String;
-                      return AttendanceScreen(
-                        sessionId: sessionId,
-                        academyId: academyId,
-                      );
-                      
-                    case '/trainings/performance':
-                      final args = settings.arguments as Map<String, dynamic>?;
-                      return PerformanceDashboardScreen(
-                        athleteId: args?['athleteId'] as String?,
-                        groupId: args?['groupId'] as String?,
-                        trainingId: args?['trainingId'] as String?,
-                        academyId: args?['academyId'] as String? ?? academyId,
-                      );
-                      
-                    case '/trainings/exercises':
-                      final args = settings.arguments as Map<String, dynamic>?;
-                      return ExerciseSelectorScreen(
-                        initiallySelectedExercises: args?['selectedExercises'] as List<Exercise>?,
-                        allowMultiple: args?['allowMultiple'] as bool? ?? true,
-                      );
-                    default:
-                      return const UnderDevelopmentScreen(title: 'Ruta no encontrada');
-                  }
-                },
-              );
-            },
-          );
-        }
-        
-        if (settings.name?.startsWith('/exercises/') ?? false) {
-          final academyId = ref.read(currentAcademyIdProvider) ?? '';
-          
-          switch (settings.name) {
-            case '/exercises/detail':
-              final args = settings.arguments as Map<String, dynamic>?;
-              return MaterialPageRoute(
-                builder: (context) => ExerciseDetailScreen(
-                  academyId: args?['academyId'] as String? ?? academyId,
-                  exercise: args?['exercise'] as Exercise?,
-                ),
-              );
-          }
-        }
-        
-        return null;
-      },
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (context) => const UnderDevelopmentScreen(
-            title: 'Página no encontrada',
-          ),
-        );
-      },
+      routes: AppRouter.routes, // Usar las rutas importadas
+      onGenerateRoute: AppRouter.onGenerateRoute, // Usar el generador importado
+      onUnknownRoute: AppRouter.onUnknownRoute, // Usar el manejador importado
     );
   }
 }

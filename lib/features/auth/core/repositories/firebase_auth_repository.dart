@@ -3,31 +3,43 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:arcinus/features/app/users/user/core/models/user.dart' as app;
-import 'package:arcinus/features/auth/core/models/pre_registered_user.dart';
+// Eliminar UserService y Riverpod si ya no se usan directamente aquí
+// import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
 import 'package:arcinus/features/permissions/core/models/permissions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+// import 'package:flutter_riverpod/flutter_riverpod.dart';
 // ignore: depend_on_referenced_packages
 import 'package:path/path.dart' as path;
 
 import 'auth_repository.dart';
+
+// Eliminar el provider placeholder si ya no se necesita
+/*
+final userServiceProvider = Provider<UserService>((ref) {
+  throw UnimplementedError('Define el provider real para UserService');
+});
+*/
 
 /// Implementación de Firebase para el repositorio de autenticación
 class FirebaseAuthRepository implements AuthRepository {
   final firebase_auth.FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
-  
+  // Eliminar Ref
+  // final Ref ref;
+
   FirebaseAuthRepository({
+    // Eliminar ref del constructor
+    // required this.ref,
     firebase_auth.FirebaseAuth? firebaseAuth,
     FirebaseFirestore? firestore,
     FirebaseStorage? storage,
-  }) : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
-       _firestore = firestore ?? FirebaseFirestore.instance,
-       _storage = storage ?? FirebaseStorage.instance {
-    // Establecer persistencia para mantener la sesión activa entre reinicios
+  })  : _firebaseAuth = firebaseAuth ?? firebase_auth.FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance,
+        _storage = storage ?? FirebaseStorage.instance {
     _setPersistence();
   }
   
@@ -96,6 +108,7 @@ class FirebaseAuthRepository implements AuthRepository {
     String name,
     app.UserRole role,
   ) async {
+    developer.log('WARN: createUserWithoutSignIn - Revisar implementación para multi-academia');
     try {
       developer.log('DEBUG: Firebase - Creando usuario sin iniciar sesión: $email con rol: $role');
       
@@ -132,16 +145,16 @@ class FirebaseAuthRepository implements AuthRepository {
       // Los superadmin y owners tienen sus propias colecciones
       if (role == app.UserRole.superAdmin) {
         await _firestore.collection('superadmins').doc(uid).set(_userToJson(user));
-        developer.log('DEBUG: Firebase - Documento de superadmin creado en Firestore');
+        developer.log('DEBUG: Firebase - Documento de superadmin creado en Firestore (revisar)');
       } else if (role == app.UserRole.owner) {
         await _firestore.collection('owners').doc(uid).set(_userToJson(user));
-        developer.log('DEBUG: Firebase - Documento de owner creado en Firestore');
+        developer.log('DEBUG: Firebase - Documento de owner creado en Firestore (revisar)');
       } else {
         // Para los otros roles, se guardarán en la subcolección de la academia correspondiente
         // Esto se manejará en el UserService al asignar la academia
         // Por ahora mantenemos la colección users para compatibilidad
         await _firestore.collection('users').doc(uid).set(_userToJson(user));
-        developer.log('DEBUG: Firebase - Documento de usuario creado en Firestore (temporal, se moverá a la academia)');
+        developer.log('WARN: Firebase - Documento de usuario creado en /users (debe usar UserService con academyId)');
       }
       
       // Cerrar sesión del usuario recién creado para no permanecer autenticado como él
@@ -154,8 +167,13 @@ class FirebaseAuthRepository implements AuthRepository {
       
       return user;
     } catch (e) {
-      developer.log('DEBUG: Firebase - Error al crear usuario: $e');
-      throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al crear usuario: $e'));
+      developer.log('ERROR: Firebase - Error al crear usuario sin sign-in: $e');
+      // Simplificamos el manejo de excepciones aquí
+       if (e is firebase_auth.FirebaseAuthException) {
+         throw _handleAuthException(e);
+       } else {
+         throw Exception('Error desconocido al crear usuario: $e');
+       }
     }
   }
   
@@ -166,8 +184,9 @@ class FirebaseAuthRepository implements AuthRepository {
     String name,
     app.UserRole role,
   ) async {
+    developer.log('WARN: signUpWithEmailAndPassword - Método de registro directo llamado. Revisar si debe estar activo y su lógica de academia.');
     try {
-      developer.log('DEBUG: Firebase - Registrando usuario: $email con rol: $role');
+      developer.log('DEBUG: Firebase - Registrando usuario directo: $email con rol: $role');
       // Crear usuario en Firebase Auth
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
@@ -176,46 +195,50 @@ class FirebaseAuthRepository implements AuthRepository {
       
       final uid = userCredential.user!.uid;
       
-      // Usar el rol proporcionado directamente
-      developer.log('DEBUG: Firebase - Usuario creado: $uid, estableciendo rol: $role');
+      developer.log('DEBUG: Firebase - Usuario Auth creado: $uid, rol: $role');
       
-      // Crear documento de usuario en Firestore
-      final user = app.User(
-        id: uid,
-        email: email,
-        name: name,
-        role: role, // Usar el rol proporcionado sin modificar
-        permissions: Permissions.getDefaultPermissions(role),
-        academyIds: [],
-        createdAt: DateTime.now(),
-      );
-      
-      // Determinar colección según el rol del usuario
+      // Crear el objeto User
+       final user = app.User(
+         id: uid,
+         email: email,
+         name: name,
+         role: role,
+         permissions: Permissions.getDefaultPermissions(role),
+         academyIds: [], // No se asigna academia aquí
+         createdAt: DateTime.now(),
+       );
+
+      // **Problema:** Al igual que en createUserWithoutSignIn, la escritura
+      // directa en colecciones raíz o en 'users' no es ideal para multi-academia.
+      // Debería usarse UserService.
       if (role == app.UserRole.superAdmin) {
         await _firestore.collection('superadmins').doc(uid).set(_userToJson(user));
-        developer.log('DEBUG: Firebase - Documento de superadmin creado en Firestore');
       } else if (role == app.UserRole.owner) {
         await _firestore.collection('owners').doc(uid).set(_userToJson(user));
-        developer.log('DEBUG: Firebase - Documento de owner creado en Firestore');
       } else {
-        // Para los usuarios regulares, no se almacenan aquí.
-        // Se guardarán en la subcolección de la academia cuando se asigne una academia en UserService
-        developer.log('DEBUG: Firebase - Usuario regular creado. Se asignará a una academia posteriormente');
+         // ¡No escribir en /users! El usuario necesita una academia.
+        developer.log('WARN: Firebase - signUpWithEmailAndPassword para rol regular no crea documento en Firestore (necesita academia vía UserService)');
       }
-      
+
+      // Devuelve el objeto User, pero ten en cuenta que su documento en Firestore
+      // puede no existir o estar en el lugar equivocado si no es admin/owner.
       return user;
-    } catch (e) {
-      developer.log('DEBUG: Firebase - Error al registrar usuario: $e');
-      throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al registrar usuario: $e'));
-    }
+    } on firebase_auth.FirebaseAuthException catch (e) {
+       developer.log('ERROR: Firebase - Error en signUpWithEmailAndPassword: $e');
+      throw _handleAuthException(e);
+     } catch (e) {
+       developer.log('ERROR: Firebase - Error desconocido en signUpWithEmailAndPassword: $e');
+       throw Exception('Error desconocido al registrar usuario: $e');
+     }
   }
   
   @override
   Future<void> signOut() async {
     try {
       await _firebaseAuth.signOut();
+      developer.log('DEBUG: FirebaseAuthRepository - Sesión cerrada');
     } catch (e) {
-      debugPrint('Error al cerrar sesión: $e');
+      developer.log('ERROR: FirebaseAuthRepository - Error al cerrar sesión: $e');
       rethrow;
     }
   }
@@ -224,6 +247,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _firebaseAuth.sendPasswordResetEmail(email: email);
+      developer.log('DEBUG: FirebaseAuthRepository - Correo de restablecimiento enviado a: $email');
     } on firebase_auth.FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
     }
@@ -239,409 +263,464 @@ class FirebaseAuthRepository implements AuthRepository {
         return null;
       }
       
-      final userData = await _getUserData(firebaseUser.uid);
-      developer.log('DEBUG: FirebaseAuthRepository.authStateChanges - Datos de usuario obtenidos: ${userData?.id ?? "null"}');
-      return userData;
+      // Intentar obtener datos del usuario. Puede fallar si el usuario acaba de
+      // registrarse/activarse y el documento aún no está listo o si hay un error.
+      try {
+         final userData = await _getUserData(firebaseUser.uid);
+         developer.log('DEBUG: FirebaseAuthRepository.authStateChanges - Datos de usuario obtenidos: ${userData?.id ?? "null"}');
+         return userData;
+       } catch (e) {
+         developer.log('ERROR: FirebaseAuthRepository.authStateChanges - Error obteniendo datos de usuario (${firebaseUser.uid}): $e. Devolviendo null.');
+         // Podríamos intentar manejar esto de forma más granular, pero por ahora devolvemos null
+         // si no se pueden obtener los datos del usuario asociado al UID autenticado.
+         return null;
+       }
     });
   }
   
   @override
   Future<app.User> updateUser(app.User user) async {
+    developer.log('DEBUG: FirebaseAuthRepository.updateUser - Actualizando usuario: ${user.id}');
     try {
-      // Determinar la colección correcta basada en el rol del usuario
-      if (user.role == app.UserRole.superAdmin) {
-        await _firestore.collection('superadmins').doc(user.id).update(_userToJson(user));
-      } else if (user.role == app.UserRole.owner) {
-        await _firestore.collection('owners').doc(user.id).update(_userToJson(user));
-      } else if (user.academyIds.isNotEmpty) {
-        // Usuario con academia asignada - actualizar en la subcolección de la academia
-        for (final academyId in user.academyIds) {
-          await _firestore.collection('academies').doc(academyId).collection('users').doc(user.id).update(_userToJson(user));
-        }
-      } else {
-        // Para compatibilidad - actualizar en colección principal
-        await _firestore.collection('users').doc(user.id).update(_userToJson(user));
+      final userRef = await _getUserDocRef(user.id);
+      if (userRef == null) {
+        developer.log('ERROR: FirebaseAuthRepository.updateUser - No se encontró la referencia del documento para el usuario: ${user.id}');
+        throw Exception('Usuario no encontrado para actualizar');
       }
-      
+      await userRef.update(_userToJson(user));
+      developer.log('DEBUG: FirebaseAuthRepository.updateUser - Usuario actualizado exitosamente: ${user.id}');
+      // Devuelve el mismo objeto user ya que la actualización fue exitosa.
+      // Podríamos re-leer desde Firestore si quisiéramos confirmar.
       return user;
+    } on FirebaseException catch (e) {
+       developer.log('ERROR: FirebaseAuthRepository.updateUser - Error de Firestore al actualizar usuario ${user.id}: $e');
+       throw Exception('Error de base de datos al actualizar usuario: ${e.message}');
     } catch (e) {
-      debugPrint('Error al actualizar usuario: $e');
-      rethrow;
+       developer.log('ERROR: FirebaseAuthRepository.updateUser - Error desconocido al actualizar usuario ${user.id}: $e');
+      throw Exception('Error desconocido al actualizar usuario: $e');
     }
   }
   
   @override
   Future<String> uploadProfileImage(File imageFile, String userId) async {
+    developer.log('DEBUG: FirebaseAuthRepository.uploadProfileImage - Subiendo imagen para usuario: $userId');
     try {
-      // Generar un nombre único para la imagen
-      final fileName = 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}${path.extension(imageFile.path)}';
-      
-      // Referencia a donde se guardará la imagen
-      final storageRef = _storage.ref().child('profile_images/$userId/$fileName');
-      
-      // Subir la imagen
-      final uploadTask = storageRef.putFile(imageFile);
-      
-      // Esperar a que se complete la subida
-      final snapshot = await uploadTask;
-      
-      // Obtener la URL de descarga
+      final fileName = path.basename(imageFile.path);
+      final destination = 'profileImages/$userId/$fileName';
+      final ref = _storage.ref(destination);
+
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        uploadTask = ref.putData(await imageFile.readAsBytes());
+      } else {
+        uploadTask = ref.putFile(imageFile);
+      }
+
+      final snapshot = await uploadTask.whenComplete(() => {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      
-      // Actualizar el documento del usuario con la URL de la imagen
-      await _firestore.collection('users').doc(userId).update({
-        'profileImageUrl': downloadUrl,
-      });
-      
+      developer.log('DEBUG: FirebaseAuthRepository.uploadProfileImage - Imagen subida, URL: $downloadUrl');
       return downloadUrl;
+    } on FirebaseException catch (e) {
+      developer.log('ERROR: FirebaseAuthRepository.uploadProfileImage - Error de Firebase Storage: $e');
+      throw Exception('Error al subir la imagen de perfil: ${e.message}');
     } catch (e) {
-      debugPrint('Error al subir imagen de perfil: $e');
-      rethrow;
+       developer.log('ERROR: FirebaseAuthRepository.uploadProfileImage - Error desconocido: $e');
+      throw Exception('Error desconocido al subir la imagen de perfil: $e');
     }
   }
   
   // Helpers
   
-  /// Obtiene los datos de un usuario de Firestore
+  /// Obtiene los datos de un usuario desde Firestore buscando en las posibles ubicaciones.
   Future<app.User?> _getUserData(String uid) async {
-    try {
-      developer.log('DEBUG: FirebaseAuthRepository._getUserData - Buscando usuario con ID: $uid');
-      
-      // Buscar primero en la colección de superadmins
-      var doc = await _firestore.collection('superadmins').doc(uid).get();
-      
-      if (doc.exists) {
-        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en colección superadmins');
-        return _userFromFirestore(doc);
-      }
-      
-      // Buscar en la colección de owners
-      doc = await _firestore.collection('owners').doc(uid).get();
-      
-      if (doc.exists) {
-        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en colección owners');
-        return _userFromFirestore(doc);
-      }
-      
-      // Buscar en las subcolecciones de academias
-      // Primero necesitamos obtener todas las academias
-      final academiesSnapshot = await _firestore.collection('academies').get();
-      
-      for (final academyDoc in academiesSnapshot.docs) {
-        final academyId = academyDoc.id;
-        // Buscar en la subcolección users de cada academia
-        doc = await _firestore.collection('academies').doc(academyId).collection('users').doc(uid).get();
-        
-        if (doc.exists) {
-          developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en subcolección users de academia: $academyId');
-          return _userFromFirestore(doc);
-        }
-      }
-      
-      // Como último recurso, buscar en la colección principal de users (para compatibilidad con usuarios antiguos)
-      doc = await _firestore.collection('users').doc(uid).get();
-      
-      if (doc.exists) {
-        developer.log('DEBUG: FirebaseAuthRepository._getUserData - Usuario encontrado en colección users (compatibilidad)');
-        return _userFromFirestore(doc);
-      }
-      
-      developer.log('DEBUG: FirebaseAuthRepository._getUserData - Documento no existe en ninguna colección de Firestore');
-      return null;
-    } catch (e) {
-      developer.log('ERROR: FirebaseAuthRepository._getUserData - Error: $e');
-      return null;
+    developer.log('DEBUG: _getUserData - Buscando datos para UID: $uid');
+    
+    // 1. Buscar en colecciones raíz (superadmins, owners)
+    final superAdminDoc = await _firestore.collection('superadmins').doc(uid).get();
+    if (superAdminDoc.exists) {
+       developer.log('DEBUG: _getUserData - Encontrado en superadmins');
+      return _userFromFirestore(superAdminDoc);
     }
+
+    final ownerDoc = await _firestore.collection('owners').doc(uid).get();
+    if (ownerDoc.exists) {
+       developer.log('DEBUG: _getUserData - Encontrado en owners');
+      return _userFromFirestore(ownerDoc);
+    }
+
+    // 2. Buscar en la subcolección 'users' de TODAS las academias
+    //    ¡Esto puede ser ineficiente si hay muchas academias!
+    //    Una mejor aproximación sería si supiéramos a qué academia(s) pertenece el usuario.
+    //    Si el modelo User tiene un campo `academyIds`, podríamos usarlo si lo tuviéramos.
+    //    Por ahora, hacemos una query de colección de grupo.
+    developer.log('DEBUG: _getUserData - Buscando en subcolecciones de academias (users)');
+    final querySnapshot = await _firestore.collectionGroup('users').where(FieldPath.documentId, isEqualTo: uid).limit(1).get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+       developer.log('DEBUG: _getUserData - Encontrado en la subcolección users de una academia.');
+       final userDoc = querySnapshot.docs.first;
+       // Obtener academyId de la referencia del documento
+       final academyId = userDoc.reference.parent.parent?.id;
+       final userData = _userFromFirestore(userDoc);
+       // Asegurarse de que academyId esté en la lista (aunque debería ser así si se encontró aquí)
+       if (academyId != null && !userData.academyIds.contains(academyId)) {
+         userData.academyIds.add(academyId); // Añadir por si acaso no estaba
+         developer.log('DEBUG: _getUserData - Añadido academyId $academyId a la lista del usuario.');
+       }
+      return userData;
+    }
+
+    // 3. Buscar en la colección 'users' raíz (como fallback o para usuarios sin academia?)
+    //    Esto depende de tu lógica de negocio. Si todos los usuarios DEBEN estar en una academia,
+    //    esta búsqueda podría eliminarse.
+    // final userDoc = await _firestore.collection('users').doc(uid).get();
+    // if (userDoc.exists) {
+    //   developer.log('DEBUG: _getUserData - Encontrado en la colección raíz /users (revisar si es correcto)');
+    //   return _userFromFirestore(userDoc);
+    // }
+
+     developer.log('WARN: _getUserData - No se encontraron datos para el usuario con UID: $uid en ninguna ubicación conocida.');
+    return null;
+  }
+  
+  /// Obtiene la referencia a un documento de usuario buscando en las posibles ubicaciones.
+  Future<DocumentReference?> _getUserDocRef(String uid) async {
+    developer.log('DEBUG: _getUserDocRef - Buscando referencia para UID: $uid');
+    // Similar a _getUserData, pero devuelve la referencia
+    final superAdminRef = _firestore.collection('superadmins').doc(uid);
+    if ((await superAdminRef.get()).exists) return superAdminRef;
+
+    final ownerRef = _firestore.collection('owners').doc(uid);
+    if ((await ownerRef.get()).exists) return ownerRef;
+
+    final querySnapshot = await _firestore.collectionGroup('users').where(FieldPath.documentId, isEqualTo: uid).limit(1).get();
+    if (querySnapshot.docs.isNotEmpty) return querySnapshot.docs.first.reference;
+
+    // final userRef = _firestore.collection('users').doc(uid);
+    // if ((await userRef.get()).exists) return userRef; // Considerar eliminar si /users no se usa
+
+    developer.log('WARN: _getUserDocRef - No se encontró referencia para UID: $uid');
+    return null;
   }
   
   /// Convierte un documento de Firestore a un objeto User
-  app.User _userFromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
+  app.User _userFromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot) {
+    final data = snapshot.data();
+    if (data == null) {
+      throw Exception('Datos de usuario nulos en Firestore para ID: ${snapshot.id}');
+    }
+
+    // Convertir 'role' (String) a UserRole enum
+    final roleString = data['role'] as String?;
+    final role = app.UserRole.values.firstWhere(
+      (r) => r.name == roleString,
+      orElse: () {
+        developer.log('WARN: _userFromFirestore - Rol "$roleString" inválido o ausente para usuario ${snapshot.id}. Usando guest.');
+        return app.UserRole.guest; // Rol por defecto si falta o es inválido
+      },
+    );
+
+    // Convertir Timestamps
+    Timestamp? createdAtTimestamp = data['createdAt'] as Timestamp?;
+    DateTime createdAt = createdAtTimestamp?.toDate() ?? DateTime.now(); // Usar now() si falta
+
+    // Convertir lista de academyIds (asegurándose de que sea List<String>)
+    List<String> academyIds = [];
+    if (data['academyIds'] is List) {
+       try {
+         academyIds = (data['academyIds'] as List).map((item) => item.toString()).toList();
+       } catch (e) {
+          developer.log('WARN: _userFromFirestore - Error convirtiendo academyIds para usuario ${snapshot.id}. Usando lista vacía. Error: $e');
+          academyIds = [];
+       }
+    }
+
+     // Convertir lista de customRoleIds
+     List<String> customRoleIds = [];
+     if (data['customRoleIds'] is List) {
+        try {
+          customRoleIds = (data['customRoleIds'] as List).map((item) => item.toString()).toList();
+        } catch (e) {
+           developer.log('WARN: _userFromFirestore - Error convirtiendo customRoleIds para usuario ${snapshot.id}. Usando lista vacía. Error: $e');
+           customRoleIds = [];
+        }
+     }
+
+    // Convertir permissions (Map<String, dynamic> a Map<String, bool>)
+    Map<String, bool> permissions = {};
+    if (data['permissions'] is Map) {
+      try {
+          final permissionsData = data['permissions'] as Map<dynamic, dynamic>;
+           permissions = permissionsData.map((key, value) => MapEntry(key.toString(), value as bool? ?? false));
+      } catch (e) {
+         developer.log('WARN: _userFromFirestore - Error convirtiendo permissions para usuario ${snapshot.id}. Usando defaults para rol ${role.name}. Error: $e');
+         permissions = Permissions.getDefaultPermissions(role);
+      }
+    } else {
+       developer.log('WARN: _userFromFirestore - Campo permissions ausente o no es un mapa para usuario ${snapshot.id}. Usando defaults para rol ${role.name}.');
+      permissions = Permissions.getDefaultPermissions(role);
+    }
+
+
     return app.User(
-      id: doc.id,
-      email: data['email'] as String,
-      name: data['name'] as String,
-      role: app.UserRole.values.firstWhere(
-        (role) => role.toString() == data['role'],
-        orElse: () => app.UserRole.guest,
-      ),
-      permissions: Map<String, bool>.from(data['permissions'] as Map<dynamic, dynamic>),
-      academyIds: List<String>.from(data['academyIds'] as List<dynamic>? ?? []),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      id: snapshot.id,
+      email: data['email'] as String? ?? '', // Manejar posible nulidad
+      name: data['name'] as String? ?? '', // Manejar posible nulidad
+      role: role,
+      permissions: permissions,
+      academyIds: academyIds,
+      customRoleIds: customRoleIds,
+      number: data['number'] as int?,
+      createdAt: createdAt,
       profileImageUrl: data['profileImageUrl'] as String?,
     );
   }
   
-  /// Convierte un objeto User a un Map para Firestore
+  /// Convierte un objeto User a un mapa JSON para Firestore
   Map<String, dynamic> _userToJson(app.User user) {
-    final map = {
+    return {
       'email': user.email,
       'name': user.name,
-      'role': user.role.toString(),
-      'permissions': user.permissions,
+      'role': user.role.name, // Guardar el nombre del enum
+      'permissions': user.permissions, // Guardar el mapa directamente
       'academyIds': user.academyIds,
-      'createdAt': Timestamp.fromDate(user.createdAt),
+      'customRoleIds': user.customRoleIds,
+      'number': user.number,
+      // ignore: unnecessary_null_comparison
+      'createdAt': user.createdAt == null ? FieldValue.serverTimestamp() : Timestamp.fromDate(user.createdAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'profileImageUrl': user.profileImageUrl,
     };
-    
-    if (user.profileImageUrl != null) {
-      map['profileImageUrl'] = user.profileImageUrl!;
-    }
-    
-    return map;
   }
   
   /// Maneja las excepciones de Firebase Auth
   Exception _handleAuthException(firebase_auth.FirebaseAuthException e) {
+    developer.log('ERROR: FirebaseAuthException - Código: ${e.code}, Mensaje: ${e.message}');
+    String message;
     switch (e.code) {
-      case 'user-not-found':
-        return Exception('Usuario no encontrado');
-      case 'wrong-password':
-        return Exception('Contraseña incorrecta');
-      case 'invalid-email':
-        return Exception('Email inválido');
-      case 'invalid-credential':
-        return Exception('Credenciales inválidas');
-      case 'user-disabled':
-        return Exception('Usuario deshabilitado');
-      case 'email-already-in-use':
-        return Exception('Email en uso');
-      case 'operation-not-allowed':
-        return Exception('Operación no permitida');
       case 'weak-password':
-        return Exception('Contraseña débil');
+        message = 'La contraseña proporcionada es demasiado débil.';
+        break;
+      case 'email-already-in-use':
+        message = 'Ya existe una cuenta con este correo electrónico.';
+        break;
+      case 'user-not-found':
+        message = 'No se encontró ningún usuario con ese correo electrónico.';
+        break;
+      case 'wrong-password':
+        message = 'Contraseña incorrecta.';
+        break;
+      case 'invalid-email':
+         message = 'El formato del correo electrónico no es válido.';
+         break;
+      case 'user-disabled':
+         message = 'Este usuario ha sido deshabilitado.';
+         break;
+      case 'too-many-requests':
+          message = 'Demasiados intentos. Inténtalo de nuevo más tarde.';
+          break;
+      case 'operation-not-allowed':
+           message = 'La operación de inicio de sesión por correo/contraseña no está habilitada.';
+           break;
+      // Añadir más casos según sea necesario
       default:
-        return Exception('Error de autenticación: ${e.message}');
+        message = 'Ocurrió un error de autenticación inesperado.';
+    }
+    return Exception(message);
+  }
+  
+  // Implementación de los Nuevos Métodos
+  
+  @override
+  Future<String> createPendingActivation({
+    required String academyId,
+    required String name,
+    required app.UserRole role,
+    required String createdBy,
+  }) async {
+    developer.log('DEBUG: createPendingActivation - Creando para academyId: $academyId, name: $name, role: ${role.name}');
+    try {
+      // Generar código de activación único (ejemplo simple)
+      final activationCode = _generateActivationCode();
+      final pendingActivationRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('pendingActivations')
+          .doc(activationCode);
+
+      final data = {
+        'name': name,
+        'role': role.name, // Guardar el nombre del enum
+        'createdBy': createdBy,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      await pendingActivationRef.set(data);
+      developer.log('DEBUG: createPendingActivation - Registro pendiente creado con código: $activationCode');
+      return activationCode;
+    } on FirebaseException catch (e) {
+       developer.log('ERROR: createPendingActivation - Error de Firestore: $e');
+       throw Exception('Error al crear el registro de activación pendiente: ${e.message}');
+    } catch (e) {
+      developer.log('ERROR: createPendingActivation - Error desconocido: $e');
+      throw Exception('Error desconocido al crear la activación pendiente: $e');
     }
   }
   
-  // Implementación de métodos de pre-registro
+  @override
+  Future<Map<String, dynamic>?> verifyPendingActivation({
+    required String academyId,
+    required String activationCode,
+  }) async {
+    developer.log('DEBUG: verifyPendingActivation - Verificando código: $activationCode para academyId: $academyId');
+    try {
+      final pendingActivationRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('pendingActivations')
+          .doc(activationCode);
+
+      final snapshot = await pendingActivationRef.get();
+
+      if (snapshot.exists) {
+        developer.log('DEBUG: verifyPendingActivation - Código válido encontrado.');
+        return snapshot.data();
+      } else {
+        developer.log('DEBUG: verifyPendingActivation - Código inválido o ya usado.');
+        return null;
+      }
+    } on FirebaseException catch (e) {
+       developer.log('ERROR: verifyPendingActivation - Error de Firestore: $e');
+       // Podríamos querer diferenciar entre "no encontrado" y otros errores.
+       // Por ahora, tratamos cualquier error de Firestore como código inválido/inaccesible.
+       return null;
+    } catch (e) {
+       developer.log('ERROR: verifyPendingActivation - Error desconocido: $e');
+       return null; // Tratar error desconocido como código inválido
+    }
+  }
   
   @override
-  Future<PreRegisteredUser> createPreRegisteredUser(
-    String email, 
-    String name, 
-    app.UserRole role, 
-    String createdBy
-  ) async {
+  Future<app.User> completeActivationWithCode({
+    required String academyId,
+    required String activationCode,
+    required String email,
+    required String password,
+  }) async {
+     developer.log('DEBUG: completeActivationWithCode - Iniciando para código: $activationCode, email: $email, academyId: $academyId');
+    // 1. Verificar el código de activación
+    final pendingData = await verifyPendingActivation(
+      academyId: academyId,
+      activationCode: activationCode,
+    );
+
+    if (pendingData == null) {
+       developer.log('ERROR: completeActivationWithCode - Código de activación inválido o no encontrado.');
+      throw Exception('Código de activación inválido o expirado.');
+    }
+
+    final name = pendingData['name'] as String?;
+    final roleString = pendingData['role'] as String?;
+
+    if (name == null || roleString == null) {
+       developer.log('ERROR: completeActivationWithCode - Datos incompletos en el registro pendiente.');
+      throw Exception('Datos de pre-registro incompletos.');
+    }
+
+    final role = app.UserRole.values.firstWhere(
+      (r) => r.name == roleString,
+      orElse: () {
+         developer.log('ERROR: completeActivationWithCode - Rol inválido "$roleString" en el registro pendiente.');
+        throw Exception('Rol de usuario inválido en el pre-registro.');
+      },
+    );
+
+     developer.log('DEBUG: completeActivationWithCode - Código verificado. Name: $name, Role: $role. Procediendo a crear cuenta Auth.');
+
     try {
-      developer.log('DEBUG: Firebase - Creando usuario pre-registrado: $email - lib/features/auth/core/repositories/firebase_auth_repository.dart - createPreRegisteredUser');
-      
-      // Verificar si ya existe un pre-registro con este email
-      final querySnapshot = await _firestore
-          .collection('preRegisteredUsers')
-          .where('email', isEqualTo: email)
-          .where('isUsed', isEqualTo: false)
-          .get();
-      
-      if (querySnapshot.docs.isNotEmpty) {
-        throw Exception('Ya existe un pre-registro activo para este correo electrónico');
+      // 2. Crear cuenta en Firebase Auth
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final firebaseUser = userCredential.user;
+      if (firebaseUser == null) {
+         developer.log('ERROR: completeActivationWithCode - Falló la creación del usuario en Firebase Auth.');
+        throw Exception('No se pudo crear la cuenta de autenticación.');
       }
-      
-      // Generar código de activación único
-      final activationCode = _generateActivationCode();
-      
-      // Crear documento de usuario pre-registrado en Firestore
-      final preRegisteredUser = PreRegisteredUser(
-        id: _firestore.collection('preRegisteredUsers').doc().id,
+      final uid = firebaseUser.uid;
+      developer.log('DEBUG: completeActivationWithCode - Cuenta Auth creada con UID: $uid. Procediendo a crear usuario en Firestore.');
+
+      // 3. Crear registro de usuario DIRECTAMENTE en Firestore
+      final newUser = app.User(
+        id: uid,
         email: email,
         name: name,
         role: role,
-        activationCode: activationCode,
-        expiresAt: DateTime.now().add(const Duration(days: 7)), // Expira en 7 días
-        createdAt: DateTime.now(),
-        createdBy: createdBy,
+        permissions: Permissions.getDefaultPermissions(role),
+        academyIds: [academyId],
+        customRoleIds: [], // Inicialmente vacío
+        createdAt: DateTime.now(), // Establecer aquí, será convertido a Timestamp al guardar
       );
-      
-      // Guardar en Firestore
-      await _firestore
-          .collection('preRegisteredUsers')
-          .doc(preRegisteredUser.id)
-          .set(_preRegisteredUserToJson(preRegisteredUser));
-      
-      developer.log('DEBUG: Firebase - Usuario pre-registrado creado: ${preRegisteredUser.id} con código: $activationCode - lib/features/auth/core/repositories/firebase_auth_repository.dart - createPreRegisteredUser');
-      
-      return preRegisteredUser;
-    } catch (e) {
-      developer.log('DEBUG: Firebase - Error al crear usuario pre-registrado: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - createPreRegisteredUser');
-      rethrow;
-    }
+
+      // Obtener referencia al documento del nuevo usuario en la subcolección de la academia
+      final userDocRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('users')
+          .doc(uid);
+
+      // Escribir el documento usando _userToJson para la conversión correcta
+      await userDocRef.set(_userToJson(newUser));
+
+      developer.log('DEBUG: completeActivationWithCode - Usuario creado directamente en Firestore en academies/$academyId/users/$uid. Procediendo a eliminar registro pendiente.');
+
+      // 4. Eliminar el documento de activación pendiente
+      try {
+         final pendingActivationRef = _firestore
+             .collection('academies')
+             .doc(academyId)
+             .collection('pendingActivations')
+             .doc(activationCode);
+         await pendingActivationRef.delete();
+         developer.log('DEBUG: completeActivationWithCode - Registro pendiente eliminado exitosamente.');
+       } catch (deleteError) {
+         developer.log('ERROR: completeActivationWithCode - Falló la eliminación del registro pendiente ($activationCode): $deleteError. El usuario ya está creado.');
+       }
+
+       // 5. Devolver el usuario recién creado (leyéndolo para asegurar consistencia)
+       final finalUserData = await _getUserData(uid);
+        if (finalUserData == null) {
+          developer.log('ERROR: completeActivationWithCode - No se pudieron obtener los datos del usuario recién creado ($uid) después de la creación.');
+          // Devolver el objeto `newUser` como fallback si _getUserData falla inesperadamente
+          return newUser;
+        }
+         developer.log('DEBUG: completeActivationWithCode - Proceso completado exitosamente para UID: $uid.');
+        return finalUserData;
+
+     } on firebase_auth.FirebaseAuthException catch (e) {
+       developer.log('ERROR: completeActivationWithCode - Error de Firebase Auth durante la creación: $e');
+       // Podríamos intentar eliminar el usuario Auth si falló la escritura en Firestore, pero es complejo
+       throw _handleAuthException(e);
+     } on FirebaseException catch (e) {
+       developer.log('ERROR: completeActivationWithCode - Error de Firestore durante la creación del usuario final: $e');
+       // Si falla la escritura en Firestore, la cuenta Auth ya existe. Limpieza necesaria?
+       throw Exception('Error de base de datos al crear el usuario final: ${e.message}');
+     } catch (e) {
+       developer.log('ERROR: completeActivationWithCode - Error desconocido: $e');
+       throw Exception('Error desconocido durante la activación: $e');
+     }
   }
   
-  @override
-  Future<PreRegisteredUser?> verifyActivationCode(String activationCode) async {
-    try {
-      developer.log('DEBUG: Firebase - Verificando código de activación: $activationCode - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
-      
-      // Buscar el pre-registro con este código de activación
-      final querySnapshot = await _firestore
-          .collection('preRegisteredUsers')
-          .where('activationCode', isEqualTo: activationCode)
-          .where('isUsed', isEqualTo: false)
-          .get();
-      
-      if (querySnapshot.docs.isEmpty) {
-        developer.log('DEBUG: Firebase - Código de activación no encontrado o ya usado - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
-        return null;
-      }
-      
-      final preRegDoc = querySnapshot.docs.first;
-      final preRegisteredUser = _preRegisteredUserFromFirestore(preRegDoc);
-      
-      // Verificar si el código ha expirado
-      if (preRegisteredUser.expiresAt.isBefore(DateTime.now())) {
-        developer.log('DEBUG: Firebase - Código de activación expirado - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
-        return null;
-      }
-      
-      return preRegisteredUser;
-    } catch (e) {
-      developer.log('DEBUG: Firebase - Error al verificar código de activación: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - verifyActivationCode');
-      return null;
-    }
-  }
+  // --- Métodos Privados Auxiliares ---
   
-  @override
-  Future<app.User> completeRegistration(String activationCode, String password) async {
-    try {
-      developer.log('DEBUG: Firebase - Completando registro con código: $activationCode - lib/features/auth/core/repositories/firebase_auth_repository.dart - completeRegistration');
-      
-      // Verificar el código de activación
-      final preRegisteredUser = await verifyActivationCode(activationCode);
-      
-      if (preRegisteredUser == null) {
-        throw Exception('Código de activación inválido o expirado');
-      }
-      
-      // Crear usuario en Firebase Auth
-      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: preRegisteredUser.email,
-        password: password,
-      );
-      
-      final uid = userCredential.user!.uid;
-      
-      // Crear el usuario en Firestore basado en la información pre-registrada
-      final user = app.User(
-        id: uid,
-        email: preRegisteredUser.email,
-        name: preRegisteredUser.name,
-        role: preRegisteredUser.role,
-        permissions: Permissions.getDefaultPermissions(preRegisteredUser.role),
-        academyIds: [],
-        createdAt: DateTime.now(),
-      );
-      
-      // Guardar usuario en la colección correspondiente según su rol
-      if (preRegisteredUser.role == app.UserRole.superAdmin) {
-        await _firestore.collection('superadmins').doc(uid).set(_userToJson(user));
-      } else if (preRegisteredUser.role == app.UserRole.owner) {
-        await _firestore.collection('owners').doc(uid).set(_userToJson(user));
-      } else {
-        await _firestore.collection('users').doc(uid).set(_userToJson(user));
-      }
-      
-      // Marcar pre-registro como usado
-      await _firestore
-          .collection('preRegisteredUsers')
-          .doc(preRegisteredUser.id)
-          .update({'isUsed': true});
-      
-      developer.log('DEBUG: Firebase - Registro completado para: ${preRegisteredUser.email} - lib/features/auth/core/repositories/firebase_auth_repository.dart - completeRegistration');
-      
-      return user;
-    } catch (e) {
-      developer.log('DEBUG: Firebase - Error al completar registro: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - completeRegistration');
-      throw _handleAuthException(firebase_auth.FirebaseAuthException(code: 'unknown', message: 'Error al completar registro: $e'));
-    }
-  }
-  
-  @override
-  Future<List<PreRegisteredUser>> getAllPreRegisteredUsers() async {
-    try {
-      developer.log('DEBUG: Firebase - Obteniendo todos los usuarios pre-registrados - lib/features/auth/core/repositories/firebase_auth_repository.dart - getAllPreRegisteredUsers');
-      
-      final querySnapshot = await _firestore
-          .collection('preRegisteredUsers')
-          .orderBy('createdAt', descending: true)
-          .get();
-      
-      return querySnapshot.docs
-          .map((doc) => _preRegisteredUserFromFirestore(doc))
-          .toList();
-    } catch (e) {
-      developer.log('DEBUG: Firebase - Error al obtener usuarios pre-registrados: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - getAllPreRegisteredUsers');
-      return [];
-    }
-  }
-  
-  @override
-  Future<void> deletePreRegisteredUser(String id) async {
-    try {
-      developer.log('DEBUG: Firebase - Eliminando usuario pre-registrado: $id - lib/features/auth/core/repositories/firebase_auth_repository.dart - deletePreRegisteredUser');
-      
-      await _firestore
-          .collection('preRegisteredUsers')
-          .doc(id)
-          .delete();
-    } catch (e) {
-      developer.log('DEBUG: Firebase - Error al eliminar usuario pre-registrado: $e - lib/features/auth/core/repositories/firebase_auth_repository.dart - deletePreRegisteredUser');
-      rethrow;
-    }
-  }
-  
-  // Helpers para pre-registro
-  
-  /// Genera un código de activación único y seguro
+  /// Genera un código de activación simple (ejemplo)
   String _generateActivationCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = Random.secure();
-    final codeBuffer = StringBuffer();
-    
-    // Generar un código de 8 caracteres
-    for (var i = 0; i < 8; i++) {
-      codeBuffer.write(chars[random.nextInt(chars.length)]);
-    }
-    
-    return codeBuffer.toString();
-  }
-  
-  /// Convierte un documento de Firestore a un objeto PreRegisteredUser
-  PreRegisteredUser _preRegisteredUserFromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
-    return PreRegisteredUser(
-      id: doc.id,
-      email: data['email'] as String,
-      name: data['name'] as String,
-      role: app.UserRole.values.firstWhere(
-        (role) => role.toString() == data['role'],
-        orElse: () => app.UserRole.guest,
-      ),
-      activationCode: data['activationCode'] as String,
-      expiresAt: (data['expiresAt'] as Timestamp).toDate(),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      isUsed: data['isUsed'] as bool? ?? false,
-      createdBy: data['createdBy'] as String?,
-    );
-  }
-  
-  /// Convierte un objeto PreRegisteredUser a un Map para Firestore
-  Map<String, dynamic> _preRegisteredUserToJson(PreRegisteredUser user) {
-    final map = {
-      'email': user.email,
-      'name': user.name,
-      'role': user.role.toString(),
-      'activationCode': user.activationCode,
-      'expiresAt': Timestamp.fromDate(user.expiresAt),
-      'createdAt': Timestamp.fromDate(user.createdAt),
-      'isUsed': user.isUsed,
-    };
-    
-    if (user.createdBy != null) {
-      map['createdBy'] = user.createdBy!;
-    }
-    
-    return map;
+    // Lógica más robusta podría ser necesaria (criptográficamente seguro, etc.)
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return String.fromCharCodes(Iterable.generate(
+        6, (_) => chars.codeUnitAt(random.nextInt(chars.length))));
   }
 } 

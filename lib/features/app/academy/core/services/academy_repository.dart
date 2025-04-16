@@ -30,7 +30,10 @@ class AcademyRepository {
     required String ownerId,
     required String sport,
     String? logo,
-    String? location,
+    String? academyFormattedAddress,
+    double? academyLatitude,
+    double? academyLongitude,
+    String? academyGooglePlaceId,
     String? taxId,
     String? description,
     Map<String, dynamic>? sportConfig,
@@ -53,17 +56,19 @@ class AcademyRepository {
       }
       
       final academy = Academy(
-        id: docRef.id,
-        name: name,
-        ownerId: ownerId,
-        sport: sport,
-        logo: logo,
-        location: location,
-        taxId: taxId,
-        description: description,
-        // Convertimos de mapa a SportCharacteristics para el objeto Academy
-        sportConfig: SportCharacteristics.fromJson(finalSportConfig),
-        subscription: subscription,
+        academyId: docRef.id,
+        academyName: name,
+        academyOwnerId: ownerId,
+        academySport: sport,
+        academyLogo: logo,
+        academyFormattedAddress: academyFormattedAddress,
+        academyLatitude: academyLatitude,
+        academyLongitude: academyLongitude,
+        academyGooglePlaceId: academyGooglePlaceId,
+        academyTaxId: taxId,
+        academyDescription: description,
+        academySportConfig: SportCharacteristics.fromJson(finalSportConfig),
+        academySubscription: subscription,
         createdAt: DateTime.now(),
       );
       
@@ -72,7 +77,7 @@ class AcademyRepository {
       
       // Asegurar que sportConfig es un mapa y no un objeto SportCharacteristics
       // para evitar errores de serialización
-      json['sportConfig'] = finalSportConfig;
+      json['academySportConfig'] = finalSportConfig;
       
       developer.log('DEBUG: Preparando transacción para academia ${docRef.id}');
       
@@ -126,13 +131,13 @@ class AcademyRepository {
       
       developer.log('DEBUG: AcademyRepository.getAcademy - Academia encontrada: $academyId');
       final data = docSnap.data()!;
-      data['id'] = docSnap.id;
+      data['academyId'] = docSnap.id;
       
       // Generar sportConfig si no existe
-      if (!data.containsKey('sportConfig') && data.containsKey('sport')) {
+      if (!data.containsKey('academySportConfig') && data.containsKey('academySport')) {
         developer.log('DEBUG: AcademyRepository.getAcademy - Generando sportConfig para academia $academyId');
-        final sportConfig = SportCharacteristics.forSport(data['sport'] as String);
-        data['sportConfig'] = sportConfig.toJson();
+        final sportConfig = SportCharacteristics.forSport(data['academySport'] as String);
+        data['academySportConfig'] = sportConfig.toJson();
       }
       
       return Academy.fromJson(data);
@@ -148,20 +153,20 @@ class AcademyRepository {
     
     try {
       final querySnap = await _academiesCollection
-          .where('ownerId', isEqualTo: ownerId)
+          .where('academyOwnerId', isEqualTo: ownerId)
           .get();
       
       developer.log('DEBUG: AcademyRepository.getAcademiesByOwner - Consulta ejecutada, documentos encontrados: ${querySnap.docs.length}');
       
       return querySnap.docs.map((doc) {
         final data = doc.data();
-        data['id'] = doc.id;
+        data['academyId'] = doc.id;
         
         // Generar sportConfig si no existe
-        if (!data.containsKey('sportConfig') && data.containsKey('sport')) {
+        if (!data.containsKey('academySportConfig') && data.containsKey('academySport')) {
           developer.log('DEBUG: AcademyRepository.getAcademiesByOwner - Generando sportConfig para academia ${doc.id}');
-          final sportConfig = SportCharacteristics.forSport(data['sport'] as String);
-          data['sportConfig'] = sportConfig.toJson();
+          final sportConfig = SportCharacteristics.forSport(data['academySport'] as String);
+          data['academySportConfig'] = sportConfig.toJson();
         }
         
         return Academy.fromJson(data);
@@ -172,19 +177,45 @@ class AcademyRepository {
     }
   }
 
+  // Método para obtener todas las academias
+  Future<List<Academy>> getAllAcademies() async {
+    developer.log('DEBUG: AcademyRepository.getAllAcademies - Obteniendo todas las academias');
+    try {
+      final querySnap = await _academiesCollection.get();
+      developer.log('DEBUG: AcademyRepository.getAllAcademies - Documentos encontrados: ${querySnap.docs.length}');
+
+      return querySnap.docs.map((doc) {
+        final data = doc.data();
+        data['academyId'] = doc.id;
+
+        // Generar sportConfig si no existe
+        if (!data.containsKey('academySportConfig') && data.containsKey('academySport')) {
+          developer.log('DEBUG: AcademyRepository.getAllAcademies - Generando sportConfig para academia ${doc.id}');
+          final sportConfig = SportCharacteristics.forSport(data['academySport'] as String);
+          data['academySportConfig'] = sportConfig.toJson();
+        }
+        
+        return Academy.fromJson(data);
+      }).toList();
+    } catch (e) {
+      developer.log('ERROR: AcademyRepository.getAllAcademies - Error al obtener todas las academias: $e', error: e);
+      rethrow;
+    }
+  }
+
   // Actualizar academia
   Future<void> updateAcademy(Academy academy) async {
     // Asegurarse de que haya características del deporte
     Academy academyToUpdate = academy;
     
-    if (academyToUpdate.sportConfig == null) {
+    if (academyToUpdate.academySportConfig == null) {
       // Generar automáticamente las características del deporte si no están presentes
-      final sportConfig = SportCharacteristics.forSport(academyToUpdate.sport);
-      academyToUpdate = academyToUpdate.copyWith(sportConfig: sportConfig);
+      final sportConfig = SportCharacteristics.forSport(academyToUpdate.academySport);
+      academyToUpdate = academyToUpdate.copyWith(academySportConfig: sportConfig);
     }
     
     final json = academyToUpdate.toJson();
-    await _academiesCollection.doc(academyToUpdate.id).update(json);
+    await _academiesCollection.doc(academyToUpdate.academyId).update(json);
   }
 
   // Subir logo de academia
@@ -212,7 +243,7 @@ class AcademyRepository {
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       
       // Actualizar el documento de la academia con la URL
-      await _academiesCollection.doc(academyId).update({'logo': downloadUrl});
+      await _academiesCollection.doc(academyId).update({'academyLogo': downloadUrl});
       
       return downloadUrl;
     } catch (e) {

@@ -47,6 +47,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final isOwner = user?.role == UserRole.owner;
     
     return BaseScaffold(
+      showNavigation: false,
       body: Column(
         children: [
           Expanded(
@@ -261,9 +262,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
   
   Widget _buildOwnerDashboard(Academy academy) {
-    final coachCount = academy.coachIds?.length ?? 0;
-    final athleteCount = academy.athleteIds?.length ?? 0;
-    final groupCount = academy.groupIds?.length ?? 0;
+    final coachCount = academy.academyCoachIds?.length ?? 0;
+    final athleteCount = academy.academyAthleteIds?.length ?? 0;
+    final groupCount = academy.academyGroupIds?.length ?? 0;
     
     // Formato para números
     final formatter = NumberFormat("#,###");
@@ -368,11 +369,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: academy.logo != null
+                child: academy.academyLogo != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
-                          academy.logo!,
+                          academy.academyLogo!,
                           width: 50,
                           height: 50,
                           fit: BoxFit.cover,
@@ -395,7 +396,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      academy.name,
+                      academy.academyName,
                       style: const TextStyle(
                         fontSize: AppTheme.h3Size,
                         fontWeight: FontWeight.bold,
@@ -406,7 +407,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      academy.sport,
+                      academy.academySport,
                       style: TextStyle(
                         fontSize: AppTheme.secondarySize,
                         color: AppTheme.magnoliaWhite.withAlpha(200),
@@ -421,7 +422,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSubscriptionBadge(academy.subscription),
+              _buildSubscriptionBadge(academy.academySubscription),
               OutlinedButton(
                 onPressed: () {
                   // Navegar a configuración de la academia
@@ -919,7 +920,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           title: 'Grupos',
           icon: Icons.group,
           color: Colors.blue,
-          count: currentAcademy.groupIds?.length.toString() ?? '0',
+          count: currentAcademy.academyGroupIds?.length.toString() ?? '0',
           onTap: () {
             // Navegar a la pestaña de grupos (índice 2)
           },
@@ -929,7 +930,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           title: 'Entrenadores',
           icon: Icons.sports,
           color: Colors.green,
-          count: currentAcademy.coachIds?.length.toString() ?? '0',
+          count: currentAcademy.academyCoachIds?.length.toString() ?? '0',
           onTap: () {
             // Navegar a pantalla de entrenadores
           },
@@ -939,7 +940,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           title: 'Atletas',
           icon: Icons.fitness_center,
           color: Colors.orange,
-          count: currentAcademy.athleteIds?.length.toString() ?? '0',
+          count: currentAcademy.academyAthleteIds?.length.toString() ?? '0',
           onTap: () {
             // Navegar a pantalla de atletas
           },

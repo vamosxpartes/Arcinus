@@ -13,7 +13,7 @@ class NavigationItems {
     const NavigationItem(
       icon: Icons.group,
       label: 'Usuarios',
-      destination: '/users-management',
+      destination: '/user-management',
       hasCreationFunction: true,
     ),
     const NavigationItem(

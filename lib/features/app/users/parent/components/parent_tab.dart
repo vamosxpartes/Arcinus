@@ -157,7 +157,7 @@ class ParentTab extends ConsumerWidget {
         builder: (context) => ParentFormScreen(
           mode: ParentFormMode.edit,
           userId: parent.id,
-          academyId: currentAcademy.id,
+          academyId: currentAcademy.academyId,
         ),
       ),
     );
@@ -199,7 +199,7 @@ class ParentTab extends ConsumerWidget {
 
       final userService = ref.read(userServiceProvider);
       // Asumiendo que existe deleteParent en userService, si no, ajustar a deleteUser
-      await userService.deleteParent(parent.id, currentAcademy.id);
+      await userService.deleteParent(parent.id, currentAcademy.academyId);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,8 +1,13 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/components/profile_image_picker.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
+import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -28,8 +33,6 @@ class ParentFormScreen extends ConsumerStatefulWidget {
 class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   
@@ -43,15 +46,11 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
   List<User> _allAthletes = [];
   Set<String> _selectedAthleteIds = {};
   
-  // Nuevo campo para almacenar la URL de la imagen de perfil
-  String? _profileImageUrl;
+  // Variables para la imagen
+  String? _newProfileImagePath; // Ruta local de la nueva imagen seleccionada
   
-  // Método para manejar cuando se selecciona una nueva imagen
-  void _handleProfileImageSelected(String imageUrl) {
-    setState(() {
-      _profileImageUrl = imageUrl;
-    });
-  }
+  // Añadir variables para el control de pre-registro
+  String? _preRegCode;
   
   @override
   void initState() {
@@ -66,8 +65,6 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
@@ -80,7 +77,7 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
 
     try {
       final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
+      final academyId = widget.academyId ?? currentAcademy?.academyId;
       
       if (academyId == null) {
         throw Exception('No se ha seleccionado una academia');
@@ -110,7 +107,7 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
 
     try {
       final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
+      final academyId = widget.academyId ?? currentAcademy?.academyId;
       
       if (academyId == null) {
         throw Exception('No se ha seleccionado una academia');
@@ -130,7 +127,6 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
       
       // Llenar formulario con datos existentes
       _nameController.text = _user!.name;
-      _emailController.text = _user!.email;
       
       // Cargar datos adicionales si los hay
       if (_parentData.containsKey('phone')) {
@@ -162,118 +158,198 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
     }
   }
   
-  Future<void> _saveParent() async {
+  void _handleProfileImageSelected(String imagePath) {
+    setState(() {
+      _newProfileImagePath = imagePath; // Guardar la ruta local
+    });
+  }
+
+  Future<void> _saveForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
     
+    _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
       _errorMsg = null;
+      _preRegCode = null;
     });
     
+    final userService = ref.read(userServiceProvider);
+    final currentUser = await ref.read(authStateProvider.future);
+    String? finalProfileImageUrl = _user?.profileImageUrl;
+    
     try {
-      final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
-      
-      if (academyId == null) {
-        throw Exception('No se ha seleccionado una academia');
+      // Subir imagen si se seleccionó una nueva (solo en modo edición)
+      if (_newProfileImagePath != null && widget.mode == ParentFormMode.edit && _user != null) {
+        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'ParentForm');
+        File imageFileToUpload = File(_newProfileImagePath!); // Crear el File desde la ruta
+        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
+              imageFileToUpload, // Pasar el File
+              _user!.id,
+            );
+        finalProfileImageUrl = imageUrl;
+      } else if (_newProfileImagePath != null && widget.mode == ParentFormMode.create) {
+         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'ParentForm');
       }
       
-      final userService = ref.read(userServiceProvider);
-      
-      // Datos adicionales para el padre
+      // Construir datos específicos del Parent
       Map<String, dynamic> parentData = {};
       
       if (_phoneController.text.isNotEmpty) {
         parentData['phone'] = _phoneController.text;
       }
-      
       if (_addressController.text.isNotEmpty) {
         parentData['address'] = _addressController.text;
       }
-      
       if (_birthDate != null) {
         parentData['birthDate'] = _birthDate!.toIso8601String();
       }
-      
-      // Asociar los atletas seleccionados
       if (_selectedAthleteIds.isNotEmpty) {
         parentData['childrenIds'] = _selectedAthleteIds.toList();
       }
       
-      // Modo creación
+      // Modo creación -> Generar código de activación
       if (widget.mode == ParentFormMode.create) {
-        await userService.createParent(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          academyId: academyId,
-          parentData: parentData,
-          profileImageUrl: _profileImageUrl,
-        );
+        developer.log('INFO: Iniciando pre-registro de Padre/Responsable', name: 'ParentForm');
+        
+        // Obtener el ID de la academia actual usando el provider
+        final String? academyId = ref.watch(currentAcademyIdProvider);
+        
+        // Validar que el academyId no sea nulo
+        if (academyId == null) {
+          setState(() {
+            _errorMsg = 'Error: No se pudo determinar la academia actual.';
+            _isLoading = false;
+          });
+          developer.log('ERROR: _saveForm - academyId es nulo.', name: 'ParentForm');
+          return; // Detener la ejecución si no hay ID de academia
+        }
+
+        final String userName = _nameController.text.trim();
+        final String createdBy = currentUser?.id ?? 'unknown'; // Obtener ID del usuario que crea
+        
+        developer.log('INFO: Llamando a createPendingActivationProvider - academyId: $academyId, name: $userName, role: ${UserRole.parent}, createdBy: $createdBy', name: 'ParentForm');
+
+        // Usar await para obtener el resultado del Future
+        final String activationCode = await ref.read(createPendingActivationProvider(
+          academyId: academyId, // Usar el ID obtenido
+          userName: userName,
+          role: UserRole.parent,
+          createdBy: createdBy,
+        ).future);
+        
+        setState(() {
+          _preRegCode = activationCode; // Asignar el String resultante
+          _isLoading = false;
+        });
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Padre/Madre creado correctamente')),
-          );
-          Navigator.of(context).pop(true);
+          _showActivationCodeDialog(_preRegCode!);
         }
       }
-      // Modo edición
+      // Modo edición -> Actualizar usuario existente
       else if (_user != null) {
-        // Actualizar datos básicos del usuario
+        developer.log(
+          'INFO: Llamando a userService.updateParent - userId: ${_user!.id}', name: 'ParentForm');
+
         await userService.updateParent(
           userId: _user!.id,
           name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
+          email: _user!.email,
           parentData: parentData,
-          profileImageUrl: _profileImageUrl ?? _user!.profileImageUrl,
+          profileImageUrl: finalProfileImageUrl,
         );
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Padre/Madre actualizado correctamente')),
+            const SnackBar(content: Text('Padre/Responsable actualizado correctamente')),
           );
           Navigator.of(context).pop(true);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+       developer.log(
+         'ERROR: _saveForm - Error al guardar padre/responsable: $e\nStack: $stack',
+         name: 'ParentForm',
+         error: e,
+         stackTrace: stack
+       );
       setState(() {
         _errorMsg = 'Error al guardar: $e';
+        _isLoading = false;
       });
     } finally {
-      if (mounted) {
+      if (mounted && widget.mode == ParentFormMode.edit && _errorMsg == null) {
         setState(() {
           _isLoading = false;
         });
       }
     }
   }
-  
-  Future<void> _selectBirthDate() async {
-    final DateTime? picked = await showDatePicker(
+
+  void _showActivationCodeDialog(String code) {
+    showDialog(
       context: context,
-      initialDate: _birthDate ?? DateTime(DateTime.now().year - 30),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Código de Activación Generado'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Comparte este código con el padre/responsable para que pueda activar su cuenta:'),
+              const SizedBox(height: 16),
+              Center(
+                child: SelectableText(
+                  code,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'El usuario deberá ingresar este código, su email y una contraseña en la pantalla de activación.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Copiar Código'),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Código copiado al portapapeles')),
+                );
+              },
+            ),
+            TextButton(
+              child: const Text('Cerrar y Finalizar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
     );
-    
-    if (picked != null && picked != _birthDate) {
-      setState(() {
-        _birthDate = picked;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenTitle = widget.mode == ParentFormMode.create
-        ? 'Crear Nuevo Padre/Madre'
-        : 'Editar Padre/Madre';
+        ? 'Pre-registrar Nuevo Padre/Responsable'
+        : 'Editar Padre/Responsable';
         
     final buttonText = widget.mode == ParentFormMode.create
-        ? 'Crear Padre/Madre'
+        ? 'Pre-registrar Padre/Responsable'
         : 'Guardar Cambios';
     
     return Scaffold(
@@ -313,9 +389,9 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
               child: Column(
                 children: [
                   ProfileImagePicker(
-                    currentImageUrl: _user?.profileImageUrl,
-                    userId: _user?.id,
+                    currentImageUrl: _newProfileImagePath == null ? _user?.profileImageUrl : null,
                     onImageSelected: _handleProfileImageSelected,
+                    userId: _user?.id,
                     iconColor: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
@@ -354,48 +430,19 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Email
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor ingresa el email';
-                }
-                if (!value.contains('@') || !value.contains('.')) {
-                  return 'Por favor ingresa un email válido';
-                }
-                return null;
-              },
-              readOnly: widget.mode == ParentFormMode.edit,
-            ),
-            const SizedBox(height: 16),
-            
-            // Contraseña (solo en modo creación)
-            if (widget.mode == ParentFormMode.create)
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
+            // Email - Eliminado en modo creación
+            if (widget.mode == ParentFormMode.edit && _user != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: TextFormField(
+                  initialValue: _user!.email,
+                  decoration: const InputDecoration(
+                    labelText: 'Email (no editable)',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true,
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa una contraseña';
-                  }
-                  if (value.length < 6) {
-                    return 'La contraseña debe tener al menos 6 caracteres';
-                  }
-                  return null;
-                },
               ),
-            if (widget.mode == ParentFormMode.create)
-              const SizedBox(height: 24),
             
             // Sección de información de contacto
             const Text(
@@ -475,7 +522,7 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _saveParent,
+                onPressed: _isLoading ? null : _saveForm,
                 child: Text(buttonText, style: const TextStyle(fontSize: 16)),
               ),
             ),
@@ -535,5 +582,20 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
         },
       ),
     );
+  }
+
+  Future<void> _selectBirthDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(DateTime.now().year - 30),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    
+    if (picked != null && picked != _birthDate) {
+      setState(() {
+        _birthDate = picked;
+      });
+    }
   }
 } 

@@ -1,6 +1,6 @@
 import 'dart:developer' as developer;
 
-import 'package:arcinus/features/auth/core/providers/pre_registration_providers.dart';
+import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:arcinus/features/navigation/components/base_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -8,22 +8,28 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 
 class ActivationScreen extends HookConsumerWidget {
-  const ActivationScreen({super.key});
+  final String academyId;
+  
+  const ActivationScreen({super.key, required this.academyId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final codeController = useTextEditingController();
     final isVerifying = useState(false);
     final isCompleting = useState(false);
-    final preRegisteredUser = useState<dynamic>(null);
+    final preRegisteredData = useState<Map<String, dynamic>?>(null);
     
-    // Formulario para la contraseña
-    final passwordForm = useMemoized(() => FormGroup({
+    final registrationForm = useMemoized(() => FormGroup({
+      'email': FormControl<String>(
+        validators: [
+          Validators.required,
+          Validators.email,
+        ],
+      ),
       'password': FormControl<String>(
         validators: [
           Validators.required,
           Validators.minLength(8),
-          Validators.pattern(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$'),
         ],
       ),
       'confirmPassword': FormControl<String>(validators: [Validators.required]),
@@ -31,77 +37,76 @@ class ActivationScreen extends HookConsumerWidget {
       Validators.mustMatch('password', 'confirmPassword'),
     ]));
     
-    // Verificar código de activación
     Future<void> verifyCode() async {
       final code = codeController.text.trim();
       if (code.isEmpty) return;
       
       isVerifying.value = true;
+      preRegisteredData.value = null;
       
       try {
-        final result = await ref.read(verifyActivationCodeProvider(code).future);
-        
+        final result = await ref.read(verifyPendingActivationProvider(
+          academyId: academyId,
+          activationCode: code,
+        ).future);
         
         if (result == null) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Código de activación inválido o expirado'),
-              backgroundColor: Colors.red,
-            ),
-          );}
+                content: Text('Código de activación inválido o expirado para esta academia'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         } else {
-          preRegisteredUser.value = result;
+          preRegisteredData.value = result;
         }
       } catch (e) {
         if (context.mounted) { 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            SnackBar(content: Text('Error al verificar: $e')),
           );
         }
-        developer.log('ERROR: ActivationScreen - Error al verificar código: $e - lib/features/auth/screens/activation_screen.dart - verifyCode');
+        developer.log('ERROR: ActivationScreen - Error al verificar código: $e', name: 'Activation');
       } finally {
         isVerifying.value = false;
       }
     }
     
-    // Completar el registro
     Future<void> completeRegistration() async {
-      if (passwordForm.invalid || preRegisteredUser.value == null) return;
+      if (registrationForm.invalid || preRegisteredData.value == null) return;
       
       isCompleting.value = true;
       
       try {
-        final password = passwordForm.control('password').value as String;
-        
-        await ref.read(completeRegistrationProvider(
-          activationCode: preRegisteredUser.value['activationCode'] as String,
+        final email = registrationForm.control('email').value as String;
+        final password = registrationForm.control('password').value as String;
+        final code = codeController.text.trim();
+
+        await ref.read(completeActivationWithCodeProvider(
+          academyId: academyId,
+          activationCode: code, 
+          email: email,
           password: password,
         ).future);
         
-        // Registro exitoso, mostrar mensaje y redirigir al login
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('¡Registro completado! Ahora puede iniciar sesión.'),
+              content: Text('¡Cuenta activada! Ahora puede iniciar sesión.'),
               backgroundColor: Colors.green,
             ),
           );
+          await Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
         }
-        
-        // Redirigir al login después de un breve retraso
-        Future.delayed(const Duration(seconds: 2), () {
-          if (context.mounted) {
-            Navigator.of(context).pushReplacementNamed('/login');
-          }
-        });
       } catch (e) {
         if (context.mounted) {  
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            SnackBar(content: Text('Error al activar: $e')),
           );
         }
-        developer.log('ERROR: ActivationScreen - Error al completar registro: $e - lib/features/auth/screens/activation_screen.dart - completeRegistration');
+        developer.log('ERROR: ActivationScreen - Error al completar registro: $e', name: 'Activation');
       } finally {
         isCompleting.value = false;
       }
@@ -119,19 +124,20 @@ class ActivationScreen extends HookConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Card(
+              elevation: 4,
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: preRegisteredUser.value == null
+                child: preRegisteredData.value == null
                     ? _buildCodeVerification(
                         context,
                         codeController,
                         isVerifying.value,
                         verifyCode,
                       )
-                    : _buildPasswordSetup(
+                    : _buildRegistrationSetup(
                         context,
-                        passwordForm,
-                        preRegisteredUser.value,
+                        registrationForm,
+                        preRegisteredData.value!,
                         isCompleting.value,
                         completeRegistration,
                       ),
@@ -143,7 +149,6 @@ class ActivationScreen extends HookConsumerWidget {
     );
   }
   
-  // Widget para verificación de código
   Widget _buildCodeVerification(
     BuildContext context,
     TextEditingController codeController,
@@ -156,7 +161,7 @@ class ActivationScreen extends HookConsumerWidget {
         const Icon(
           Icons.vpn_key_outlined,
           size: 64,
-          color: Colors.blue,
+          color: Colors.blueAccent,
         ),
         const SizedBox(height: 24),
         const Text(
@@ -169,18 +174,15 @@ class ActivationScreen extends HookConsumerWidget {
         ),
         const SizedBox(height: 16),
         const Text(
-          'Ingrese el código de activación proporcionado por el administrador.',
+          'Ingrese el código de activación proporcionado.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
         const SizedBox(height: 24),
         TextField(
           controller: codeController,
           decoration: const InputDecoration(
             labelText: 'Código de Activación',
-            hintText: 'Ejemplo: ABC12345',
             prefixIcon: Icon(Icons.code),
             border: OutlineInputBorder(),
           ),
@@ -188,7 +190,7 @@ class ActivationScreen extends HookConsumerWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize: 20,
-            letterSpacing: 2,
+            letterSpacing: 3,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -197,150 +199,127 @@ class ActivationScreen extends HookConsumerWidget {
           onPressed: isVerifying ? null : onVerify,
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           child: isVerifying
               ? const SizedBox(
                   height: 24,
                   width: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
                 )
-              : const Text('Verificar Código'),
+              : const Text('Verificar Código', style: TextStyle(fontSize: 16)),
         ),
       ],
     );
   }
   
-  // Widget para configuración de contraseña
-  Widget _buildPasswordSetup(
+  Widget _buildRegistrationSetup(
     BuildContext context,
-    FormGroup passwordForm,
-    dynamic user,
+    FormGroup registrationForm,
+    Map<String, dynamic> preRegData,
     bool isCompleting,
     VoidCallback onComplete,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Icon(
-          Icons.person_add_outlined,
-          size: 64,
-          color: Colors.green,
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          '¡Código Verificado!',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+    final name = preRegData['name'] as String? ?? 'Usuario';
+    
+    return ReactiveForm(
+      formGroup: registrationForm,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(
+            Icons.person_add_alt_1_outlined,
+            size: 64,
+            color: Colors.green,
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Bienvenido/a, ${user['name'] as String}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+          const SizedBox(height: 24),
+          const Text(
+            '¡Código Verificado!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        Text(
-          user['email'] as String,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 16,
+          const SizedBox(height: 8),
+          Text(
+            'Bienvenido/a, $name',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Rol: ${_getRoleName(user['role'])}',
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 16,
+          const SizedBox(height: 24),
+          const Text(
+            'Completa tu registro estableciendo tu correo y contraseña:',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
-        ),
-        const SizedBox(height: 32),
-        const Text(
-          'Complete su registro estableciendo una contraseña:',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
+          const SizedBox(height: 24),
+          ReactiveTextField(
+            formControlName: 'email',
+            decoration: const InputDecoration(
+              labelText: 'Correo Electrónico',
+              prefixIcon: Icon(Icons.email_outlined),
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.emailAddress,
+            validationMessages: {
+              ValidationMessage.required: (error) => 'El correo es requerido',
+              ValidationMessage.email: (error) => 'Ingresa un correo válido',
+            },
           ),
-        ),
-        const SizedBox(height: 24),
-        ReactiveForm(
-          formGroup: passwordForm,
-          child: Column(
-            children: [
-              ReactiveTextField<String>(
-                formControlName: 'password',
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  hintText: 'Mínimo 8 caracteres',
-                  prefixIcon: Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(),
+          const SizedBox(height: 16),
+          ReactiveTextField(
+            formControlName: 'password',
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Contraseña',
+              helperText: 'Mínimo 8 caracteres',
+              prefixIcon: Icon(Icons.lock_outline),
+              border: OutlineInputBorder(),
+            ),
+            validationMessages: {
+              ValidationMessage.required: (error) => 'La contraseña es requerida',
+              ValidationMessage.minLength: (error) => 'Debe tener al menos 8 caracteres',
+            },
+          ),
+          const SizedBox(height: 16),
+          ReactiveTextField(
+            formControlName: 'confirmPassword',
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Confirmar Contraseña',
+              prefixIcon: Icon(Icons.lock_outline),
+              border: OutlineInputBorder(),
+            ),
+            validationMessages: {
+              ValidationMessage.required: (error) => 'Confirma la contraseña',
+              ValidationMessage.mustMatch: (error) => 'Las contraseñas no coinciden',
+            },
+          ),
+          const SizedBox(height: 32),
+          ReactiveFormConsumer(
+            builder: (context, form, child) {
+              return ElevatedButton(
+                onPressed: (isCompleting || form.invalid) ? null : onComplete,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                validationMessages: {
-                  'required': (error) => 'La contraseña es obligatoria',
-                  'minLength': (error) => 'Mínimo 8 caracteres',
-                  'pattern': (error) => 'Debe contener mayúsculas, minúsculas y números',
-                },
-              ),
-              const SizedBox(height: 16),
-              ReactiveTextField<String>(
-                formControlName: 'confirmPassword',
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Confirmar Contraseña',
-                  prefixIcon: Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(),
-                ),
-                validationMessages: {
-                  'required': (error) => 'Debe confirmar su contraseña',
-                  'mustMatch': (error) => 'Las contraseñas no coinciden',
-                },
-              ),
-            ],
+                child: isCompleting
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                      )
+                    : const Text('Activar Cuenta', style: TextStyle(fontSize: 16)),
+              );
+            },
           ),
-        ),
-        const SizedBox(height: 32),
-        ReactiveFormConsumer(
-          builder: (context, form, child) {
-            return ElevatedButton(
-              onPressed: form.valid && !isCompleting ? onComplete : null,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.green,
-              ),
-              child: isCompleting
-                  ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text(
-                      'Completar Registro',
-                      style: TextStyle(fontSize: 16),
-                    ),
-            );
-          },
-        ),
-      ],
+        ],
+      ),
     );
-  }
-  
-  String _getRoleName(dynamic role) {
-    final roleStr = role.toString();
-    if (roleStr.contains('owner')) return 'Propietario';
-    if (roleStr.contains('manager')) return 'Gerente';
-    if (roleStr.contains('coach')) return 'Entrenador';
-    if (roleStr.contains('athlete')) return 'Atleta';
-    if (roleStr.contains('parent')) return 'Padre/Tutor';
-    if (roleStr.contains('superAdmin')) return 'Administrador';
-    return 'Usuario';
   }
 } 

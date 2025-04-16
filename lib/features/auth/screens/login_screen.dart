@@ -1,4 +1,7 @@
+import 'dart:developer' as developer;
 
+import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
+import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +16,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   
-  // Variables para control de errores
+  @override
+  void initState() {
+    super.initState();
+    // Verificar el estado de autenticación actual pero sin redirigir desde la pantalla de login
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authState = ref.read(authStateProvider);
+      authState.whenData((user) {
+        if (user != null) {
+          developer.log('Usuario ya autenticado, redirigiendo a dashboard - LoginScreen', name: 'LoginScreen');
+          final navigationService = ref.read(navigationServiceProvider);
+          navigationService.navigateToRoute(context, '/dashboard');
+        }
+      });
+    });
+  }
+  
   @override
   void dispose() {
     _emailController.dispose();
@@ -21,15 +39,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
     super.dispose();
   }
 
-  
-  // Resetear todos los errores
-
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final screenHeight = MediaQuery.of(context).size.height;
+    
+    // Escuchar cambios en el estado de autenticación
+    ref.listen(authStateProvider, (previous, current) {
+      current.whenData((user) {
+        if (user != null) {
+          developer.log('Usuario autenticado, redirigiendo a dashboard - LoginScreen', name: 'LoginScreen');
+          final navigationService = ref.read(navigationServiceProvider);
+          navigationService.navigateToRoute(context, '/dashboard');
+        }
+      });
+    });
     
     return Scaffold(
       body: SafeArea(

@@ -66,11 +66,11 @@ class ManagerTab extends ConsumerWidget {
     }
     
     developer.log(
-      'Cargando lista de gerentes para academia: ${currentAcademy.id}',
+      'Cargando lista de gerentes para academia: ${currentAcademy.academyId}',
       name: 'ManagerTab',
     );
     
-    final managersData = ref.watch(managersProvider(currentAcademy.id));
+    final managersData = ref.watch(managersProvider(currentAcademy.academyId));
     
     return managersData.when(
       data: (managers) {
@@ -128,7 +128,7 @@ class ManagerTab extends ConsumerWidget {
                     'Tap en gerente: ${manager.name} (${manager.id})',
                     name: 'ManagerTab',
                   );
-                  _showManagerDetails(context, ref, manager, currentAcademy.id);
+                  _showManagerDetails(context, ref, manager, currentAcademy.academyId);
                 },
               ),
             );

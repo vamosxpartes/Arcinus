@@ -66,7 +66,7 @@ class _TeamFormationScreenState extends ConsumerState<TeamFormationScreen> {
       // Cargar características del deporte
       if (currentAcademy != null) {
         try {
-          _sportCharacteristics = SportCharacteristics.forSport(currentAcademy.sport);
+          _sportCharacteristics = SportCharacteristics.forSport(currentAcademy.academySport);
           
           // Inicializar formación seleccionada con la primera disponible
           if (_sportCharacteristics!.formations.isNotEmpty) {
@@ -309,7 +309,7 @@ class _TeamFormationScreenState extends ConsumerState<TeamFormationScreen> {
     final formationPositions = _sportCharacteristics!.formations[_selectedFormation] ?? [];
     
     // Determinar el tipo de deporte para diseñar el campo
-    final sportCode = ref.read(currentAcademyProvider)?.sport.toLowerCase() ?? '';
+    final sportCode = ref.read(currentAcademyProvider)?.academySport.toLowerCase() ?? '';
     
     // Elegir fondo según el deporte
     String backgroundImage;

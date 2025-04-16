@@ -90,7 +90,7 @@ class UserDetailsScreen extends ConsumerWidget {
               [
                 _buildDetailItem('Email', user.email),
                 _buildDetailItem('Rol', _getRoleName(userRole)),
-                _buildDetailItem('Academia', currentAcademy?.name ?? 'Sin academia'),
+                _buildDetailItem('Academia', currentAcademy?.academyName ?? 'Sin academia'),
               ],
             ),
             
@@ -233,7 +233,7 @@ class UserDetailsScreen extends ConsumerWidget {
     }
     
     developer.log(
-      'Academia seleccionada: ${currentAcademy.name} (${currentAcademy.id})',
+      'Academia seleccionada: ${currentAcademy.academyName} (${currentAcademy.academyId})',
       name: 'UserDetails',
     );
     
@@ -244,7 +244,7 @@ class UserDetailsScreen extends ConsumerWidget {
         formScreen = AthleteFormScreen(
           mode: AthleteFormMode.edit,
           userId: userId,
-          academyId: currentAcademy.id,
+          academyId: currentAcademy.academyId,
         );
         break;
       case UserRole.coach:
@@ -252,7 +252,7 @@ class UserDetailsScreen extends ConsumerWidget {
         formScreen = CoachFormScreen(
           mode: CoachFormMode.edit,
           userId: userId,
-          academyId: currentAcademy.id,
+          academyId: currentAcademy.academyId,
         );
         break;
       case UserRole.manager:
@@ -260,7 +260,7 @@ class UserDetailsScreen extends ConsumerWidget {
         formScreen = ManagerFormScreen(
           mode: ManagerFormMode.edit,
           userId: userId,
-          academyId: currentAcademy.id,
+          academyId: currentAcademy.academyId,
         );
         break;
       case UserRole.parent:
@@ -268,7 +268,7 @@ class UserDetailsScreen extends ConsumerWidget {
         formScreen = ParentFormScreen(
           mode: ParentFormMode.edit,
           userId: userId,
-          academyId: currentAcademy.id,
+          academyId: currentAcademy.academyId,
         );
         break;
       default:
@@ -305,8 +305,13 @@ class UserDetailsScreen extends ConsumerWidget {
 
   void _showDeleteConfirmation(BuildContext context, WidgetRef ref) {
     developer.log(
-      'Mostrando diálogo de confirmación de eliminación - Usuario: ${user.name} (${user.id}) - Rol: $userRole',
-      name: 'UserDetails',
+      '----INICIO: Proceso de eliminación desde UI----',
+      name: 'UserDetails-Delete',
+    );
+    
+    developer.log(
+      'Mostrando diálogo de confirmación - Usuario: ${user.name} (${user.id}) - Rol: $userRole',
+      name: 'UserDetails-Delete',
     );
     
     final userService = ref.read(userServiceProvider);
@@ -314,8 +319,8 @@ class UserDetailsScreen extends ConsumerWidget {
     
     if (currentAcademy == null) {
       developer.log(
-        'Error: No hay academia seleccionada para eliminación',
-        name: 'UserDetails',
+        'ERROR: No hay academia seleccionada para eliminación',
+        name: 'UserDetails-Delete',
       );
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No hay academia seleccionada')),
@@ -324,8 +329,8 @@ class UserDetailsScreen extends ConsumerWidget {
     }
     
     developer.log(
-      'Academia para eliminación: ${currentAcademy.name} (${currentAcademy.id})',
-      name: 'UserDetails',
+      'Academia para eliminación: ${currentAcademy.academyName} (${currentAcademy.academyId})',
+      name: 'UserDetails-Delete',
     );
     
     showDialog(
@@ -338,7 +343,7 @@ class UserDetailsScreen extends ConsumerWidget {
             onPressed: () {
               developer.log(
                 'Eliminación cancelada por el usuario',
-                name: 'UserDetails',
+                name: 'UserDetails-Delete',
               );
               Navigator.pop(context);
             },
@@ -348,148 +353,235 @@ class UserDetailsScreen extends ConsumerWidget {
             onPressed: () async {
               developer.log(
                 'Confirmada eliminación del usuario, cerrando diálogo',
-                name: 'UserDetails',
+                name: 'UserDetails-Delete',
               );
               Navigator.pop(context); // Cerrar diálogo
               
-              try {
+              // Guardamos una referencia al contexto antes de mostrar el diálogo
+              final contextMounted = context.mounted;
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context, rootNavigator: true);
+              bool indicatorShown = false; // Declarar aquí para que sea accesible
+              
+              // Mostrar indicador de carga
+              if (contextMounted) {
                 developer.log(
-                  'Iniciando proceso de eliminación en el servicio - Usuario: $userId - Academia: ${currentAcademy.id} - Rol: $userRole',
-                  name: 'UserDetails',
+                  'Mostrando indicador de carga para eliminación',
+                  name: 'UserDetails-Delete',
                 );
                 
-                // Guardamos una referencia al contexto antes de mostrar el diálogo
-                final contextMounted = context.mounted;
-                final scaffoldMessenger = ScaffoldMessenger.of(context);
-                final navigator = Navigator.of(context, rootNavigator: true);
-                
-                // Mostrar indicador de carga
-                if (contextMounted) {
-                  developer.log(
-                    'Mostrando indicador de carga para eliminación',
-                    name: 'UserDetails',
-                  );
+                // Usar el contexto del navigator raíz para mayor robustez
+                final rootContext = navigator.context;
+                if (navigator.mounted && rootContext.mounted) {
                   
-                  await showDialog(
-                    context: context,
+                  // ignore: unawaited_futures
+                  showDialog(
+                    context: rootContext, 
                     barrierDismissible: false,
                     builder: (dialogContext) => const Center(child: CircularProgressIndicator()),
                   );
+                  indicatorShown = true;
+                  developer.log('INDICADOR MOSTRADO (lanzado sin await), entrando a TRY', name: 'UserDetails-Delete');
+                } else {
+                  developer.log('ERROR: Contexto del navigator raíz no montado, no se puede mostrar indicador', name: 'UserDetails-Delete');
+                  // Si no podemos mostrar el indicador, probablemente no deberíamos continuar.
+                  // Mostramos un error y salimos.
+                  scaffoldMessenger.showSnackBar(const SnackBar(content: Text('No se pudo iniciar la eliminación')));
+                  return;
+                }
+              } else {
+                // Si el contexto original no está montado, tampoco continuamos
+                developer.log('Contexto original no montado antes de mostrar indicador', name: 'UserDetails-Delete');
+                return;
+              }
+              
+              try {
+                developer.log(
+                  'Iniciando proceso de eliminación - Usuario: $userId - Academia: ${currentAcademy.academyId} - Rol: $userRole',
+                  name: 'UserDetails-Delete',
+                );
+                
+                // Usar el método específico según el rol del usuario
+                bool eliminarExitoso = false;
+                
+                try {
+                  switch (userRole) {
+                    case UserRole.manager:
+                      developer.log(
+                        'Llamando a userService.deleteManager',
+                        name: 'UserDetails-Delete',
+                      );
+                      try {
+                        developer.log(
+                          'INICIO: Ejecutando userService.deleteManager',
+                          name: 'UserDetails-Delete',
+                        );
+                        await userService.deleteManager(userId, currentAcademy.academyId);
+                        developer.log(
+                          'FIN: userService.deleteManager ejecutado con éxito',
+                          name: 'UserDetails-Delete',
+                        );
+                        eliminarExitoso = true;
+                      } catch (managerError) {
+                        developer.log(
+                          'ERROR específico en deleteManager: $managerError',
+                          name: 'UserDetails-Delete',
+                          error: managerError,
+                        );
+                        rethrow;
+                      }
+                      break;
+                      
+                    case UserRole.coach:
+                      developer.log(
+                        'Llamando a userService.deleteCoach',
+                        name: 'UserDetails-Delete',
+                      );
+                      await userService.deleteCoach(userId, currentAcademy.academyId);
+                      eliminarExitoso = true;
+                      break;
+                      
+                    case UserRole.athlete:
+                      developer.log(
+                        'Llamando a userService.deleteAthlete',
+                        name: 'UserDetails-Delete',
+                      );
+                      await userService.deleteAthlete(userId, currentAcademy.academyId);
+                      eliminarExitoso = true;
+                      break;
+                      
+                    case UserRole.parent:
+                      developer.log(
+                        'Llamando a userService.deleteParent',
+                        name: 'UserDetails-Delete',
+                      );
+                      await userService.deleteParent(userId, currentAcademy.academyId);
+                      eliminarExitoso = true;
+                      break;
+                      
+                    default:
+                      // Método genérico para otros roles
+                      developer.log(
+                        'Llamando a userService.deleteUser genérico',
+                        name: 'UserDetails-Delete',
+                      );
+                      await userService.deleteUser(
+                        userId: userId,
+                        academyId: currentAcademy.academyId,
+                        role: userRole,
+                      );
+                      eliminarExitoso = true;
+                  }
+                } catch (methodError) {
+                  developer.log(
+                    'ERROR en método específico de eliminación: $methodError',
+                    name: 'UserDetails-Delete',
+                    error: methodError,
+                  );
+                  
+                  // Intentar eliminar usando el método genérico como fallback
+                  if (!eliminarExitoso) {
+                    try {
+                      developer.log(
+                        'Intentando eliminación con método genérico como fallback',
+                        name: 'UserDetails-Delete',
+                      );
+                      
+                      await userService.deleteUser(
+                        userId: userId,
+                        academyId: currentAcademy.academyId,
+                        role: userRole,
+                      );
+                      
+                      eliminarExitoso = true;
+                      developer.log(
+                        'Eliminación exitosa con método genérico de fallback',
+                        name: 'UserDetails-Delete',
+                      );
+                    } catch (fallbackError) {
+                      developer.log(
+                        'ERROR en método genérico de fallback: $fallbackError',
+                        name: 'UserDetails-Delete',
+                        error: fallbackError,
+                      );
+                      rethrow; // Propagar el error para manejarlo en el bloque catch externo
+                    }
+                  }
                 }
                 
-                developer.log(
-                  'Llamando a userService.deleteUser',
-                  name: 'UserDetails',
-                );
-                
-                await userService.deleteUser(
-                  userId: userId,
-                  academyId: currentAcademy.id,
-                  role: userRole,
-                );
-                
-                developer.log(
-                  'Usuario eliminado exitosamente, cerrando pantallas',
-                  name: 'UserDetails',
-                );
-                
-                // Utilizamos un try-catch para manejar posibles problemas con el contexto
-                try {
+                if (eliminarExitoso) {
+                  developer.log(
+                    'Usuario eliminado exitosamente, cerrando pantallas',
+                    name: 'UserDetails-Delete',
+                  );
+                  
                   // Cerrar indicador de carga y pantalla de detalles
-                  if (contextMounted && context.mounted) {
-                    developer.log(
-                      'Context está montado, cerrando pantallas',
-                      name: 'UserDetails',
-                    );
-                    
-                    // Cerramos el diálogo de carga
-                    navigator.pop();
-                    
-                    developer.log(
-                      'Cerrando pantalla de detalles con resultado true',
-                      name: 'UserDetails',
-                    );
-                    Navigator.pop(context, true); // Devolver true para indicar que se eliminó el usuario
-                    
-                    // Mostrar mensaje de éxito
-                    developer.log(
-                      'Mostrando mensaje de éxito en eliminación',
-                      name: 'UserDetails',
-                    );
-                    
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(content: Text('${_getRoleName(userRole)} eliminado con éxito')),
-                    );
+                  if (navigator.mounted) { 
+                    try {
+                      // 1. Cerrar pantalla de detalles PRIMERO, devolviendo 'true'
+                      if (contextMounted && context.mounted) {
+                         developer.log(
+                           'Cerrando pantalla de detalles con resultado true',
+                           name: 'UserDetails-Delete',
+                         );
+                         Navigator.pop(context, true);
+                      } else {
+                         developer.log('Contexto original no montado para cerrar pantalla detalles', name:'UserDetails-Delete');
+                      }
+                      
+                      // 2. Cerrar diálogo de carga usando el navigator raíz DESPUÉS
+                      if (indicatorShown) {
+                        developer.log('Cerrando indicador de carga', name:'UserDetails-Delete');
+                        navigator.pop();
+                      }
+                      
+                      // 3. Mostrar mensaje de éxito (idealmente se mostraría en la pantalla anterior)
+                      developer.log('Mostrando SnackBar de éxito', name:'UserDetails-Delete');
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(content: Text('${_getRoleName(userRole)} eliminado con éxito')),
+                      );
+                    } catch (navigationError) {
+                      developer.log(
+                        'ERROR al cerrar pantallas: $navigationError',
+                        name: 'UserDetails-Delete',
+                        error: navigationError,
+                      );
+                    }
                   } else {
                     developer.log(
-                      'Context no está montado después de la eliminación, usando callback para actualizar listado',
-                      name: 'UserDetails',
-                    );
-                    
-                    // Aunque no podemos actualizar la UI directamente, 
-                    // el proceso de eliminación fue exitoso
-                    developer.log(
-                      'La eliminación fue exitosa aunque no podamos actualizar la UI',
-                      name: 'UserDetails',
+                      'Navigator no montado, no se puede cerrar indicador/pantalla',
+                      name: 'UserDetails-Delete',
                     );
                   }
-                } catch (uiError) {
-                  developer.log(
-                    'Error al actualizar UI después de eliminación: $uiError',
-                    name: 'UserDetails',
-                    error: uiError,
-                  );
-                  // La eliminación fue exitosa a pesar del error de UI
-                  developer.log(
-                    'Nota: La eliminación se completó exitosamente a pesar del error de UI',
-                    name: 'UserDetails',
-                  );
                 }
               } catch (e) {
                 developer.log(
                   'ERROR durante eliminación: $e',
-                  name: 'UserDetails',
+                  name: 'UserDetails-Delete',
                   error: e,
                 );
                 
-                // Imprimimos el stack trace para depuración
-                developer.log(
-                  'Stack trace: ${StackTrace.current}',
-                  name: 'UserDetails',
-                );
-                
-                // Intentamos cerrar el diálogo de carga incluso si el contexto 
-                // ya no está montado usando rootNavigator.maybePop
                 try {
-                  if (context.mounted) {
-                    developer.log(
-                      'Cerrando diálogo de carga después de error',
-                      name: 'UserDetails',
-                    );
-                    // Cerramos el diálogo de carga
-                    Navigator.of(context, rootNavigator: true).pop();
-                    
-                    // Mostrar mensaje de error
-                    developer.log(
-                      'Mostrando mensaje de error: $e',
-                      name: 'UserDetails',
-                    );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al eliminar: $e')),
-                    );
-                  } else {
-                    developer.log(
-                      'ERROR: Context no está montado después del error, no se puede mostrar mensaje',
-                      name: 'UserDetails',
-                    );
+                  // Usar navigator para cerrar el indicador
+                  if (indicatorShown && navigator.mounted) {
+                    navigator.pop();
                   }
+                  // Usar scaffoldMessenger capturado para mostrar error
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Error al eliminar: $e')),
+                  );
                 } catch (navigationError) {
                   developer.log(
                     'ERROR al intentar cerrar el diálogo después del error: $navigationError',
-                    name: 'UserDetails',
+                    name: 'UserDetails-Delete',
                     error: navigationError,
                   );
                 }
+              } finally {
+                developer.log(
+                  '----FIN: Proceso de eliminación desde UI----',
+                  name: 'UserDetails-Delete',
+                );
               }
             },
             child: const Text('Eliminar', style: TextStyle(color: Colors.red)),

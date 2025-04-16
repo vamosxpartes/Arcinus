@@ -71,7 +71,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
       // Si es un nuevo ejercicio, obtener el deporte de la academia actual
       final currentAcademy = ref.read(currentAcademyProvider);
       if (currentAcademy != null) {
-        _currentSport = currentAcademy.sport;
+        _currentSport = currentAcademy.academySport;
       } else {
         // Valor por defecto si no hay deporte en la academia
         _currentSport = 'General';
@@ -111,7 +111,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
       // Asegurarse de que tenemos un deporte válido
       final currentAcademy = ref.read(currentAcademyProvider);
       if (_currentSport.isEmpty || _currentSport == 'General') {
-        _currentSport = currentAcademy?.sport ?? 'General';
+        _currentSport = currentAcademy?.academySport ?? 'General';
       }
       
       if (widget.exercise == null) {
@@ -501,7 +501,7 @@ class _ExerciseDetailScreenState extends ConsumerState<ExerciseDetailScreen> {
     // Mostrar el deporte de solo lectura
     final currentAcademy = ref.watch(currentAcademyProvider);
     final sportDisplay = _currentSport.isEmpty ? 
-        (currentAcademy?.sport ?? 'General') : 
+        (currentAcademy?.academySport ?? 'General') : 
         _currentSport;
     
     return Form(

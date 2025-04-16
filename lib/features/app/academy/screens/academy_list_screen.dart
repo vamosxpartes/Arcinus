@@ -143,9 +143,9 @@ class _AcademyCard extends StatelessWidget {
             // Avatar o logo de academia
             Expanded(
               flex: 3,
-              child: academy.logo != null
+              child: academy.academyLogo != null
                   ? Image.network(
-                      academy.logo!,
+                      academy.academyLogo!,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
                       loadingBuilder: (context, child, loadingProgress) {
@@ -172,7 +172,7 @@ class _AcademyCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      academy.name,
+                      academy.academyName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -182,7 +182,7 @@ class _AcademyCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      academy.sport,
+                      academy.academySport,
                       style: TextStyle(
                         color: theme.colorScheme.primary,
                         fontSize: 14,
@@ -190,9 +190,9 @@ class _AcademyCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     // Mostrar número de atletas o grupos si están disponibles
-                    if (academy.athleteIds?.isNotEmpty == true)
+                    if (academy.academyAthleteIds?.isNotEmpty == true)
                       Text(
-                        '${academy.athleteIds!.length} atletas',
+                        '${academy.academyAthleteIds!.length} atletas',
                         style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant,

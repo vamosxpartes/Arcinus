@@ -4,6 +4,8 @@ import 'package:arcinus/features/app/groups/screen/group_list_screen.dart';
 import 'package:arcinus/features/app/users/user/screens/profile_screen.dart';
 import 'package:arcinus/features/navigation/components/custom_navigation_bar.dart';
 import 'package:arcinus/features/navigation/components/navigation_items.dart';
+import 'package:arcinus/features/navigation/core/models/navigation_item.dart';
+import 'package:arcinus/features/navigation/core/providers/navigation_providers.dart';
 import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,20 +19,42 @@ class MainScreen extends ConsumerStatefulWidget {
 
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentTab = 0;
-  // Instancia del servicio de navegación
-  final NavigationService _navigationService = NavigationService();
   
+  final Map<int, String> _tabRoutes = {
+    0: '/dashboard',
+    1: '/calendar',
+    2: '/groups',
+    3: '/chats',
+    4: '/profile',
+  };
+
   void _onTabTapped(int index) {
+    final route = _tabRoutes[index] ?? '/dashboard'; 
     setState(() {
       _currentTab = index;
     });
+    ref.read(currentRouteProvider.notifier).state = route;
+
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+       navigator.popUntil((route) => route.isFirst);
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+           if (mounted) {
+               ref.read(currentRouteProvider.notifier).state = route;
+           }
+       });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final String activeRoute = ref.watch(currentRouteProvider);
+    final List<NavigationItem> pinnedItems = ref.watch(pinnedItemsProvider);
+    final navigationService = ref.read(navigationServiceProvider);
+    
     return Scaffold(
       body: _buildBody(),
-      bottomNavigationBar: _buildCustomNavigationBar(),
+      bottomNavigationBar: _buildCustomNavigationBar(activeRoute, pinnedItems, navigationService),
     );
   }
 
@@ -39,7 +63,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       case 0:
         return const DashboardScreen();
       case 1:
-        return const ProfileScreen();
+        return const Center(child: Text('Pantalla Calendario (Pendiente)'));
       case 2:
         return const GroupListScreen();
       case 3:
@@ -51,70 +75,45 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
   }
 
-  Widget _buildCustomNavigationBar() {
+  Widget _buildCustomNavigationBar(String activeRoute, List<NavigationItem> pinnedItems, NavigationService navigationService) {
     return CustomNavigationBar(
-      pinnedItems: _navigationService.pinnedItems,
+      pinnedItems: pinnedItems,
       allItems: NavigationItems.allItems,
-      activeRoute: _getActiveRoute(),
+      activeRoute: activeRoute,
       onItemTap: (item) {
-        // Resolver la navegación basada en el índice de tab
         final route = item.destination;
-        switch (route) {
-          case '/dashboard':
-            // Simplemente cambiar al tab de dashboard en lugar de crear una nueva instancia
-            _onTabTapped(0);
-            // Si ya estamos en alguna ruta dentro de la aplicación, regresamos a la raíz
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              // No usamos pushReplacementNamed para evitar crear una nueva instancia
-            }
-            break;
-          case '/calendar':
-            _onTabTapped(1);
-            break;
-          case '/groups':
-            _onTabTapped(2);
-            break;
-          case '/chats':
-            _onTabTapped(3);
-            break;
-          case '/profile':
-            _onTabTapped(4);
-            break;
-          default:
-            // Para otras rutas, navegar directamente
-            _navigationService.navigateToRoute(context, route);
+        final tabIndex = _tabRoutes.entries.firstWhere(
+          (entry) => entry.value == route,
+          orElse: () => const MapEntry(-1, ''),
+        ).key;
+
+        if (tabIndex != -1) {
+          _onTabTapped(tabIndex);
+        } else {
+          navigationService.navigateToRoute(context, route);
         }
       },
       onItemLongPress: (item) {
-        if (_navigationService.togglePinItem(item, context: context)) {
-          setState(() {
-            // Actualizar la UI para reflejar cambios en elementos fijados
-          });
-        }
+        navigationService.togglePinItem(item, context: context);
       },
       onAddButtonTap: () {
-        _handleAddButtonTap();
+        _handleAddButtonTap(activeRoute, navigationService);
       },
     );
   }
   
-  void _handleAddButtonTap() {
-    final String activeRoute = _getActiveRoute();
-    
+  void _handleAddButtonTap(String activeRoute, NavigationService navigationService) {
     switch (activeRoute) {
       case '/trainings':
         Navigator.pushNamed(context, '/trainings/new');
         break;
       case '/users-management':
-        // Aquí podrías mostrar un diálogo para elegir qué tipo de usuario crear
         _showAddUserDialog();
         break;
       case '/academies':
         Navigator.pushNamed(context, '/create-academy');
         break;
       default:
-        // Por defecto no hacer nada o mostrar un mensaje
         break;
     }
   }
@@ -161,23 +160,5 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         ],
       ),
     );
-  }
-  
-  // Determinar la ruta activa basada en el tab actual
-  String _getActiveRoute() {
-    switch (_currentTab) {
-      case 0:
-        return '/dashboard';
-      case 1:
-        return '/calendar';
-      case 2:
-        return '/groups';
-      case 3:
-        return '/chats';
-      case 4:
-        return '/profile';
-      default:
-        return '/dashboard';
-    }
   }
 } 

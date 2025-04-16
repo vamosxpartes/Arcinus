@@ -53,12 +53,12 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
     if (currentAcademy != null) {
       try {
         // Cargar características específicas del deporte
-        _sportCharacteristics = SportCharacteristics.forSport(currentAcademy.sport);
+        _sportCharacteristics = SportCharacteristics.forSport(currentAcademy.academySport);
         
         // Actualizar categorías según el deporte
         setState(() {
-          _sports = ['All', currentAcademy.sport];
-          _selectedSport = currentAcademy.sport;
+          _sports = ['All', currentAcademy.academySport];
+          _selectedSport = currentAcademy.academySport;
           
           // Actualizar categorías con las del deporte
           _categories = ['All', ..._sportCharacteristics!.exerciseCategories];
@@ -300,6 +300,7 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (_selectedSport != 'All')
                       Padding(
@@ -338,15 +339,18 @@ class _ExerciseLibraryScreenState extends ConsumerState<ExerciseLibraryScreen> {
                         },
                       ),
                     const SizedBox(width: 8),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _selectedSport = 'All';
-                          _selectedCategory = 'All';
-                          _selectedDifficulty = 'All';
-                        });
-                      },
-                      child: const Text('Limpiar todo'),
+                    SizedBox(
+                      width: 120,
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedSport = 'All';
+                            _selectedCategory = 'All';
+                            _selectedDifficulty = 'All';
+                          });
+                        },
+                        child: const Text('Limpiar todo'),
+                      ),
                     ),
                   ],
                 ),

@@ -21,8 +21,10 @@ class AcademyController {
   Future<Academy> createAcademy({
     required String name,
     required String sport,
-    String? logo,
-    String? location,
+    String? academyFormattedAddress,
+    double? academyLatitude,
+    double? academyLongitude,
+    String? academyGooglePlaceId,
     String? taxId,
     String? description,
     Map<String, dynamic>? sportConfig,
@@ -53,15 +55,17 @@ class AcademyController {
       name: name,
       ownerId: user.id,
       sport: sport,
-      logo: logo,
-      location: location,
+      academyFormattedAddress: academyFormattedAddress,
+      academyLatitude: academyLatitude,
+      academyLongitude: academyLongitude,
+      academyGooglePlaceId: academyGooglePlaceId,
       taxId: taxId,
       description: description,
       sportConfig: sportConfig,
       subscription: subscription,
     );
     
-    developer.log('DEBUG: AcademyController.createAcademy - Academia creada exitosamente: ${academy.id}');
+    developer.log('DEBUG: AcademyController.createAcademy - Academia creada exitosamente: ${academy.academyId}');
 
     // Actualizar la lista de academias
     developer.log('DEBUG: AcademyController.createAcademy - Invalidando providers');
@@ -74,7 +78,7 @@ class AcademyController {
     developer.log('DEBUG: AcademyController.createAcademy - Academias actualizadas: ${academies.length}');
     
     if (academies.length == 1) {
-      developer.log('DEBUG: AcademyController.createAcademy - Estableciendo como academia actual: ${academy.id}');
+      developer.log('DEBUG: AcademyController.createAcademy - Estableciendo como academia actual: ${academy.academyId}');
       _ref.read(currentAcademyProvider.notifier).state = academy;
     }
 
@@ -92,7 +96,7 @@ class AcademyController {
     
     // Actualizar la academia actual si es la misma
     final currentAcademy = _ref.read(currentAcademyProvider);
-    if (currentAcademy?.id == academy.id) {
+    if (currentAcademy?.academyId == academy.academyId) {
       _ref.read(currentAcademyProvider.notifier).state = academy;
     }
     
@@ -107,10 +111,21 @@ class AcademyController {
     // Refrescar la academia actual y la lista
     _ref.invalidate(userAcademiesProvider);
     
-    final currentAcademy = _ref.read(currentAcademyProvider);
-    if (currentAcademy?.id == academyId) {
-      final updatedAcademy = currentAcademy!.copyWith(logo: downloadUrl);
-      _ref.read(currentAcademyProvider.notifier).state = updatedAcademy;
+    // Obtener la academia actualizada desde el repositorio para asegurar que tenemos todos los campos
+    // Esto es importante si la subida del logo se hace inmediatamente después de crear
+    final updatedAcademyFromRepo = await _academyRepository.getAcademy(academyId);
+
+    if (updatedAcademyFromRepo != null) {
+      developer.log('DEBUG: AcademyController.uploadAcademyLogo - Academia encontrada después de subir logo: ${updatedAcademyFromRepo.academyId}');
+      // Actualizar el estado del provider con la academia completa
+      _ref.read(currentAcademyProvider.notifier).state = updatedAcademyFromRepo.copyWith(academyLogo: downloadUrl);
+    } else {
+      developer.log('WARN: AcademyController.uploadAcademyLogo - No se pudo encontrar la academia $academyId después de subir el logo.');
+      // Intentar actualizar solo el logo en el estado actual si existe
+      final currentAcademy = _ref.read(currentAcademyProvider);
+      if (currentAcademy?.academyId == academyId) {
+        _ref.read(currentAcademyProvider.notifier).state = currentAcademy!.copyWith(academyLogo: downloadUrl);
+      }
     }
     
     return downloadUrl;
@@ -122,7 +137,7 @@ class AcademyController {
     
     // Si es la academia actual, establecer a null
     final currentAcademy = _ref.read(currentAcademyProvider);
-    if (currentAcademy?.id == academyId) {
+    if (currentAcademy?.academyId == academyId) {
       _ref.read(currentAcademyProvider.notifier).state = null;
     }
     

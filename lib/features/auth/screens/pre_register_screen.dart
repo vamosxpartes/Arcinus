@@ -1,8 +1,8 @@
 import 'dart:developer' as developer;
 
+import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
-import 'package:arcinus/features/auth/core/providers/pre_registration_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -15,13 +15,9 @@ class PreRegisterScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(authStateProvider).valueOrNull;
-    final preRegisteredUsersAsync = ref.watch(preRegisteredUsersProvider);
     
     // Form para crear nuevo pre-registro
     final form = useMemoized(() => FormGroup({
-      'email': FormControl<String>(
-        validators: [Validators.required, Validators.email]
-      ),
       'name': FormControl<String>(validators: [Validators.required]),
       'role': FormControl<UserRole>(validators: [Validators.required]),
     }));
@@ -33,29 +29,42 @@ class PreRegisterScreen extends HookConsumerWidget {
     Future<void> createNewPreRegistration() async {
       if (form.invalid || currentUser == null) return;
       
+      final currentAcademyId = ref.read(currentAcademyIdProvider);
+      if (currentAcademyId == null) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error: No se pudo determinar la academia actual.')),
+            );
+          }
+          developer.log('ERROR: PreRegisterScreen - academyId es nulo al crear pre-registro');
+          return;
+      }
+      // Asignar a variable local no nula para ayudar al linter
+      final String academyId = currentAcademyId;
+      
       isCreating.value = true;
       createdCode.value = null;
       
       try {
-        final email = form.control('email').value as String;
         final name = form.control('name').value as String;
         final role = form.control('role').value as UserRole;
         
-        final preRegisteredUser = await ref.read(createPreRegisteredUserProvider(
-          email: email, 
-          name: name, 
-          role: role, 
-          createdBy: currentUser.id
+        // Usar el provider correcto: createPendingActivationProvider
+        final String activationCode = await ref.read(createPendingActivationProvider(
+          academyId: academyId, // Pasar la variable local no nula
+          userName: name,
+          role: role,
+          createdBy: currentUser.id // Linter puede marcar esto, pero la lógica es correcta
         ).future);
         
-        createdCode.value = preRegisteredUser.activationCode;
+        createdCode.value = activationCode;
         form.reset();
         
-        developer.log('DEBUG: PreRegisterScreen - Usuario pre-registrado creado con código: ${preRegisteredUser.activationCode} - lib/features/auth/screens/pre_register_screen.dart - createNewPreRegistration');
+        developer.log('DEBUG: PreRegisterScreen - Usuario pre-registrado creado con código: $activationCode - lib/features/auth/screens/pre_register_screen.dart - createNewPreRegistration');
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e')),
+            SnackBar(content: Text('Error al crear pre-registro: $e')),
           );
         }
         developer.log('ERROR: PreRegisterScreen - Error al crear pre-registro: $e - lib/features/auth/screens/pre_register_screen.dart - createNewPreRegistration');
@@ -64,7 +73,8 @@ class PreRegisterScreen extends HookConsumerWidget {
       }
     }
     
-    // Función para eliminar un pre-registro
+    // Función para eliminar un pre-registro (Comentada - Provider inexistente)
+    /*
     Future<void> deletePreRegistration(String id) async {
       try {
         await ref.read(deletePreRegisteredUserProvider(id).future);
@@ -81,6 +91,7 @@ class PreRegisterScreen extends HookConsumerWidget {
         }
       }
     }
+    */
     
     return Scaffold(
       appBar: AppBar(
@@ -111,18 +122,6 @@ class PreRegisterScreen extends HookConsumerWidget {
                       formGroup: form,
                       child: Column(
                         children: [
-                          ReactiveTextField<String>(
-                            formControlName: 'email',
-                            decoration: const InputDecoration(
-                              labelText: 'Correo Electrónico',
-                              hintText: 'ejemplo@correo.com',
-                            ),
-                            validationMessages: {
-                              'required': (error) => 'El correo es obligatorio',
-                              'email': (error) => 'Ingrese un correo válido',
-                            },
-                          ),
-                          const SizedBox(height: 16),
                           ReactiveTextField<String>(
                             formControlName: 'name',
                             decoration: const InputDecoration(
@@ -193,7 +192,7 @@ class PreRegisterScreen extends HookConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            SelectableText(
                               createdCode.value!,
                               style: TextStyle(
                                 fontSize: 24,
@@ -224,107 +223,19 @@ class PreRegisterScreen extends HookConsumerWidget {
                   ],
                 ),
               ),
-            ),
-            
-            // Lista de usuarios pre-registrados
-            const Text(
-              'Usuarios Pre-registrados',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            preRegisteredUsersAsync.when(
-              data: (preRegisteredUsers) {
-                if (preRegisteredUsers.isEmpty) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Center(
-                        child: Text('No hay usuarios pre-registrados'),
-                      ),
-                    ),
-                  );
-                }
-                
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: preRegisteredUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = preRegisteredUsers[index];
-                    final isExpired = user.expiresAt.isBefore(DateTime.now());
-                    
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        title: Text(user.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user.email),
-                            Text('Rol: ${_getRoleName(user.role)}'),
-                            Text(
-                              user.isUsed 
-                                ? 'Código utilizado' 
-                                : isExpired 
-                                  ? 'Código expirado' 
-                                  : 'Expiración: ${_formatDate(user.expiresAt)}',
-                              style: TextStyle(
-                                color: user.isUsed || isExpired
-                                  ? Colors.red
-                                  : Colors.green,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (!user.isUsed && !isExpired)
-                              IconButton(
-                                icon: const Icon(Icons.copy),
-                                onPressed: () {
-                                  Clipboard.setData(
-                                    ClipboardData(text: user.activationCode),
-                                  );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Código copiado al portapapeles'),
-                                      duration: Duration(seconds: 1),
-                                    ),
-                                  );
-                                },
-                                tooltip: 'Copiar código',
-                              ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => deletePreRegistration(user.id),
-                              tooltip: 'Eliminar pre-registro',
-                            ),
-                          ],
-                        ),
-                        isThreeLine: true,
-                      ),
-                    );
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error: $error'),
-              ),
-            ),
+            ),            // Mostrar mensaje temporal mientras no se implementa el listado
+             const Center(child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Funcionalidad de listar/eliminar pre-registros pendiente de implementación.'),
+             )),
           ],
         ),
       ),
     );
   }
   
-  String _getRoleName(UserRole role) {
+  String _getRoleName(UserRole? role) {
+    if (role == null) return 'Rol desconocido';
     switch (role) {
       case UserRole.owner:
         return 'Propietario';
@@ -343,10 +254,4 @@ class PreRegisterScreen extends HookConsumerWidget {
     }
   }
   
-  String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year.toString();
-    return '$day/$month/$year';
-  }
 } 

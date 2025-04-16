@@ -47,7 +47,7 @@ class CoachTab extends ConsumerWidget {
       );
     }
     
-    final coachesData = ref.watch(coachesProvider(currentAcademy.id));
+    final coachesData = ref.watch(coachesProvider(currentAcademy.academyId));
     
     return coachesData.when(
       data: (coaches) {
@@ -95,7 +95,7 @@ class CoachTab extends ConsumerWidget {
                 ),
                 title: Text(coach.name),
                 subtitle: Text(coach.email),
-                onTap: () => _editCoach(context, ref, coach.id, currentAcademy.id),
+                onTap: () => _editCoach(context, ref, coach.id, currentAcademy.academyId),
               ),
             );
           },

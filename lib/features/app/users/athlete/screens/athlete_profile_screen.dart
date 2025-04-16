@@ -48,7 +48,7 @@ class _AthleteProfileScreenState extends ConsumerState<AthleteProfileScreen> {
 
     try {
       final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
+      final academyId = widget.academyId ?? currentAcademy?.academyId;
       
       if (academyId == null) {
         throw Exception('No se ha seleccionado una academia');
@@ -68,10 +68,10 @@ class _AthleteProfileScreenState extends ConsumerState<AthleteProfileScreen> {
       // Cargar características específicas del deporte
       if (_academy != null) {
         try {
-          _sportCharacteristics = SportCharacteristics.forSport(_academy!.sport);
+          _sportCharacteristics = SportCharacteristics.forSport(_academy!.academySport);
         } catch (e) {
           // Si el deporte no está soportado, no mostramos características específicas
-          developer.log('Deporte no soportado: ${_academy!.sport}');
+          developer.log('Deporte no soportado: ${_academy!.academySport}');
         }
       }
     } catch (e) {
@@ -125,7 +125,7 @@ class _AthleteProfileScreenState extends ConsumerState<AthleteProfileScreen> {
                 '/athletes/edit',
                 arguments: {
                   'userId': _user!.id,
-                  'academyId': _academy?.id,
+                  'academyId': _academy?.academyId,
                 },
               ).then((_) => _loadAthleteData());
             },
@@ -249,7 +249,7 @@ class _AthleteProfileScreenState extends ConsumerState<AthleteProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Información de ${_academy?.sport ?? "Deporte"}',
+              'Información de ${_academy?.academySport ?? "Deporte"}',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -340,7 +340,7 @@ class _AthleteProfileScreenState extends ConsumerState<AthleteProfileScreen> {
                       '/athletes/stats/edit',
                       arguments: {
                         'userId': _user!.id,
-                        'academyId': _academy?.id,
+                        'academyId': _academy?.academyId,
                         'sportCharacteristics': _sportCharacteristics,
                       },
                     ).then((_) => _loadAthleteData());

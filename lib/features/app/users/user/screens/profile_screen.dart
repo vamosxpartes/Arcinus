@@ -1,7 +1,7 @@
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
-import 'package:arcinus/features/navigation/components/base_scaffold.dart';
+import 'package:arcinus/features/navigation/components/auth_scaffold.dart';
 import 'package:arcinus/features/theme/core/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +16,12 @@ class ProfileScreen extends ConsumerWidget {
     return authState.when(
       data: (user) {
         if (user == null) {
-          return _buildNotLoggedInView();
+          // El AuthScaffold se encargará de redirigir automáticamente
+          return const AuthScaffold(
+            body: Center(
+              child: CircularProgressIndicator(color: AppTheme.embers),
+            ),
+          );
         }
         return _buildProfileContent(context, ref, user);
       },
@@ -32,34 +37,9 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
   
-  Widget _buildNotLoggedInView() {
-    return const BaseScaffold(
-      showNavigation: false,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.account_circle_rounded,
-              size: 100,
-              color: AppTheme.mediumGray,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Inicia sesión para ver tu perfil',
-              style: TextStyle(
-                fontSize: AppTheme.h3Size,
-                color: AppTheme.magnoliaWhite,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-  
   Widget _buildProfileContent(BuildContext context, WidgetRef ref, User user) {
-    return BaseScaffold(
+    return AuthScaffold(
+      showNavigation: false,
       appBar: AppBar(
         title: const Text('Mi Perfil'),
         backgroundColor: Colors.transparent,
@@ -194,7 +174,7 @@ class ProfileScreen extends ConsumerWidget {
     
     return _buildInfoCard(
       title: 'Suscripción Arcinus',
-      content: _getSubscriptionText(academyState.subscription),
+      content: _getSubscriptionText(academyState.academySubscription),
       icon: Icons.workspace_premium,
       iconColor: AppTheme.goldTrophy,
     );
@@ -215,12 +195,12 @@ class ProfileScreen extends ConsumerWidget {
       children: [
         _buildInfoCard(
           title: 'Academia',
-          content: academyState.name,
+          content: academyState.academyName,
           icon: Icons.sports,
         ),
         _buildInfoCard(
           title: 'Deporte',
-          content: academyState.sport,
+          content: academyState.academySport,
           icon: Icons.sports_basketball,
         ),
       ],
@@ -242,12 +222,12 @@ class ProfileScreen extends ConsumerWidget {
       children: [
         _buildInfoCard(
           title: 'Academia de tus atletas',
-          content: academyState.name,
+          content: academyState.academyName,
           icon: Icons.family_restroom,
         ),
         _buildInfoCard(
           title: 'Deporte',
-          content: academyState.sport,
+          content: academyState.academySport,
           icon: Icons.sports_basketball,
         ),
       ],
@@ -269,12 +249,12 @@ class ProfileScreen extends ConsumerWidget {
       children: [
         _buildInfoCard(
           title: 'Academia',
-          content: academyState.name,
+          content: academyState.academyName,
           icon: Icons.school,
         ),
         _buildInfoCard(
           title: 'Deporte',
-          content: academyState.sport,
+          content: academyState.academySport,
           icon: Icons.sports_basketball,
         ),
       ],
@@ -296,12 +276,12 @@ class ProfileScreen extends ConsumerWidget {
       children: [
         _buildInfoCard(
           title: 'Academia',
-          content: academyState.name,
+          content: academyState.academyName,
           icon: Icons.business,
         ),
         _buildInfoCard(
           title: 'Propietario',
-          content: 'ID: ${academyState.ownerId}',
+          content: 'ID: ${academyState.academyOwnerId}',
           icon: Icons.person,
         ),
       ],

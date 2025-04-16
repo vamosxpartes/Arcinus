@@ -3,17 +3,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // This rule allows anyone with your Firestore database reference to view, edit,
-    // and delete all data in your Firestore database. It is useful for getting
-    // started, but it is configured to expire after 30 days because it
-    // leaves your app open to attackers. At that time, all client
-    // requests to your Firestore database will be denied.
-    //
-    // Make sure to write security rules for your app before that time, or else
-    // all client requests to your Firestore database will be denied until you Update
-    // your rules
-    match /{document=**} {
-      allow read, write: if request.time < timestamp.date(2025, 4, 14);
+    // Usuarios pueden gestionar su propio documento
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Superadmins pueden gestionar su propio documento
+    match /superadmins/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Owners pueden gestionar su propio documento (necesario para actualizar academyIds)
+    match /owners/{userId} {
+      allow read: if request.auth != null;
+      // Permitir actualización si el usuario es el mismo propietario del documento
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Usuarios dentro de la subcolección de una academia
+    match /academies/{academyId}/users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (
+        request.auth.uid == userId || // El propio usuario
+        exists(/databases/$(database)/documents/superadmins/$(request.auth.uid)) || // Un superadmin
+        // Un owner (asumiendo que el documento de academia tiene un campo ownerId)
+        // Si no, puedes volver a usar exists(/databases/$(database)/documents/owners/$(request.auth.uid))
+        get(/databases/$(database)/documents/academies/$(academyId)).data.ownerId == request.auth.uid
+      );
+    }
+
+    // Reglas para la colección de Academias
+    match /academies/{academyId} {
+      // Cualquiera autenticado puede leer detalles de la academia
+      allow read: if request.auth != null;
+
+      // Solo Owners o Superadmins autenticados pueden CREAR academias
+      // Y deben asignarse a sí mismos como ownerId
+      allow create: if request.auth != null &&
+                       (exists(/databases/$(database)/documents/owners/$(request.auth.uid)) ||
+                        exists(/databases/$(database)/documents/superadmins/$(request.auth.uid))) &&
+                       request.resource.data.academyOwnerId == request.auth.uid;
+
+      // Permitir actualización si el usuario es el propietario de la academia
+      allow update, delete: if request.auth != null &&
+                      (get(/databases/$(database)/documents/academies/$(academyId)).data.academyOwnerId == request.auth.uid ||
+                       exists(/databases/$(database)/documents/superadmins/$(request.auth.uid)));
     }
   }
 }

@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Rules for Documentation Updates
+
+When updating or adding features to the application, follow these rules to keep documentation up to date:
+
+1. **Mandatory updates**: Every time you modify or add a feature in `lib/features`, you must update the corresponding documentation file in `lib/docs/features`.
+
+2. **Update structure**:
+   - If you modify an existing feature, update the corresponding `.md` file in the `lib/docs/features` folder
+   - If you create a new feature, create a new `.md` file following the same structure as existing ones
+
+3. **Documentation format**:
+   - Maintain the existing section structure (Name, Purpose, Structure, Components, etc.)
+   - Update the "Change Log" section with your modifications
+   - Update diagrams or technical explanations if the architecture changes
+
+4. **Review process**:
+   - PRs without updated documentation will not be accepted
+   - Reviewers will verify that documentation correctly reflects the changes made
+
+5. **General documentation**:
+   - If changes affect the general vision of the application, also update `lib/docs/documentation.md`
+
+Remember: A well-documented application facilitates onboarding new developers and improves maintenance quality.

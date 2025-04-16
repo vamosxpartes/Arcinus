@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:arcinus/features/navigation/core/models/navigation_item.dart';
 import 'package:flutter/material.dart';
 
@@ -124,16 +126,21 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with TickerPr
   
   // Construye los elementos de navegación con el botón de agregar en la posición adecuada
   List<Widget> _buildNavigationItems() {
-    final List<Widget> items = widget.pinnedItems.map((item) => _buildNavigationButton(
-      context,
-      item,
-      onTap: () => widget.onItemTap(item),
-      onLongPress: widget.onItemLongPress != null 
-          ? () => widget.onItemLongPress!(item)
-          : null,
-      isPinned: true,
-      isActive: item.destination == widget.activeRoute,
-    )).toList();
+    developer.log('DEBUG: CustomNavigationBar - Construyendo ítems de navegación. Ruta activa: ${widget.activeRoute}');
+    final List<Widget> items = widget.pinnedItems.map((item) {
+      final isActive = item.destination == widget.activeRoute;
+      developer.log('DEBUG: CustomNavigationBar - Ítem: ${item.label}, Destino: ${item.destination}, Activo: $isActive');
+      return _buildNavigationButton(
+        context,
+        item,
+        onTap: () => widget.onItemTap(item),
+        onLongPress: widget.onItemLongPress != null 
+            ? () => widget.onItemLongPress!(item)
+            : null,
+        isPinned: true,
+        isActive: isActive,
+      );
+    }).toList();
     
     // Verificar si debemos mostrar el botón de agregar
     if (_routeHasCreationFunction() && widget.onAddButtonTap != null) {
@@ -158,6 +165,7 @@ class _CustomNavigationBarState extends State<CustomNavigationBar> with TickerPr
 
   @override
   Widget build(BuildContext context) {
+    developer.log('DEBUG: CustomNavigationBar - Construyendo barra de navegación. Ruta activa: ${widget.activeRoute}');
     Theme.of(context);
     final hasAdditionalItems = widget.allItems.isNotEmpty;
     

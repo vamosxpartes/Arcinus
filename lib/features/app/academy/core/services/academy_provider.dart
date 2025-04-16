@@ -27,7 +27,7 @@ final autoLoadAcademyProvider = Provider<void>((ref) {
           try {
             final academy = await academyRepo.getAcademy(user.academyIds.first);
             if (academy != null) {
-              developer.log('DEBUG: autoLoadAcademyProvider - Academia cargada: ${academy.id} - ${academy.name}');
+              developer.log('DEBUG: autoLoadAcademyProvider - Academia cargada: ${academy.academyId} - ${academy.academyName}');
               // Actualiza la academia seleccionada
               ref.read(currentAcademyProvider.notifier).state = academy;
             } else {
@@ -60,7 +60,7 @@ final autoLoadAcademyProvider = Provider<void>((ref) {
         final currentAcademy = ref.read(currentAcademyProvider);
         
         if (currentAcademy == null) {
-          developer.log('DEBUG: autoLoadAcademyProvider - Seleccionando primera academia de la lista: ${academies.first.id}');
+          developer.log('DEBUG: autoLoadAcademyProvider - Seleccionando primera academia de la lista: ${academies.first.academyId}');
           ref.read(currentAcademyProvider.notifier).state = academies.first;
         }
       }
@@ -76,7 +76,7 @@ final currentAcademyIdProvider = Provider<String?>((ref) {
   ref.watch(autoLoadAcademyProvider);
   
   final currentAcademy = ref.watch(currentAcademyProvider);
-  return currentAcademy?.id;
+  return currentAcademy?.academyId;
 });
 
 // Provider para la lista de academias del usuario actual
@@ -102,6 +102,23 @@ final needsAcademyCreationProvider = FutureProvider<bool>((ref) async {
   
   final academies = await ref.watch(userAcademiesProvider.future);
   return academies.isEmpty;
+});
+
+// Provider para obtener la lista de TODAS las academias (para selección, etc.)
+final allAcademiesProvider = FutureProvider<List<Academy>>((ref) async {
+  developer.log('DEBUG: allAcademiesProvider - Obteniendo todas las academias desde el repositorio');
+  final academyRepository = ref.watch(academyRepositoryProvider);
+  try {
+    final academies = await academyRepository.getAllAcademies();
+    developer.log('DEBUG: allAcademiesProvider - Academias obtenidas: ${academies.length}');
+    // Ordenar alfabéticamente por nombre para la lista
+    academies.sort((a, b) => a.academyName.toLowerCase().compareTo(b.academyName.toLowerCase()));
+    return academies;
+  } catch (e) {
+    developer.log('ERROR: allAcademiesProvider - Error al obtener todas las academias: $e');
+    // Devolver lista vacía o lanzar error según se prefiera
+    return []; 
+  }
 });
 
 // Provider para operaciones de academias

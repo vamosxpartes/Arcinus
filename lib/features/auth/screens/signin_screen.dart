@@ -1,6 +1,9 @@
 import 'dart:developer' as developer;
 
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
+import 'package:arcinus/features/navigation/components/auth_scaffold.dart';
+import 'package:arcinus/features/navigation/core/services/navigation_service.dart';
+import 'package:arcinus/features/theme/core/arcinus_colors.dart';
 import 'package:flutter/material.dart'; 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -108,7 +111,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         // Evitar mostrar el error técnico directamente al usuario
         finalGeneralError = 'Ocurrió un error inesperado al iniciar sesión. Por favor, inténtalo de nuevo.';
         // Loguear el error real para depuración
-        developer.log('Error de inicio de sesión no manejado específicamente: $e');
+        developer.log('ERROR: SignInScreen - Error de inicio de sesión no manejado específicamente: $e - lib/features/auth/screens/signin_screen.dart - _signIn');
       }
       
       // Actualizar el estado con los errores finales
@@ -130,8 +133,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final navigationService = ref.read(navigationServiceProvider);
     
-    return Scaffold(
+    return AuthScaffold(
+      showNavigation: false,
+      redirectOnUnauthenticated: false, // No necesitamos redirección en la pantalla de login
       body: SafeArea(
         child: Stack(
           children: [
@@ -141,7 +147,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               left: 10,
               child: IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => navigationService.navigateToRoute(context, '/login'),
               ),
             ),
             
@@ -192,23 +198,23 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                         margin: const EdgeInsets.only(bottom: 24),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.error.withAlpha(30),
+                          color: ArcinusColors.error.withAlpha(30),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: theme.colorScheme.error),
+                          border: Border.all(color: ArcinusColors.error),
                         ),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.error_outline,
-                              color: theme.colorScheme.error,
+                              color: ArcinusColors.error,
                               size: 24,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 _generalError!,
-                                style: TextStyle(
-                                  color: theme.colorScheme.error,
+                                style: const TextStyle(
+                                  color: ArcinusColors.error,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -252,8 +258,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   horizontal: 16,
                                 ),
                                 errorText: _emailError,
-                                errorStyle: TextStyle(
-                                  color: theme.colorScheme.error,
+                                errorStyle: const TextStyle(
+                                  color: ArcinusColors.error,
                                 ),
                               ),
                               onChanged: (value) {
@@ -314,8 +320,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                   horizontal: 16,
                                 ),
                                 errorText: _passwordError,
-                                errorStyle: TextStyle(
-                                  color: theme.colorScheme.error,
+                                errorStyle: const TextStyle(
+                                  color: ArcinusColors.error,
                                 ),
                               ),
                               onChanged: (value) {
@@ -341,7 +347,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () {
-                                Navigator.of(context).pushNamed('/forgot-password');
+                                navigationService.navigateToRoute(context, '/forgot-password');
                               },
                               style: TextButton.styleFrom(
                                 shape: RoundedRectangleBorder(
@@ -398,6 +404,23 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                         Icon(Icons.arrow_forward),
                                       ],
                                     ),
+                            ),
+                          ),
+                          
+                          // Botón para activar cuenta
+                          const SizedBox(height: 16),
+                          TextButton.icon(
+                            onPressed: () {
+                              // Navegar a la pantalla de selección de academia
+                              navigationService.navigateToRoute(context, '/select-academy');
+                            },
+                            icon: const Icon(Icons.qr_code),
+                            label: const Text('Activar cuenta con código'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                                horizontal: 16,
+                              ),
                             ),
                           ),
                         ],

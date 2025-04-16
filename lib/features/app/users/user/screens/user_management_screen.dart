@@ -17,7 +17,7 @@ import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/models/user_form_container.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_management_provider.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
-import 'package:arcinus/features/navigation/components/base_scaffold.dart';
+import 'package:arcinus/features/navigation/components/auth_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -79,7 +79,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     final isSuperAdmin = user?.role == UserRole.superAdmin;
     final userManagementState = ref.watch(userManagementProvider);
     
-    return BaseScaffold(
+    return AuthScaffold(
       appBar: AppBar(
         title: const Text('Gestión de Usuarios'),
         bottom: TabBar(
@@ -166,7 +166,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           MaterialPageRoute(
             builder: (context) => AthleteFormScreen(
               mode: AthleteFormMode.create,
-              academyId: currentAcademy.id,
+              academyId: currentAcademy.academyId,
             ),
           ),
         ).then((result) {
@@ -181,7 +181,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           MaterialPageRoute(
             builder: (context) => CoachFormScreen(
               mode: CoachFormMode.create,
-              academyId: currentAcademy.id,
+              academyId: currentAcademy.academyId,
             ),
           ),
         ).then((result) {
@@ -196,7 +196,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           MaterialPageRoute(
             builder: (context) => ManagerFormScreen(
               mode: ManagerFormMode.create,
-              academyId: currentAcademy.id,
+              academyId: currentAcademy.academyId,
             ),
           ),
         ).then((result) {
@@ -211,7 +211,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
           MaterialPageRoute(
             builder: (context) => ParentFormScreen(
               mode: ParentFormMode.create,
-              academyId: currentAcademy.id,
+              academyId: currentAcademy.academyId,
             ),
           ),
         ).then((result) {
@@ -237,13 +237,13 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
     // Invalidar los providers correspondientes según el rol
     switch (role) {
       case UserRole.athlete:
-        ref.invalidate(athletesProvider(currentAcademy.id));
+        ref.invalidate(athletesProvider(currentAcademy.academyId));
         break;
       case UserRole.coach:
-        ref.invalidate(coachesProvider(currentAcademy.id));
+        ref.invalidate(coachesProvider(currentAcademy.academyId));
         break;
       case UserRole.manager:
-        ref.invalidate(managersProvider(currentAcademy.id));
+        ref.invalidate(managersProvider(currentAcademy.academyId));
         break;
       case UserRole.parent:
         ref.invalidate(parentsProvider);

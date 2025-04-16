@@ -11,5 +11,5 @@ final parentsProvider = FutureProvider.autoDispose<List<User>>((ref) async {
   }
 
   final userService = ref.read(userServiceProvider);
-  return userService.getUsersByRole(UserRole.parent, academyId: currentAcademy.id);
+  return userService.getUsersByRole(UserRole.parent, academyId: currentAcademy.academyId);
 }); 

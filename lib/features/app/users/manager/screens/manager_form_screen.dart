@@ -1,9 +1,13 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/components/profile_image_picker.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
-import 'package:arcinus/features/app/users/user/core/services/user_image_service.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
+import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -12,13 +16,13 @@ enum ManagerFormMode { create, edit }
 class ManagerFormScreen extends ConsumerStatefulWidget {
   final ManagerFormMode mode;
   final String? userId; // Requerido para modo edición
-  final String? academyId; // Si es nulo, se usará la academia actual
+  final String? academyId; // Es nullable
 
   const ManagerFormScreen({
     super.key,
     required this.mode,
     this.userId,
-    this.academyId,
+    required this.academyId, // Requerido en constructor
   }) : assert(mode == ManagerFormMode.create || userId != null,
             'userId es requerido en modo edición');
 
@@ -29,8 +33,6 @@ class ManagerFormScreen extends ConsumerStatefulWidget {
 class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _positionController = TextEditingController();
@@ -40,6 +42,7 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
   User? _user;
   bool _isLoading = false;
   String? _errorMsg;
+  String? _preRegCode; // Para almacenar el código generado
   
   // Variables para manejar la imagen de perfil
   String? _localImagePath; // Ruta local de la imagen seleccionada
@@ -55,8 +58,6 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     _positionController.dispose();
@@ -72,7 +73,7 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
 
     try {
       final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
+      final academyId = widget.academyId ?? currentAcademy?.academyId;
       
       if (academyId == null) {
         throw Exception('No se ha seleccionado una academia');
@@ -87,7 +88,6 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
       
       // Llenar formulario con datos básicos del usuario
       _nameController.text = _user!.name;
-      _emailController.text = _user!.email;
       
       // Aquí podríamos cargar información adicional específica del manager
       // si se implementa un repositorio específico para perfiles de gerentes
@@ -103,67 +103,79 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
     }
   }
   
-  Future<void> _saveManager() async {
+  Future<void> _saveForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-    
+
+    _formKey.currentState!.save();
     setState(() {
       _isLoading = true;
       _errorMsg = null;
+      _preRegCode = null;
     });
-    
+
     try {
-      final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
-      
+      final currentUser = ref.read(authStateProvider).valueOrNull;
+      final String? academyId = widget.academyId;
+      String? finalProfileImageUrl = _user?.profileImageUrl;
+
       if (academyId == null) {
-        throw Exception('No se ha seleccionado una academia');
+        setState(() {
+          _errorMsg = 'Error: No se pudo determinar la academia actual.';
+          _isLoading = false;
+        });
+        developer.log('ERROR: _saveForm - academyId es nulo desde el widget.', name: 'ManagerForm');
+        return; // Detener si no hay ID
       }
-      
-      final userService = ref.read(userServiceProvider);
-      String? finalProfileImageUrl = _user?.profileImageUrl; // Mantener la URL existente por defecto
-      
-      // Si hay una nueva imagen seleccionada, subirla a Firebase Storage
-      if (_localImagePath != null) {
-        final userImageService = ref.read(userImageServiceProvider);
-        finalProfileImageUrl = await userImageService.uploadProfileImage(
-          imagePath: _localImagePath!,
-          userId: _user?.id,
-        );
+
+      // Subir imagen si se seleccionó una nueva (solo en modo edición)
+      if (_localImagePath != null && widget.mode == ManagerFormMode.edit && _user != null) {
+        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_localImagePath', name: 'ManagerForm');
+        File imageFileToUpload = File(_localImagePath!); 
+        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
+              imageFileToUpload, 
+              _user!.id,
+            );
+        finalProfileImageUrl = imageUrl;
+      } else if (_localImagePath != null && widget.mode == ManagerFormMode.create) {
+         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'ManagerForm');
       }
-      
-      // Modo creación
+
+      // Modo creación (pre-registro)
       if (widget.mode == ManagerFormMode.create) {
-        await userService.createManager(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          academyId: academyId,
-          profileImageUrl: finalProfileImageUrl,
-        );
-        
+        final String userName = _nameController.text.trim();
+        final String createdBy = currentUser?.id ?? 'unknown';
+
+        developer.log('INFO: Llamando a createPendingActivationProvider para Manager - academyId: $academyId, name: $userName, createdBy: $createdBy', name: 'ManagerForm');
+
+        // Usar el nuevo provider createPendingActivationProvider
+        final String activationCode = await ref.read(createPendingActivationProvider(
+          academyId: academyId, // Pasar academyId validado
+          userName: userName,
+          role: UserRole.manager,
+          createdBy: createdBy,
+        ).future);
+
+        setState(() {
+          _preRegCode = activationCode;
+          _isLoading = false;
+        });
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Gerente creado correctamente')),
-          );
-          Navigator.of(context).pop(true);
+          _showActivationCodeDialog(_preRegCode!); 
         }
       }
       // Modo edición
       else if (_user != null) {
-        // Actualizar datos básicos del usuario
+        final userService = ref.read(userServiceProvider);
         final updatedUser = _user!.copyWith(
           name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
           profileImageUrl: finalProfileImageUrl,
         );
-        
-        // Aquí se podría guardar información adicional específica del manager
-        
-        // Guardar cambios del usuario
+
         await userService.updateUser(updatedUser);
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Gerente actualizado correctamente')),
@@ -171,17 +183,74 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
           Navigator.of(context).pop(true);
         }
       }
-    } catch (e) {
+    } catch (e, stack) { 
+      developer.log('ERROR: _saveForm - Error: $e\nStack: $stack', name: 'ManagerForm', error: e, stackTrace: stack);
       setState(() {
         _errorMsg = 'Error al guardar: $e';
+        _isLoading = false;
       });
     } finally {
-      if (mounted) {
+      if (mounted && widget.mode == ManagerFormMode.edit && _errorMsg == null) {
         setState(() {
           _isLoading = false;
         });
       }
     }
+  }
+  
+  // Renombrar el método del diálogo por consistencia
+  void _showActivationCodeDialog(String code) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Código de Activación Generado'), // Título actualizado
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Comparte este código con el usuario para que pueda activar su cuenta:', // Texto actualizado
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: SelectableText(
+                code,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'El usuario deberá ingresar este código, su email y una contraseña en la pantalla de activación.',
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Copiar Código'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Código copiado al portapapeles')),
+              );
+            },
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Cierra el diálogo
+              Navigator.of(context).pop(true); // Cierra la pantalla del formulario
+            },
+            child: const Text('Cerrar y Finalizar'), // Texto actualizado
+          ),
+        ],
+      ),
+    );
   }
   
   Future<void> _selectBirthDate() async {
@@ -209,11 +278,11 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
   @override
   Widget build(BuildContext context) {
     final screenTitle = widget.mode == ManagerFormMode.create
-        ? 'Crear Nuevo Gerente'
+        ? 'Pre-registrar Nuevo Gerente'
         : 'Editar Gerente';
         
     final buttonText = widget.mode == ManagerFormMode.create
-        ? 'Crear Gerente'
+        ? 'Pre-registrar Gerente'
         : 'Guardar Cambios';
     
     return Scaffold(
@@ -294,48 +363,19 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Email
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor ingresa el email';
-                }
-                if (!value.contains('@') || !value.contains('.')) {
-                  return 'Por favor ingresa un email válido';
-                }
-                return null;
-              },
-              readOnly: widget.mode == ManagerFormMode.edit,
-            ),
-            const SizedBox(height: 16),
-            
-            // Contraseña (solo en modo creación)
-            if (widget.mode == ManagerFormMode.create)
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
+            // Email - Eliminado en modo creación
+            if (widget.mode == ManagerFormMode.edit && _user != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: TextFormField(
+                  initialValue: _user!.email, // Mostrar email en modo edición
+                  decoration: const InputDecoration(
+                    labelText: 'Email (no editable)',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true, // No editable
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa una contraseña';
-                  }
-                  if (value.length < 6) {
-                    return 'La contraseña debe tener al menos 6 caracteres';
-                  }
-                  return null;
-                },
               ),
-            if (widget.mode == ManagerFormMode.create)
-              const SizedBox(height: 24),
             
             // Fecha de nacimiento
             InkWell(
@@ -414,7 +454,7 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _saveManager,
+                onPressed: _isLoading ? null : _saveForm, // Deshabilitar si ya está cargando
                 child: Text(buttonText, style: const TextStyle(fontSize: 16)),
               ),
             ),

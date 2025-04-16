@@ -1,8 +1,13 @@
+import 'dart:developer' as developer;
+import 'dart:io';
+
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/components/profile_image_picker.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
+import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -28,8 +33,6 @@ class CoachFormScreen extends ConsumerStatefulWidget {
 class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _specialtyController = TextEditingController();
@@ -41,13 +44,15 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
   bool _isLoading = false;
   String? _errorMsg;
   
-  // Nuevo campo para almacenar la URL de la imagen de perfil
-  String? _profileImageUrl;
+  // Variable para la ruta local de la imagen
+  String? _newProfileImagePath;
+  
+  String? _preRegCode;
   
   // Método para manejar cuando se selecciona una nueva imagen
-  void _handleProfileImageSelected(String imageUrl) {
+  void _handleProfileImageSelected(String imagePath) {
     setState(() {
-      _profileImageUrl = imageUrl;
+      _newProfileImagePath = imagePath; // Almacenar ruta local
     });
   }
   
@@ -62,8 +67,6 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
     _specialtyController.dispose();
@@ -80,7 +83,7 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
 
     try {
       final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
+      final academyId = widget.academyId ?? currentAcademy?.academyId;
       
       if (academyId == null) {
         throw Exception('No se ha seleccionado una academia');
@@ -95,7 +98,6 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
       
       // Llenar formulario con datos básicos del usuario
       _nameController.text = _user!.name;
-      _emailController.text = _user!.email;
       
       // Aquí se podría cargar información adicional específica del coach
       // como certificaciones, especialidades, etc. si se implementa un repositorio específico
@@ -111,7 +113,7 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
     }
   }
   
-  Future<void> _saveCoach() async {
+  Future<void> _saveForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -119,47 +121,61 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
     setState(() {
       _isLoading = true;
       _errorMsg = null;
+      _preRegCode = null;
     });
     
     try {
-      final currentAcademy = ref.read(currentAcademyProvider);
-      final academyId = widget.academyId ?? currentAcademy?.id;
+      final currentUser = await ref.read(authStateProvider.future);
+      String? finalProfileImageUrl = _user?.profileImageUrl;
       
-      if (academyId == null) {
-        throw Exception('No se ha seleccionado una academia');
+      // Subir imagen si se seleccionó una nueva (solo en modo edición)
+      if (_newProfileImagePath != null && widget.mode == CoachFormMode.edit && _user != null) {
+        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'CoachForm');
+        File imageFileToUpload = File(_newProfileImagePath!); // Crear el File
+        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
+              imageFileToUpload, // Pasar el File
+              _user!.id,
+            );
+        finalProfileImageUrl = imageUrl;
+      } else if (_newProfileImagePath != null && widget.mode == CoachFormMode.create) {
+         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'CoachForm');
       }
-      
-      final userService = ref.read(userServiceProvider);
       
       // Modo creación
       if (widget.mode == CoachFormMode.create) {
-        final String? profileImageUrl = _profileImageUrl;
-        
-        await userService.createCoach(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
+        final academyId = await _getCurrentAcademyId();
+        if (academyId.isEmpty) throw Exception('No se pudo determinar la academia actual.');
+        final createdBy = currentUser?.id ?? 'sistema';
+        final userName = _nameController.text.trim();
+
+        developer.log('INFO: Llamando a createPendingActivationProvider para Coach...', name: 'CoachForm');
+
+        final String activationCode = await ref.read(createPendingActivationProvider(
           academyId: academyId,
-          profileImageUrl: profileImageUrl,
-        );
-        
+          userName: userName,
+          role: UserRole.coach,
+          createdBy: createdBy,
+        ).future);
+
+        setState(() {
+          _preRegCode = activationCode;
+          _isLoading = false;
+        });
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Entrenador creado correctamente')),
-          );
-          Navigator.of(context).pop(true);
+          _showActivationCodeDialog(_preRegCode!);
         }
       }
       // Modo edición
       else if (_user != null) {
+        developer.log('INFO: Llamando a userService.updateUser para Coach - userId: ${_user!.id}', name: 'CoachForm');
+        final userService = ref.read(userServiceProvider);
+        
         // Actualizar datos básicos del usuario
         final updatedUser = _user!.copyWith(
           name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          profileImageUrl: _profileImageUrl ?? _user!.profileImageUrl,
+          profileImageUrl: finalProfileImageUrl ?? _user!.profileImageUrl,
         );
-        
-        // Aquí se podría guardar información adicional específica del coach
         
         // Guardar cambios del usuario
         await userService.updateUser(updatedUser);
@@ -171,12 +187,14 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
           Navigator.of(context).pop(true);
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      developer.log('ERROR: _saveForm - Error: $e\nStack: $stack', name: 'CoachForm', error: e, stackTrace: stack);
       setState(() {
         _errorMsg = 'Error al guardar: $e';
+        _isLoading = false;
       });
     } finally {
-      if (mounted) {
+      if (mounted && widget.mode == CoachFormMode.edit && _errorMsg == null) {
         setState(() {
           _isLoading = false;
         });
@@ -202,11 +220,11 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
   @override
   Widget build(BuildContext context) {
     final screenTitle = widget.mode == CoachFormMode.create
-        ? 'Crear Nuevo Entrenador'
+        ? 'Pre-registrar Nuevo Entrenador'
         : 'Editar Entrenador';
         
     final buttonText = widget.mode == CoachFormMode.create
-        ? 'Crear Entrenador'
+        ? 'Generar Código Entrenador'
         : 'Guardar Cambios';
     
     return Scaffold(
@@ -246,9 +264,9 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
               child: Column(
                 children: [
                   ProfileImagePicker(
-                    currentImageUrl: _user?.profileImageUrl,
-                    userId: _user?.id,
+                    currentImageUrl: _newProfileImagePath == null ? _user?.profileImageUrl : null,
                     onImageSelected: _handleProfileImageSelected,
+                    userId: _user?.id,
                     iconColor: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(height: 8),
@@ -287,48 +305,19 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
             ),
             const SizedBox(height: 16),
             
-            // Email
-            TextFormField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Por favor ingresa el email';
-                }
-                if (!value.contains('@') || !value.contains('.')) {
-                  return 'Por favor ingresa un email válido';
-                }
-                return null;
-              },
-              readOnly: widget.mode == CoachFormMode.edit,
-            ),
-            const SizedBox(height: 16),
-            
-            // Contraseña (solo en modo creación)
-            if (widget.mode == CoachFormMode.create)
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Contraseña',
-                  border: OutlineInputBorder(),
+            // Email - Eliminado en modo creación
+            if (widget.mode == CoachFormMode.edit && _user != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: TextFormField(
+                  initialValue: _user!.email, // Mostrar email en modo edición
+                  decoration: const InputDecoration(
+                    labelText: 'Email (no editable)',
+                    border: OutlineInputBorder(),
+                  ),
+                  readOnly: true, // No editable
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingresa una contraseña';
-                  }
-                  if (value.length < 6) {
-                    return 'La contraseña debe tener al menos 6 caracteres';
-                  }
-                  return null;
-                },
               ),
-            if (widget.mode == CoachFormMode.create)
-              const SizedBox(height: 24),
             
             // Fecha de nacimiento
             InkWell(
@@ -419,13 +408,71 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: _saveCoach,
+                onPressed: _isLoading ? null : _saveForm,
                 child: Text(buttonText, style: const TextStyle(fontSize: 16)),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Future<String> _getCurrentAcademyId() async {
+    developer.log('WARN: _getCurrentAcademyId - Usando ID placeholder. Implementar lógica real.', name: 'CoachForm');
+    throw UnimplementedError('Necesita implementar la lógica para obtener el academyId actual');
+  }
+
+  void _showActivationCodeDialog(String code) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Código de Activación Generado'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Comparte este código con el entrenador para que pueda activar su cuenta:'),
+              const SizedBox(height: 16),
+              Center(
+                child: SelectableText(
+                  code,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'El usuario deberá ingresar este código, su email y una contraseña en la pantalla de activación.',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Copiar Código'),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Código copiado al portapapeles')),
+                );
+              },
+            ),
+            TextButton(
+              child: const Text('Cerrar y Finalizar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 } 
