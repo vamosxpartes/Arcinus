@@ -2,52 +2,110 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Funciones helper para verificar permisos - definidas al inicio del servicio
+    function isAuthenticated() {
+      return request.auth != null;
+    }
 
-    // Usuarios pueden gestionar su propio documento
+    function hasRole(role, academyId) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/academies/$(academyId)/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/academies/$(academyId)/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/superadmins/$(request.auth.uid));
+    }
+
+    function isAcademyOwner(academyId) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/academies/$(academyId)).data.academyOwnerId == request.auth.uid;
+    }
+
+    // ✅ Función renombrada para mayor claridad
+    function hasManagerPermissions(academyId) {
+      return isSuperAdmin() || 
+        isAcademyOwner(academyId) || 
+        hasRole('manager', academyId);
+    }
+
+    // Reglas para usuarios
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Superadmins pueden gestionar su propio documento
-    match /superadmins/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Owners pueden gestionar su propio documento (necesario para actualizar academyIds)
-    match /owners/{userId} {
-      allow read: if request.auth != null;
-      // Permitir actualización si el usuario es el mismo propietario del documento
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Usuarios dentro de la subcolección de una academia
-    match /academies/{academyId}/users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && (
-        request.auth.uid == userId || // El propio usuario
-        exists(/databases/$(database)/documents/superadmins/$(request.auth.uid)) || // Un superadmin
-        // Un owner (asumiendo que el documento de academia tiene un campo ownerId)
-        // Si no, puedes volver a usar exists(/databases/$(database)/documents/owners/$(request.auth.uid))
-        get(/databases/$(database)/documents/academies/$(academyId)).data.ownerId == request.auth.uid
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        isSuperAdmin()
       );
     }
 
-    // Reglas para la colección de Academias
+    // Reglas para superadmins
+    match /superadmins/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Reglas para owners
+    match /owners/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        isSuperAdmin()
+      );
+    }
+
+    // Reglas para academias y sus subcolecciones
     match /academies/{academyId} {
-      // Cualquiera autenticado puede leer detalles de la academia
-      allow read: if request.auth != null;
+      allow read: if isAuthenticated();
+      
+      // Crear academia
+      allow create: if isAuthenticated() && (
+        exists(/databases/$(database)/documents/owners/$(request.auth.uid)) ||
+        isSuperAdmin()
+      );
 
-      // Solo Owners o Superadmins autenticados pueden CREAR academias
-      // Y deben asignarse a sí mismos como ownerId
-      allow create: if request.auth != null &&
-                       (exists(/databases/$(database)/documents/owners/$(request.auth.uid)) ||
-                        exists(/databases/$(database)/documents/superadmins/$(request.auth.uid))) &&
-                       request.resource.data.academyOwnerId == request.auth.uid;
+      // Actualizar o eliminar academia
+      allow update, delete: if isAcademyOwner(academyId) || isSuperAdmin();
 
-      // Permitir actualización si el usuario es el propietario de la academia
-      allow update, delete: if request.auth != null &&
-                      (get(/databases/$(database)/documents/academies/$(academyId)).data.academyOwnerId == request.auth.uid ||
-                       exists(/databases/$(database)/documents/superadmins/$(request.auth.uid)));
+      // Usuarios de la academia
+      match /users/{userId} {
+        allow read: if isAuthenticated();
+        allow create: if hasManagerPermissions(academyId);
+        allow update: if request.auth.uid == userId || hasManagerPermissions(academyId);
+        allow delete: if hasManagerPermissions(academyId);
+      }
+
+      // Pre-registros
+      match /pendingActivations/{activationId} {
+        allow read: if isAuthenticated();
+        allow create, update, delete: if hasManagerPermissions(academyId);
+      }
+    }
+  }
+}
+
+// Reglas para Storage (imágenes de perfil)
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /profile_images/{allPaths=**} {
+      function isAuthenticated() {
+        return request.auth != null;
+      }
+
+      // Permitir lectura a cualquier usuario autenticado
+      allow read: if isAuthenticated();
+      
+      // Permitir subida de imágenes a usuarios autenticados
+      allow create: if isAuthenticated()
+        && request.resource.size < 5 * 1024 * 1024  // Máximo 5MB
+        && request.resource.contentType.matches('image/.*');
+      
+      // Permitir actualización/eliminación solo a propietarios o admins
+      allow update, delete: if isAuthenticated() && (
+        resource.metadata.userId == request.auth.uid ||  // Propietario de la imagen
+        resource.metadata.academyId != null &&           // O admin de la academia
+        hasManagerPermissions(resource.metadata.academyId)
+      );
     }
   }
 }

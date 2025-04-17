@@ -2,17 +2,13 @@ import 'package:arcinus/features/app/academy/core/services/academy_provider.dart
 import 'package:arcinus/features/app/groups/screen/group_tab.dart';
 import 'package:arcinus/features/app/users/athlete/components/athlete_tab.dart';
 import 'package:arcinus/features/app/users/athlete/core/services/athlete_providers.dart';
-import 'package:arcinus/features/app/users/athlete/screens/athlete_form_screen.dart';
 import 'package:arcinus/features/app/users/coach/components/coach_tab.dart';
 import 'package:arcinus/features/app/users/coach/core/services/coach_providers.dart';
-import 'package:arcinus/features/app/users/coach/screens/coach_form_screen.dart';
 import 'package:arcinus/features/app/users/manager/components/manager_tab.dart';
 import 'package:arcinus/features/app/users/manager/core/services/manager_providers.dart';
-import 'package:arcinus/features/app/users/manager/screens/manager_form_screen.dart';
 import 'package:arcinus/features/app/users/owner/components/owner_tab.dart';
 import 'package:arcinus/features/app/users/parent/components/parent_tab.dart';
 import 'package:arcinus/features/app/users/parent/core/services/parent_providers.dart';
-import 'package:arcinus/features/app/users/parent/screens/parent_form_screen.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/models/user_form_container.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_management_provider.dart';
@@ -31,13 +27,7 @@ class UserManagementScreen extends ConsumerStatefulWidget {
 class _UserManagementScreenState extends ConsumerState<UserManagementScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
-  final TextEditingController _heightController = TextEditingController();
-  final TextEditingController _weightController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-    
+  
   @override
   void initState() {
     super.initState();
@@ -64,12 +54,6 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
-    _emailController.dispose();
-    _nameController.dispose();
-    _lastNameController.dispose();
-    _heightController.dispose();
-    _weightController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
@@ -122,7 +106,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
               ],
             ),
             
-            // Formulario de invitación deslizable
+            // Formulario de pre-registro deslizable
             if (userManagementState.showInviteForm)
               UserFormContainer(
                 canManageAllUsers: user?.role == UserRole.owner || user?.role == UserRole.manager,
@@ -131,7 +115,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
                   // Cerrar el formulario y mostrar mensaje de éxito
                   ref.read(userManagementProvider.notifier).toggleInviteForm();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Usuario creado correctamente')),
+                    const SnackBar(content: Text('Pre-registro creado correctamente')),
                   );
                   
                   // Refrescar datos según el rol
@@ -142,91 +126,10 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> wit
         ),
       ),
       onAddButtonTap: () {
-        // Dependiendo de la pestaña seleccionada, mostrar la pantalla de creación correspondiente
-        final currentRole = ref.read(userManagementProvider).selectedRole;
-        _showCreateUserForm(currentRole);
+        // Mostrar el formulario de pre-registro
+        ref.read(userManagementProvider.notifier).toggleInviteForm();
       },
     );
-  }
-
-  // Método para mostrar el formulario de creación de usuario según el rol
-  void _showCreateUserForm(UserRole role) {
-    final currentAcademy = ref.read(currentAcademyProvider);
-    if (currentAcademy == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No hay academia seleccionada')),
-      );
-      return;
-    }
-    
-    switch (role) {
-      case UserRole.athlete:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AthleteFormScreen(
-              mode: AthleteFormMode.create,
-              academyId: currentAcademy.academyId,
-            ),
-          ),
-        ).then((result) {
-          if (result == true) {
-            _refreshDataByRole(role);
-          }
-        });
-        break;
-      case UserRole.coach:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CoachFormScreen(
-              mode: CoachFormMode.create,
-              academyId: currentAcademy.academyId,
-            ),
-          ),
-        ).then((result) {
-          if (result == true) {
-            _refreshDataByRole(role);
-          }
-        });
-        break;
-      case UserRole.manager:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ManagerFormScreen(
-              mode: ManagerFormMode.create,
-              academyId: currentAcademy.academyId,
-            ),
-          ),
-        ).then((result) {
-          if (result == true) {
-            _refreshDataByRole(role);
-          }
-        });
-        break;
-      case UserRole.parent:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ParentFormScreen(
-              mode: ParentFormMode.create,
-              academyId: currentAcademy.academyId,
-            ),
-          ),
-        ).then((result) {
-          if (result == true) {
-            _refreshDataByRole(role);
-          }
-        });
-        break;
-      default:
-        // Para otros roles, mostrar mensaje de no implementado
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Creación de este tipo de usuario no implementada aún')),
-        );
-        break;
-    }
   }
 
   // Refrescar datos según el rol

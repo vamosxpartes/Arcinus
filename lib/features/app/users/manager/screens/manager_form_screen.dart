@@ -1,9 +1,9 @@
 import 'dart:developer' as developer;
-import 'dart:io';
 
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/components/profile_image_picker.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
+import 'package:arcinus/features/app/users/user/core/services/user_image_service.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
@@ -117,6 +117,8 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
 
     try {
       final currentUser = ref.read(authStateProvider).valueOrNull;
+      final userImageService = ref.read(userImageServiceProvider);
+      final userService = ref.read(userServiceProvider);
       final String? academyId = widget.academyId;
       String? finalProfileImageUrl = _user?.profileImageUrl;
 
@@ -126,20 +128,7 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
           _isLoading = false;
         });
         developer.log('ERROR: _saveForm - academyId es nulo desde el widget.', name: 'ManagerForm');
-        return; // Detener si no hay ID
-      }
-
-      // Subir imagen si se seleccionó una nueva (solo en modo edición)
-      if (_localImagePath != null && widget.mode == ManagerFormMode.edit && _user != null) {
-        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_localImagePath', name: 'ManagerForm');
-        File imageFileToUpload = File(_localImagePath!); 
-        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
-              imageFileToUpload, 
-              _user!.id,
-            );
-        finalProfileImageUrl = imageUrl;
-      } else if (_localImagePath != null && widget.mode == ManagerFormMode.create) {
-         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'ManagerForm');
+        return;
       }
 
       // Modo creación (pre-registro)
@@ -147,14 +136,34 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
         final String userName = _nameController.text.trim();
         final String createdBy = currentUser?.id ?? 'unknown';
 
-        developer.log('INFO: Llamando a createPendingActivationProvider para Manager - academyId: $academyId, name: $userName, createdBy: $createdBy', name: 'ManagerForm');
+        developer.log('INFO: Iniciando pre-registro para Manager - academyId: $academyId', name: 'ManagerForm');
 
-        // Usar el nuevo provider createPendingActivationProvider
+        // Subir imagen ANTES si existe
+        if (_localImagePath != null) {
+          developer.log('INFO: Subiendo imagen para pre-registro de Manager desde $_localImagePath', name: 'ManagerForm');
+          try {
+            final String uploadedUrl = await userImageService.uploadProfileImage(
+              imagePath: _localImagePath!,
+              academyId: academyId,
+            );
+            finalProfileImageUrl = uploadedUrl;
+            developer.log('INFO: Imagen subida para pre-registro, URL: $finalProfileImageUrl', name: 'ManagerForm');
+          } catch (imgErr) {
+            developer.log('WARN: Error al subir imagen durante pre-registro: $imgErr. Continuando sin imagen.', name: 'ManagerForm');
+            finalProfileImageUrl = null;
+          }
+        } else {
+          developer.log('INFO: No se seleccionó imagen para pre-registro de Manager.', name: 'ManagerForm');
+        }
+
+        developer.log('INFO: Llamando a createPendingActivationProvider (sin imageUrl por ahora)', name: 'ManagerForm');
+        // TODO: Modificar createPendingActivationProvider para aceptar profileImageUrl
         final String activationCode = await ref.read(createPendingActivationProvider(
-          academyId: academyId, // Pasar academyId validado
+          academyId: academyId,
           userName: userName,
           role: UserRole.manager,
           createdBy: createdBy,
+          // profileImageUrl: finalProfileImageUrl, // <-- Pasar URL si el provider lo acepta
         ).future);
 
         setState(() {
@@ -168,10 +177,27 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
       }
       // Modo edición
       else if (_user != null) {
-        final userService = ref.read(userServiceProvider);
+        // Subir imagen si se seleccionó una nueva
+        if (_localImagePath != null) {
+          developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_localImagePath', name: 'ManagerForm');
+          try {
+            final String newImageUrl = await userImageService.uploadProfileImage(
+              imagePath: _localImagePath!,
+              userId: _user!.id,
+              academyId: academyId,
+            );
+            finalProfileImageUrl = newImageUrl;
+            developer.log('INFO: Nueva imagen subida, URL: $finalProfileImageUrl', name: 'ManagerForm');
+          } catch (imgErr) {
+            developer.log('WARN: Error al subir nueva imagen de perfil: $imgErr. Se mantendrá la imagen anterior si existe.', name: 'ManagerForm', error: imgErr);
+          }
+        } else {
+          developer.log('INFO: No se seleccionó nueva imagen de perfil.', name: 'ManagerForm');
+        }
+
         final updatedUser = _user!.copyWith(
           name: _nameController.text.trim(),
-          profileImageUrl: finalProfileImageUrl,
+          profileImageUrl: finalProfileImageUrl, // Usar la URL final
         );
 
         await userService.updateUser(updatedUser);
@@ -190,7 +216,7 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
         _isLoading = false;
       });
     } finally {
-      if (mounted && widget.mode == ManagerFormMode.edit && _errorMsg == null) {
+      if (mounted && (widget.mode == ManagerFormMode.edit || _errorMsg != null)) {
         setState(() {
           _isLoading = false;
         });
@@ -204,13 +230,13 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Código de Activación Generado'), // Título actualizado
+        title: const Text('Código de Activación Generado'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Comparte este código con el usuario para que pueda activar su cuenta:', // Texto actualizado
+              'Comparte este código con el usuario para que pueda activar su cuenta:',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
@@ -244,9 +270,9 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Cierra el diálogo
-              Navigator.of(context).pop(true); // Cierra la pantalla del formulario
+              Navigator.of(context).pop(true); // Cierra la pantalla del formulario y retorna true
             },
-            child: const Text('Cerrar y Finalizar'), // Texto actualizado
+            child: const Text('Cerrar y Finalizar'),
           ),
         ],
       ),
@@ -288,10 +314,71 @@ class _ManagerFormScreenState extends ConsumerState<ManagerFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(screenTitle),
+        actions: [
+          if (_user?.isPendingActivation ?? false)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Chip(
+                label: Text('Pendiente'),
+                backgroundColor: Colors.orange,
+                labelStyle: TextStyle(color: Colors.white),
+              ),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildForm(buttonText),
+          : Stack(
+              children: [
+                _buildForm(buttonText),
+                if (_user?.isPendingActivation ?? false)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withAlpha(30),
+                      child: Center(
+                        child: Card(
+                          margin: const EdgeInsets.all(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.pending_outlined,
+                                  size: 48,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Usuario Pendiente de Activación',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Este usuario debe activar su cuenta usando el código proporcionado.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (_user != null) {
+                                      _showActivationCodeDialog(_user!.id);
+                                    }
+                                  },
+                                  child: const Text('Ver Código de Activación'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
   

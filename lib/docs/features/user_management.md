@@ -167,6 +167,10 @@ Si después de actualizar a la versión 1.3.0 experimentas errores de permisos e
   - **Confirmado que el correo electrónico no se solicita ni se guarda al crear el pre-registro.**
   - **El usuario proporciona su correo electrónico en la pantalla de activación.**
   - Actualizados los repositorios y providers (`createPreRegisteredUser`, `completeRegistration`) para reflejar el cambio.
+- **v1.5.2**: Mejorada la visualización de usuarios pendientes:
+  - Añadidos indicadores visuales distintivos para usuarios pendientes
+  - Implementado diálogo de detalles para usuarios pendientes
+  - Integrada la visualización de usuarios pendientes en las listas principales
 - **v1.6.0 (o posterior)**: Desacoplamiento de `UserService` de Firebase Auth:
   - Los métodos `createUser` y `updateUser` de `UserService` ahora solo gestionan los datos en Firestore.
   - La creación y actualización de cuentas en Firebase Auth se maneja explícitamente en los flujos de registro/activación/modificación de perfil.
@@ -178,4 +182,24 @@ Si después de actualizar a la versión 1.3.0 experimentas errores de permisos e
 - Mejorar la gestión de permisos granulares
 - Implementar estadísticas y reportes de usuarios
 - Añadir seguimiento del estado de usuarios pre-registrados (pendientes, activados)
-- Permitir el reenvío de códigos de activación a usuarios pre-registrados 
+- Permitir el reenvío de códigos de activación a usuarios pre-registrados
+
+## Visualización de Usuarios Pendientes
+
+Los usuarios pendientes de activación se muestran en la interfaz con las siguientes características visuales:
+
+1. **Indicadores visuales**:
+   - Avatar con fondo naranja y un icono de "pendiente"
+   - Etiqueta "Pendiente" en naranja
+   - Texto "Pendiente de activación" en lugar del correo electrónico
+
+2. **Interacción**:
+   - Al hacer tap en un usuario pendiente, se muestra un diálogo con:
+     - Nombre del usuario
+     - Código de activación
+     - Instrucciones para compartir el código
+
+3. **Estados**:
+   - Los usuarios pendientes se muestran junto con los usuarios activos en la misma lista
+   - Se pueden filtrar y buscar igual que los usuarios activos
+   - No se pueden editar hasta que completen su activación 

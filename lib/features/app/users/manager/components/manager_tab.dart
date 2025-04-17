@@ -75,8 +75,15 @@ class ManagerTab extends ConsumerWidget {
     return managersData.when(
       data: (managers) {
         // Filtrar gerentes según búsqueda
-        final filteredManagers = managers.where((manager) => 
-            manager.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+        final filteredManagers = managers.where((manager) {
+          if (manager is User) {
+            return manager.name.toLowerCase().contains(searchQuery.toLowerCase());
+          } else if (manager is Map<String, dynamic>) {
+            final name = manager['name']?.toString() ?? '';
+            return name.toLowerCase().contains(searchQuery.toLowerCase());
+          }
+          return false;
+        }).toList();
         
         developer.log(
           'Gerentes cargados: ${managers.length}, filtrados: ${filteredManagers.length}',
@@ -105,30 +112,55 @@ class ManagerTab extends ConsumerWidget {
           itemCount: filteredManagers.length,
           itemBuilder: (context, index) {
             final manager = filteredManagers[index];
+            
+            // Determinar si es un usuario pendiente o activo
+            final bool isPending = manager is Map<String, dynamic> && (manager['isPending'] == true);
+            final String name = manager is User ? manager.name : (manager['name']?.toString() ?? 'Sin nombre');
+            final String? email = manager is User ? manager.email : null;
+            final String? profileImageUrl = manager is User ? manager.profileImageUrl : null;
+            
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.deepPurple,
-                  child: manager.profileImageUrl != null
+                  backgroundColor: isPending ? Colors.orange : Colors.deepPurple,
+                  child: profileImageUrl != null
                       ? ClipOval(
                           child: Image.network(
-                            manager.profileImageUrl!,
+                            profileImageUrl,
                             width: 40,
                             height: 40,
                             fit: BoxFit.cover,
                           ),
                         )
-                      : const Icon(Icons.admin_panel_settings, color: Colors.white),
+                      : Icon(
+                          isPending ? Icons.pending : Icons.admin_panel_settings,
+                          color: Colors.white
+                        ),
                 ),
-                title: Text(manager.name),
-                subtitle: Text(manager.email),
+                title: Text(name),
+                subtitle: email != null 
+                    ? Text(email)
+                    : const Text('Pendiente de activación', 
+                        style: TextStyle(color: Colors.orange)),
+                trailing: isPending
+                    ? const Chip(
+                        label: Text('Pendiente'),
+                        backgroundColor: Colors.orange,
+                        labelStyle: TextStyle(color: Colors.white),
+                      )
+                    : null,
                 onTap: () {
-                  developer.log(
-                    'Tap en gerente: ${manager.name} (${manager.id})',
-                    name: 'ManagerTab',
-                  );
-                  _showManagerDetails(context, ref, manager, currentAcademy.academyId);
+                  if (manager is User) {
+                    developer.log(
+                      'Tap en gerente: ${manager.name} (${manager.id})',
+                      name: 'ManagerTab',
+                    );
+                    _showManagerDetails(context, ref, manager, currentAcademy.academyId);
+                  } else if (manager is Map<String, dynamic>) {
+                    // Mostrar detalles del usuario pendiente
+                    _showPendingManagerDetails(context, manager);
+                  }
                 },
               ),
             );
@@ -163,13 +195,44 @@ class ManagerTab extends ConsumerWidget {
     );
   }
 
+  void _showPendingManagerDetails(BuildContext context, Map<String, dynamic> pendingManager) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Gerente Pendiente'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Nombre: ${pendingManager['name']}'),
+            const SizedBox(height: 8),
+            Text('Código de activación: ${pendingManager['id']}'),
+            const SizedBox(height: 16),
+            const Text(
+              'Este gerente está pendiente de activación. '
+              'Comparte el código de activación con el usuario para que pueda completar su registro.',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Nuevo método para mostrar los detalles del manager
+    // Nuevo método para mostrar los detalles del manager
   void _showManagerDetails(BuildContext context, WidgetRef ref, User manager, String academyId) {
     developer.log(
       'Navegando a detalles de gerente: ${manager.name} (${manager.id})',
       name: 'ManagerTab',
     );
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -186,7 +249,8 @@ class ManagerTab extends ConsumerWidget {
           'Actualización detectada en detalles, refrescando lista de gerentes',
           name: 'ManagerTab',
         );
-        ref.invalidate(managersProvider(academyId));
+        // Asegúrate que el provider 'managersProvider' acepte 'academyId'
+        ref.invalidate(managersProvider(academyId)); // <-- ESTA ES LA LÍNEA IMPORTANTE
       }
     });
   }

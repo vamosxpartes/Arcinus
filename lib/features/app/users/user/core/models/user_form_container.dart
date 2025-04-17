@@ -90,35 +90,43 @@ class UserFormContainer extends ConsumerWidget {
                 ),
               ],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: formState.currentStep == 0 ? onCancel : formNotifier.previousStep,
-                  child: Text(formState.currentStep == 0 ? 'Cancelar' : 'Atrás'),
-                ),
-                ElevatedButton(
-                  onPressed: formState.isLoading 
-                      ? null 
-                      : (formState.currentStep == formState.getTotalSteps() - 1 
-                          ? () => _handleSubmit(formState, formNotifier) 
-                          : formNotifier.nextStep),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: formState.currentStep == 0 ? onCancel : formNotifier.previousStep,
+                      child: Text(formState.currentStep == 0 ? 'Cancelar' : 'Atrás'),
+                    ),
                   ),
-                  child: formState.isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          formState.currentStep == formState.getTotalSteps() - 1
-                              ? 'Crear Usuario'
-                              : 'Siguiente',
-                        ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: formState.isLoading 
+                          ? null 
+                          : (formState.currentStep == formState.getTotalSteps() - 1 
+                              ? () => _handleSubmit(formState, formNotifier) 
+                              : formNotifier.nextStep),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                      child: formState.isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              formState.currentStep == formState.getTotalSteps() - 1
+                                  ? 'Crear Usuario'
+                                  : 'Siguiente',
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

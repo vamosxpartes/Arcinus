@@ -1,9 +1,11 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:arcinus/features/app/users/athlete/core/models/athlete_profile.dart';
 import 'package:arcinus/features/app/users/athlete/core/services/athlete_repository.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
 import 'package:arcinus/features/app/users/user/core/services/local_user_repository.dart';
+import 'package:arcinus/features/app/users/user/core/services/user_image_service.dart';
 import 'package:arcinus/features/auth/core/repositories/auth_repository.dart';
 import 'package:arcinus/features/auth/core/repositories/firebase_auth_repository.dart';
 import 'package:arcinus/features/permissions/core/models/permissions.dart';
@@ -11,11 +13,13 @@ import 'package:arcinus/features/storage/sync/connectivity_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 final userServiceProvider = Provider<UserService>((ref) {
   final athleteRepository = ref.watch(athleteRepositoryProvider);
   final localUserRepository = ref.watch(localUserRepositoryProvider);
   final connectivityService = ref.watch(connectivityServiceProvider);
+  final userImageService = ref.watch(userImageServiceProvider);
   
   return UserService(
     FirebaseFirestore.instance,
@@ -23,6 +27,7 @@ final userServiceProvider = Provider<UserService>((ref) {
     athleteRepository,
     localUserRepository,
     connectivityService,
+    userImageService,
   );
 });
 
@@ -32,6 +37,7 @@ class UserService {
   final AthleteRepository _athleteRepository;
   final LocalUserRepository _localUserRepository;
   final ConnectivityService _connectivityService;
+  final UserImageService _userImageService;
 
   UserService(
     this._firestore, 
@@ -39,6 +45,7 @@ class UserService {
     this._athleteRepository,
     this._localUserRepository,
     this._connectivityService,
+    this._userImageService,
   );
 
   CollectionReference<Map<String, dynamic>> get _usersCollection =>
@@ -495,7 +502,7 @@ class UserService {
   }) async {
     try {
       developer.log(
-        '====== INICIANDO ELIMINACIÓN DE USUARIO [Método principal deleteUser] ======',
+        '====== INICIANDO ELIMINACIÓN DE USUARIO [Método principal deleteUser v2] ======',
         name: 'UserService-Delete',
       );
       
@@ -503,228 +510,105 @@ class UserService {
         'Parámetros recibidos: userId=$userId, academyId=$academyId, role=$role',
         name: 'UserService-Delete',
       );
-      
-      // Registrar el inicio de cada paso importante
+
+      bool deleted = false;
+
+      // >> PASO 1: Intentar eliminar como usuario pendiente (pre-registro)
       developer.log(
-        '>> PASO 1: Buscando documento de usuario en la nueva estructura...',
+        '>> PASO 1: Verificando si es un usuario pendiente (pendingActivations)...',
         name: 'UserService-Delete',
       );
-      
-      // Con la nueva estructura, todos los usuarios regulares están en la subcolección 'users'
-      // independientemente de su rol (manager, coach, athlete, parent)
-      final userRef = _firestore
+      final pendingRef = _firestore
           .collection('academies')
           .doc(academyId)
-          .collection('users')
-          .doc(userId);
-      
-      developer.log(
-        'Intentando acceder a ruta: academies/$academyId/users/$userId',
-        name: 'UserService-Delete',
-      );
-      
-      // Obtener documento para verificar si existe
-      final userDoc = await userRef.get();
-      
-      if (!userDoc.exists) {
-        developer.log(
-          'Documento NO ENCONTRADO en la nueva estructura users',
-          name: 'UserService-Delete',
-        );
-        
-        developer.log(
-          '>> PASO 1B: Buscando en estructura antigua por compatibilidad...',
-          name: 'UserService-Delete',
-        );
-        
-        // Si no está en la subcolección 'users', verificar en colecciones específicas (para compatibilidad con v1.2)
-        String oldCollection;
-        switch (role) {
-          case UserRole.manager:
-            oldCollection = 'managers';
-            break;
-          case UserRole.coach:
-            oldCollection = 'coaches';
-            break;
-          case UserRole.athlete:
-            oldCollection = 'athletes';
-            break;
-          case UserRole.parent:
-            oldCollection = 'parents';
-            break;
-          case UserRole.owner:
-            oldCollection = 'owners';
-            break;
-          default:
-            oldCollection = 'users';
+          .collection('pendingActivations')
+          .doc(userId); // userId aquí es el código de activación
+
+      try {
+        final pendingDoc = await pendingRef.get();
+        if (pendingDoc.exists) {
+          developer.log(
+            'Usuario PENDIENTE encontrado. Eliminando de pendingActivations...',
+            name: 'UserService-Delete',
+          );
+          await pendingRef.delete();
+          deleted = true;
+          developer.log(
+            'Usuario pendiente eliminado exitosamente de Firestore.',
+            name: 'UserService-Delete',
+          );
+          // Para usuarios pendientes, no hay necesidad de actualizar academia ni limpiar dependencias complejas.
+        } else {
+          developer.log(
+            'No encontrado en pendingActivations. Buscando como usuario activo...',
+            name: 'UserService-Delete',
+          );
         }
-        
-        final oldUserRef = _firestore
+      } catch (e) {
+         developer.log(
+            'Error al verificar/eliminar usuario pendiente: $e. Continuando para buscar como activo.',
+            name: 'UserService-Delete',
+            error: e,
+          );
+      }
+
+      // >> PASO 2: Si no se eliminó como pendiente, intentar eliminar como usuario activo
+      if (!deleted) {
+        developer.log(
+          '>> PASO 2: Buscando documento de usuario activo en users...',
+          name: 'UserService-Delete',
+        );
+
+        final userRef = _firestore
             .collection('academies')
             .doc(academyId)
-            .collection(oldCollection)
+            .collection('users')
             .doc(userId);
-            
+
         developer.log(
-          'Intentando acceder a ruta antigua: academies/$academyId/$oldCollection/$userId',
+          'Intentando acceder a ruta: ${userRef.path}',
           name: 'UserService-Delete',
         );
-        
-        final oldUserDoc = await oldUserRef.get();
-        
-        if (oldUserDoc.exists) {
+
+        final userDoc = await userRef.get();
+
+        if (userDoc.exists) {
           developer.log(
-            'Usuario ENCONTRADO en estructura antigua: $oldCollection',
+            'Usuario ACTIVO encontrado en estructura users.',
             name: 'UserService-Delete',
           );
-          
           developer.log(
-            '>> PASO 2A: Procesando eliminación desde colección antigua...',
+            '>> PASO 2A: Procesando eliminación de usuario activo...',
             name: 'UserService-Delete',
           );
+
+          // Procesar eliminación (incluye delete() y limpieza de dependencias)
+          await _processUserDeletion(userRef, userDoc, userId, academyId, role);
           
-          // Continuar con la antigua referencia
-          await _processUserDeletion(oldUserRef, oldUserDoc, userId, academyId, role);
+          // Actualizar el documento de la academia para eliminar la referencia al usuario
+          developer.log(
+            '>> PASO 2B: Actualizando documento de academia para eliminar referencias...',
+            name: 'UserService-Delete',
+          );
+          await _updateAcademyOnUserDelete(academyId, userId, role);
+          
+          deleted = true; // Marcar como eliminado (como activo)
+
         } else {
-          // También verificar en la colección de owners si es un owner
-          if (role == UserRole.owner) {
-            developer.log(
-              '>> PASO 1C: Verificando si es un owner en colección principal...',
-              name: 'UserService-Delete',
-            );
-            
-            final ownerRef = _firestore.collection('owners').doc(userId);
-            developer.log(
-              'Intentando acceder a ruta de owner: owners/$userId',
-              name: 'UserService-Delete',
-            );
-            
-            final ownerDoc = await ownerRef.get();
-            
-            if (ownerDoc.exists) {
-              developer.log(
-                'Owner ENCONTRADO en colección principal owners',
-                name: 'UserService-Delete',
-              );
-              
-              developer.log(
-                '>> PASO 2B: Procesando eliminación de owner...',
-                name: 'UserService-Delete',
-              );
-              
-              await _processUserDeletion(ownerRef, ownerDoc, userId, academyId, role);
-            } else {
-              developer.log(
-                'ADVERTENCIA: ¡Usuario NO ENCONTRADO en ninguna colección!',
-                name: 'UserService-Delete',
-              );
-              
-              developer.log(
-                '>> Continuando con limpieza local por seguridad',
-                name: 'UserService-Delete',
-              );
-            }
-          } else {
-            developer.log(
-              'ADVERTENCIA: ¡Usuario NO ENCONTRADO en ninguna colección!',
-              name: 'UserService-Delete',
-            );
-            
-            developer.log(
-              '>> Continuando con limpieza local por seguridad',
-              name: 'UserService-Delete',
-            );
-          }
-        }
-      } else {
-        // Usuario encontrado en la subcolección 'users'
-        developer.log(
-          'Usuario ENCONTRADO en estructura nueva users',
-          name: 'UserService-Delete',
-        );
-        
-        developer.log(
-          '>> PASO 2: Procesando eliminación desde colección users...',
-          name: 'UserService-Delete',
-        );
-        
-        await _processUserDeletion(userRef, userDoc, userId, academyId, role);
-      }
-      
-      // Actualizar el documento de la academia para eliminar la referencia al usuario
-      developer.log(
-        '>> PASO 3: Actualizando documento de academia para eliminar referencias...',
-        name: 'UserService-Delete',
-      );
-      
-      try {
-        final academyRef = _firestore.collection('academies').doc(academyId);
-        
-        // Verificar si existe la academia
-        final academyDoc = await academyRef.get();
-        if (!academyDoc.exists) {
           developer.log(
-            'ERROR: Academia no encontrada para actualizar referencias',
+            'ADVERTENCIA: ¡Usuario NO ENCONTRADO en pendingActivations ni en users!',
             name: 'UserService-Delete',
           );
-          throw Exception('Academia no encontrada');
+           developer.log(
+            '>> Continuando con limpieza local por seguridad',
+            name: 'UserService-Delete',
+          );
         }
-        
-        developer.log(
-          'Academia encontrada para actualización: ${academyDoc.data()?['name']}',
-          name: 'UserService-Delete',
-        );
-        
-        // Determinar qué campo actualizar según el rol
-        String roleField;
-        switch (role) {
-          case UserRole.manager:
-            roleField = 'managerIds';
-            break;
-          case UserRole.coach:
-            roleField = 'coachIds';
-            break;
-          case UserRole.athlete:
-            roleField = 'athleteIds';
-            break;
-          case UserRole.parent:
-            roleField = 'parentIds';
-            break;
-          default:
-            roleField = 'userIds';
-        }
-        
-        developer.log(
-          'Eliminando referencia de campo $roleField en la academia',
-          name: 'UserService-Delete',
-        );
-        
-        // Actualizar los IDs específicos del rol y la lista general de userIds
-        await academyRef.update({
-          roleField: FieldValue.arrayRemove([userId]),
-          'userIds': FieldValue.arrayRemove([userId]),
-        });
-        
-        developer.log(
-          'Academia actualizada exitosamente',
-          name: 'UserService-Delete',
-        );
-      } catch (academyError) {
-        developer.log(
-          'ERROR al actualizar la academia: $academyError',
-          name: 'UserService-Delete',
-          error: academyError,
-        );
-        developer.log(
-          'Stack trace: ${StackTrace.current}',
-          name: 'UserService-Delete',
-        );
-        // No lanzamos excepción para permitir que el proceso continúe
       }
       
-      // Eliminar de base de datos local si existe
+      // >> PASO 3: Eliminación de base de datos local (se intenta siempre por si acaso)
       developer.log(
-        '>> PASO 4: Eliminando de base de datos local...',
+        '>> PASO 3: Eliminando de base de datos local (si existe)...',
         name: 'UserService-Delete',
       );
       
@@ -733,13 +617,14 @@ class UserService {
           'Intentando llamar a _localUserRepository.deleteUser($userId)',
           name: 'UserService-Delete',
         );
-        await _localUserRepository.deleteUser(userId);
+        // Usar userId que puede ser UID o código de activación. El repo local debe manejarlo.
+        await _localUserRepository.deleteUser(userId); 
         developer.log(
           '_localUserRepository.deleteUser($userId) completado',
           name: 'UserService-Delete',
         );
         developer.log(
-          'Usuario eliminado exitosamente de la base de datos local',
+          'Usuario eliminado/intentado eliminar de la base de datos local.',
           name: 'UserService-Delete',
         );
       } catch (localError) {
@@ -755,13 +640,21 @@ class UserService {
         // No relanzamos excepción para permitir que el proceso continúe
       }
       
-      developer.log(
-        '====== ELIMINACIÓN DE USUARIO COMPLETADA EXITOSAMENTE ======',
-        name: 'UserService-Delete',
-      );
+      if (deleted) {
+        developer.log(
+          '====== ELIMINACIÓN DE USUARIO (Activo o Pendiente) COMPLETADA EXITOSAMENTE ======',
+          name: 'UserService-Delete',
+        );
+      } else {
+         developer.log(
+          '====== ELIMINACIÓN DE USUARIO FINALIZADA (Usuario no encontrado en Firestore) ======',
+          name: 'UserService-Delete',
+        );
+      }
+
     } catch (e) {
       developer.log(
-        '====== ERROR FATAL EN PROCESO DE ELIMINACIÓN ======',
+        '====== ERROR FATAL EN PROCESO DE ELIMINACIÓN (v2) ======',
         name: 'UserService-Delete',
         error: e,
       );
@@ -769,11 +662,85 @@ class UserService {
         'Stack trace: ${StackTrace.current}',
         name: 'UserService-Delete',
       );
-      rethrow;
+      // Relanzar la excepción si es un error inesperado durante el proceso
+      // excepto si fue un error ya manejado de "no encontrado".
+       if (e is! FirebaseException || (e.code != 'not-found' && e.code != 'permission-denied')) {
+         rethrow;
+       }
     }
   }
+
+  // Método auxiliar para actualizar la academia al eliminar un usuario ACTIVO
+  Future<void> _updateAcademyOnUserDelete(String academyId, String userId, UserRole role) async {
+     try {
+        final academyRef = _firestore.collection('academies').doc(academyId);
+        
+        // Verificar si existe la academia
+        final academyDoc = await academyRef.get();
+        if (!academyDoc.exists) {
+          developer.log(
+            'ERROR: Academia no encontrada para actualizar referencias',
+            name: 'UserService-Delete',
+          );
+          // No lanzar excepción, solo loguear.
+          return;
+        }
+        
+        developer.log(
+          'Academia encontrada para actualización: ${academyDoc.data()?['name']}',
+          name: 'UserService-Delete',
+        );
+        
+        // Determinar qué campo actualizar según el rol
+        // Importante: Asegúrate que estos campos existan o maneja el caso donde no existan.
+        String? roleField; 
+        switch (role) {
+          case UserRole.manager: roleField = 'managerIds'; break;
+          case UserRole.coach: roleField = 'coachIds'; break;
+          case UserRole.athlete: roleField = 'athleteIds'; break;
+          case UserRole.parent: roleField = 'parentIds'; break;
+          // Owner y SuperAdmin no suelen estar en estas listas de la academia.
+          default: roleField = null; 
+        }
+        
+        final updateData = <String, dynamic>{
+          'userIds': FieldValue.arrayRemove([userId]),
+        };
+        
+        if (roleField != null) {
+           developer.log(
+            'Eliminando referencia de campo $roleField y userIds en la academia',
+            name: 'UserService-Delete',
+           );
+          updateData[roleField] = FieldValue.arrayRemove([userId]);
+        } else {
+           developer.log(
+            'Eliminando referencia solo de userIds en la academia (Rol: $role)',
+            name: 'UserService-Delete',
+           );
+        }
+        
+        await academyRef.update(updateData);
+        
+        developer.log(
+          'Academia actualizada exitosamente tras eliminación de usuario activo.',
+          name: 'UserService-Delete',
+        );
+      } catch (academyError) {
+        developer.log(
+          'ERROR al actualizar la academia post-eliminación: $academyError',
+          name: 'UserService-Delete',
+          error: academyError,
+        );
+        developer.log(
+          'Stack trace: ${StackTrace.current}',
+          name: 'UserService-Delete',
+        );
+        // No lanzamos excepción para permitir que el proceso continúe
+      }
+  }
   
-  // Método auxiliar para procesar la eliminación del usuario
+  // Método auxiliar para procesar la eliminación del usuario ACTIVO
   Future<void> _processUserDeletion(
     DocumentReference userRef,
     DocumentSnapshot userDoc,
@@ -1848,6 +1815,216 @@ class UserService {
     } catch (e) {
       debugPrint('Error al obtener usuarios por IDs: $e');
       throw Exception('Error al obtener usuarios por IDs: $e');
+    }
+  }
+
+  // Obtener usuarios pendientes de activación por rol y academia
+  Future<List<Map<String, dynamic>>> getPendingUsersByRole(UserRole role, String academyId) async {
+    try {
+      developer.log(
+        'Buscando usuarios pendientes para rol: $role en academia: $academyId',
+        name: 'UserService-Pending',
+      );
+
+      final pendingActivationsRef = _firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('pendingActivations');
+          
+      developer.log(
+        'Consultando colección: ${pendingActivationsRef.path}',
+        name: 'UserService-Pending',
+      );
+          
+      final querySnap = await pendingActivationsRef
+          .where('role', isEqualTo: role.toString().split('.').last)
+          .get();
+          
+      developer.log(
+        'Documentos encontrados: ${querySnap.docs.length}',
+        name: 'UserService-Pending',
+      );
+
+      final results = querySnap.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id; // Usar el código de activación como ID
+        data['isPending'] = true; // Marcar como pendiente
+        
+        developer.log(
+          'Documento pendiente encontrado - ID: ${doc.id}, Nombre: ${data['name']}',
+          name: 'UserService-Pending',
+        );
+        
+        return data;
+      }).toList();
+      
+      developer.log(
+        'Total de usuarios pendientes encontrados: ${results.length}',
+        name: 'UserService-Pending',
+      );
+      
+      return results;
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error al obtener usuarios pendientes por rol: $e\n$stackTrace',
+        name: 'UserService-Pending',
+        error: e,
+      );
+      // En caso de error, retornamos lista vacía en lugar de propagar el error
+      return [];
+    }
+  }
+
+  // Obtener usuarios por rol incluyendo pendientes
+  Future<List<dynamic>> getUsersByRoleWithPending(UserRole role, {String? academyId}) async {
+    try {
+      if (academyId == null) {
+        throw Exception('Se requiere academyId para obtener usuarios con pendientes');
+      }
+
+      developer.log(
+        'Obteniendo usuarios por rol con pendientes: $role, academyId: $academyId',
+        name: 'UserService',
+      );
+
+      // 1. Obtener usuarios activos
+      final activeUsers = await getUsersByRole(role, academyId: academyId);
+      
+      developer.log(
+        'Usuarios activos encontrados: ${activeUsers.length}',
+        name: 'UserService',
+      );
+
+      // 2. Obtener usuarios pendientes
+      final pendingUsers = await getPendingUsersByRole(role, academyId);
+      
+      developer.log(
+        'Usuarios pendientes encontrados: ${pendingUsers.length}',
+        name: 'UserService',
+      );
+      
+      // 3. Combinar ambas listas
+      final combinedUsers = [
+        ...activeUsers,
+        ...pendingUsers.map((pending) {
+          // Asegurarnos de que los campos requeridos existan y sean del tipo correcto
+          final String id = pending['id']?.toString() ?? '';
+          final String name = pending['name']?.toString() ?? '';
+          final DateTime createdAt = (pending['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+          
+          return User(
+            id: id,
+            name: name,
+            email: '', // Email vacío para pendientes
+            role: role,
+            permissions: Permissions.getDefaultPermissions(role),
+            academyIds: [academyId],
+            createdAt: createdAt,
+            isPendingActivation: true, // Marcar como pendiente
+          );
+        }),
+      ];
+      
+      developer.log(
+        'Total de usuarios combinados: ${combinedUsers.length}',
+        name: 'UserService',
+      );
+      
+      return combinedUsers;
+    } catch (e, stackTrace) {
+      developer.log(
+        'Error al obtener usuarios con pendientes: $e\n$stackTrace',
+        name: 'UserService',
+        error: e,
+      );
+      throw Exception('Error al obtener usuarios con pendientes: $e');
+    }
+  }
+
+  /// Crear un usuario pendiente de activación
+  Future<Map<String, dynamic>> createPendingUser({
+    required String name,
+    required UserRole role,
+    required String academyId,
+    String? profileImageUrl,
+    File? profileImage,
+  }) async {
+    try {
+      developer.log(
+        'Iniciando creación de usuario pendiente: $name (${role.toString()})',
+        name: 'UserService-PendingUser',
+      );
+
+      // Si hay imagen, subirla primero
+      String? finalImageUrl = profileImageUrl;
+      if (profileImage != null) {
+        developer.log(
+          'Subiendo imagen de perfil para usuario pendiente',
+          name: 'UserService-PendingUser',
+        );
+        
+        try {
+          finalImageUrl = await _userImageService.uploadProfileImage(
+            imagePath: profileImage.path,
+            academyId: academyId,
+          );
+          
+          developer.log(
+            'Imagen subida exitosamente: $finalImageUrl',
+            name: 'UserService-PendingUser',
+          );
+        } catch (imageError) {
+          developer.log(
+            'Error al subir imagen: $imageError',
+            name: 'UserService-PendingUser',
+            error: imageError,
+          );
+          // Continuamos sin imagen si hay error
+        }
+      }
+
+      // Crear código de activación
+      final activationCode = const Uuid().v4().substring(0, 6).toUpperCase();
+      
+      developer.log(
+        'Generado código de activación: $activationCode',
+        name: 'UserService-PendingUser',
+      );
+
+      // Crear documento en pendingActivations
+      await _firestore
+        .collection('academies')
+        .doc(academyId)
+        .collection('pendingActivations')
+        .doc(activationCode)
+        .set({
+          'name': name,
+          'role': role.toString().split('.').last,
+          'createdAt': FieldValue.serverTimestamp(),
+          'profileImageUrl': finalImageUrl,
+          'academyId': academyId,
+        });
+        
+      developer.log(
+        'Usuario pendiente creado exitosamente',
+        name: 'UserService-PendingUser',
+      );
+
+      return {
+        'success': true,
+        'activationCode': activationCode,
+        'profileImageUrl': finalImageUrl,
+      };
+    } catch (e) {
+      developer.log(
+        'Error al crear usuario pendiente: $e',
+        name: 'UserService-PendingUser',
+        error: e,
+      );
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
     }
   }
 } 

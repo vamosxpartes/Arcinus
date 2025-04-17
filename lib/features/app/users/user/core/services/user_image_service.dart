@@ -69,23 +69,45 @@ class UserImageService {
   ///
   /// [imagePath] es la ruta local de la imagen a subir
   /// [userId] es el ID del usuario asociado a la imagen (opcional)
+  /// [academyId] es el ID de la academia (opcional)
   /// 
   /// Retorna la URL de descarga de la imagen subida
   Future<String> uploadProfileImage({
     required String imagePath,
     String? userId,
+    String? academyId,
   }) async {
     try {
-      final String fileName = 'profile_${userId ?? const Uuid().v4()}.jpg';
-      final Reference storageRef = _storage.ref().child('profile_images/$fileName');
+      // Usar una estructura más organizada para el almacenamiento
+      final String fileName = userId != null 
+        ? 'profile_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg'
+        : 'pending_profile_${const Uuid().v4()}.jpg';
+      
+      // Organizar por academia si está disponible
+      final String storagePath = userId != null 
+        ? academyId != null
+          ? 'profile_images/academies/$academyId/users/$userId/$fileName'
+          : 'profile_images/users/$userId/$fileName'
+        : 'profile_images/pending/$fileName';
+        
+      final Reference storageRef = _storage.ref().child(storagePath);
       
       developer.log(
-        'Subiendo imagen de perfil a Storage - Ruta: $imagePath',
+        'Subiendo imagen de perfil a Storage - Ruta: $imagePath\nRuta Storage: $storagePath',
         name: 'UserImageService',
       );
       
-      // Subir archivo
-      final UploadTask uploadTask = storageRef.putFile(File(imagePath));
+      // Configurar metadata
+      final SettableMetadata metadata = SettableMetadata(
+        customMetadata: {
+          if (userId != null) 'userId': userId,
+          if (academyId != null) 'academyId': academyId,
+          'uploadedAt': DateTime.now().toIso8601String(),
+        },
+      );
+      
+      // Subir archivo con metadata
+      final UploadTask uploadTask = storageRef.putFile(File(imagePath), metadata);
       final TaskSnapshot taskSnapshot = await uploadTask;
       
       // Obtener URL

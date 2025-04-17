@@ -26,6 +26,7 @@ class User with _$User {
     int? number, // Número del jugador/atleta (para deportes de equipo)
     required DateTime createdAt,
     String? profileImageUrl,
+    @Default(false) bool isPendingActivation, // Indica si el usuario está pendiente de activación
   }) = _User;
   
   factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);

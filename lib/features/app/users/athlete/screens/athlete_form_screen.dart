@@ -10,6 +10,7 @@ import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/features/app/users/user/core/services/user_image_service.dart';
 
 enum AthleteFormMode { create, edit }
 
@@ -159,6 +160,8 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
       final currentAcademy = ref.read(currentAcademyProvider);
       final academyId = widget.academyId ?? currentAcademy?.academyId;
       final currentUser = ref.read(authStateProvider).valueOrNull;
+      final userImageService = ref.read(userImageServiceProvider);
+      final userService = ref.read(userServiceProvider);
       String? finalProfileImageUrl = _user?.profileImageUrl; // Inicializar con la URL existente
 
       if (academyId == null) {
@@ -170,21 +173,7 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
         return;
       }
       
-      final userService = ref.read(userServiceProvider);
-      
-      // Subir imagen si se seleccionó una nueva (solo en modo edición)
-      if (_newProfileImagePath != null && widget.mode == AthleteFormMode.edit && _user != null) {
-        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'AthleteForm');
-        File imageFileToUpload = File(_newProfileImagePath!); // Crear File desde la ruta local
-        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
-              imageFileToUpload, // Pasar el File
-              _user!.id,
-            );
-        finalProfileImageUrl = imageUrl; // Actualizar la URL final
-      } else if (_newProfileImagePath != null && widget.mode == AthleteFormMode.create) {
-         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'AthleteForm');
-      }
-      
+      // Construir medicalInfo ANTES
       Map<String, dynamic> medicalInfo = {};
       if (_medicalNotesController.text.isNotEmpty) {
         medicalInfo['notes'] = _medicalNotesController.text;
@@ -195,14 +184,34 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
         final String userName = _nameController.text.trim();
         final String createdBy = currentUser?.id ?? 'unknown';
         
-        developer.log('INFO: Llamando a createPendingActivationProvider para Atleta - academyId: $academyId, name: $userName, createdBy: $createdBy', name: 'AthleteForm');
+        developer.log('INFO: Iniciando pre-registro para Atleta - academyId: $academyId', name: 'AthleteForm');
 
-        // Usar createPendingActivationProvider
+        // Subir imagen ANTES si existe
+        if (_newProfileImagePath != null) {
+          developer.log('INFO: Subiendo imagen para pre-registro de Atleta desde $_newProfileImagePath', name: 'AthleteForm');
+          try {
+            final String uploadedUrl = await userImageService.uploadProfileImage(
+              imagePath: _newProfileImagePath!,
+              academyId: academyId,
+            );
+            finalProfileImageUrl = uploadedUrl;
+            developer.log('INFO: Imagen subida para pre-registro, URL: $finalProfileImageUrl', name: 'AthleteForm');
+          } catch (imgErr) {
+            developer.log('WARN: Error al subir imagen durante pre-registro: $imgErr. Continuando sin imagen.', name: 'AthleteForm');
+            finalProfileImageUrl = null;
+          }
+        } else {
+          developer.log('INFO: No se seleccionó imagen para pre-registro de Atleta.', name: 'AthleteForm');
+        }
+        
+        developer.log('INFO: Llamando a createPendingActivationProvider (sin imageUrl por ahora)', name: 'AthleteForm');
+        // TODO: Modificar createPendingActivationProvider para aceptar profileImageUrl
         final String activationCode = await ref.read(createPendingActivationProvider(
           academyId: academyId,
           userName: userName,
           role: UserRole.athlete,
           createdBy: createdBy,
+          // profileImageUrl: finalProfileImageUrl, // <-- Pasar URL si el provider lo acepta
         ).future);
         
         setState(() {
@@ -211,27 +220,46 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
         });
         
         if (mounted) {
-          _showActivationCodeDialog(_preRegCode!);
+          _showActivationCodeDialog(_preRegCode!); // Mostrar código
         }
       }
       // Modo edición
       else if (_user != null) {
+        // Subir imagen si se seleccionó una nueva
+        if (_newProfileImagePath != null) {
+          developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'AthleteForm');
+          try {
+            final String newImageUrl = await userImageService.uploadProfileImage(
+              imagePath: _newProfileImagePath!,
+              userId: _user!.id,
+              academyId: academyId,
+            );
+            finalProfileImageUrl = newImageUrl;
+            developer.log('INFO: Nueva imagen subida, URL: $finalProfileImageUrl', name: 'AthleteForm');
+          } catch (imgErr) {
+            developer.log('WARN: Error al subir nueva imagen de perfil: $imgErr. Se mantendrá la imagen anterior si existe.', name: 'AthleteForm', error: imgErr);
+          }
+        } else {
+          developer.log('INFO: No se seleccionó nueva imagen de perfil.', name: 'AthleteForm');
+        }
+
         final updatedUser = _user!.copyWith(
           name: _nameController.text.trim(),
           number: _numberController.text.isNotEmpty 
-              ? int.parse(_numberController.text) 
+              ? int.tryParse(_numberController.text) // Usar tryParse
               : null,
           profileImageUrl: finalProfileImageUrl, // Usar URL final
         );
         
+        // Construir o actualizar perfil
         final updatedProfile = _profile != null 
             ? _profile!.copyWith(
                 birthDate: _birthDate,
                 height: _heightController.text.isNotEmpty 
-                    ? double.parse(_heightController.text) 
+                    ? double.tryParse(_heightController.text) // Usar tryParse
                     : null,
                 weight: _weightController.text.isNotEmpty 
-                    ? double.parse(_weightController.text) 
+                    ? double.tryParse(_weightController.text) // Usar tryParse
                     : null,
                 medicalInfo: medicalInfo.isNotEmpty ? medicalInfo : null,
                 position: _selectedPosition,
@@ -242,17 +270,18 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
                 academyId: academyId,
                 birthDate: _birthDate,
                 height: _heightController.text.isNotEmpty 
-                    ? double.parse(_heightController.text) 
+                    ? double.tryParse(_heightController.text) 
                     : null,
                 weight: _weightController.text.isNotEmpty 
-                    ? double.parse(_weightController.text) 
+                    ? double.tryParse(_weightController.text) 
                     : null,
                 medicalInfo: medicalInfo.isNotEmpty ? medicalInfo : null,
                 position: _selectedPosition,
                 specializations: _selectedSpecializations.isNotEmpty ? _selectedSpecializations : null,
-                createdAt: DateTime.now(),
+                createdAt: DateTime.now(), // Solo en creación de perfil
               );
         
+        developer.log('INFO: Llamando a userService.updateAthlete', name: 'AthleteForm');
         await userService.updateAthlete(
           user: updatedUser,
           profile: updatedProfile,
@@ -272,7 +301,7 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
         _isLoading = false;
       });
     } finally {
-      if (mounted && widget.mode == AthleteFormMode.edit && _errorMsg == null) {
+      if (mounted && (widget.mode == AthleteFormMode.edit || _errorMsg != null)) {
         setState(() {
           _isLoading = false;
         });
@@ -342,16 +371,77 @@ class _AthleteFormScreenState extends ConsumerState<AthleteFormScreen> {
         : 'Editar Atleta';
         
     final buttonText = widget.mode == AthleteFormMode.create
-        ? 'Generar Código Atleta' // Texto del botón actualizado
+        ? 'Generar Código Atleta'
         : 'Guardar Cambios';
     
     return Scaffold(
       appBar: AppBar(
         title: Text(screenTitle),
+        actions: [
+          if (_user?.isPendingActivation ?? false)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Chip(
+                label: Text('Pendiente'),
+                backgroundColor: Colors.orange,
+                labelStyle: TextStyle(color: Colors.white),
+              ),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildForm(buttonText),
+          : Stack(
+              children: [
+                _buildForm(buttonText),
+                if (_user?.isPendingActivation ?? false)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withAlpha(30),
+                      child: Center(
+                        child: Card(
+                          margin: const EdgeInsets.all(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.pending_outlined,
+                                  size: 48,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Usuario Pendiente de Activación',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Este usuario debe activar su cuenta usando el código proporcionado.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (_user != null) {
+                                      _showActivationCodeDialog(_user!.id);
+                                    }
+                                  },
+                                  child: const Text('Ver Código de Activación'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
   

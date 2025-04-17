@@ -1,9 +1,9 @@
 import 'dart:developer' as developer;
-import 'dart:io';
 
 import 'package:arcinus/features/app/academy/core/services/academy_provider.dart';
 import 'package:arcinus/features/app/users/user/components/profile_image_picker.dart';
 import 'package:arcinus/features/app/users/user/core/models/user.dart';
+import 'package:arcinus/features/app/users/user/core/services/user_image_service.dart';
 import 'package:arcinus/features/app/users/user/core/services/user_service.dart';
 import 'package:arcinus/features/auth/core/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
@@ -177,71 +177,65 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
     });
     
     final userService = ref.read(userServiceProvider);
+    final userImageService = ref.read(userImageServiceProvider);
     final currentUser = await ref.read(authStateProvider.future);
     String? finalProfileImageUrl = _user?.profileImageUrl;
     
     try {
-      // Subir imagen si se seleccionó una nueva (solo en modo edición)
-      if (_newProfileImagePath != null && widget.mode == ParentFormMode.edit && _user != null) {
-        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'ParentForm');
-        File imageFileToUpload = File(_newProfileImagePath!); // Crear el File desde la ruta
-        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
-              imageFileToUpload, // Pasar el File
-              _user!.id,
-            );
-        finalProfileImageUrl = imageUrl;
-      } else if (_newProfileImagePath != null && widget.mode == ParentFormMode.create) {
-         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'ParentForm');
-      }
-      
-      // Construir datos específicos del Parent
+      // Construir datos específicos del Parent ANTES de las operaciones de red
       Map<String, dynamic> parentData = {};
-      
-      if (_phoneController.text.isNotEmpty) {
-        parentData['phone'] = _phoneController.text;
-      }
-      if (_addressController.text.isNotEmpty) {
-        parentData['address'] = _addressController.text;
-      }
-      if (_birthDate != null) {
-        parentData['birthDate'] = _birthDate!.toIso8601String();
-      }
-      if (_selectedAthleteIds.isNotEmpty) {
-        parentData['childrenIds'] = _selectedAthleteIds.toList();
-      }
-      
+      if (_phoneController.text.isNotEmpty) parentData['phone'] = _phoneController.text;
+      if (_addressController.text.isNotEmpty) parentData['address'] = _addressController.text;
+      if (_birthDate != null) parentData['birthDate'] = _birthDate!.toIso8601String();
+      if (_selectedAthleteIds.isNotEmpty) parentData['childrenIds'] = _selectedAthleteIds.toList();
+
       // Modo creación -> Generar código de activación
       if (widget.mode == ParentFormMode.create) {
         developer.log('INFO: Iniciando pre-registro de Padre/Responsable', name: 'ParentForm');
         
-        // Obtener el ID de la academia actual usando el provider
         final String? academyId = ref.watch(currentAcademyIdProvider);
-        
-        // Validar que el academyId no sea nulo
         if (academyId == null) {
           setState(() {
             _errorMsg = 'Error: No se pudo determinar la academia actual.';
             _isLoading = false;
           });
           developer.log('ERROR: _saveForm - academyId es nulo.', name: 'ParentForm');
-          return; // Detener la ejecución si no hay ID de academia
+          return;
         }
 
         final String userName = _nameController.text.trim();
-        final String createdBy = currentUser?.id ?? 'unknown'; // Obtener ID del usuario que crea
+        final String createdBy = currentUser?.id ?? 'unknown';
         
-        developer.log('INFO: Llamando a createPendingActivationProvider - academyId: $academyId, name: $userName, role: ${UserRole.parent}, createdBy: $createdBy', name: 'ParentForm');
-
-        // Usar await para obtener el resultado del Future
+        // Subir imagen ANTES si existe
+        if (_newProfileImagePath != null) {
+           developer.log('INFO: Subiendo imagen para pre-registro de Parent desde $_newProfileImagePath', name: 'ParentForm');
+           try {
+              final String uploadedUrl = await userImageService.uploadProfileImage(
+                imagePath: _newProfileImagePath!,
+                academyId: academyId,
+              );
+              finalProfileImageUrl = uploadedUrl;
+              developer.log('INFO: Imagen subida para pre-registro, URL: $finalProfileImageUrl', name: 'ParentForm');
+           } catch (imgErr) {
+             developer.log('WARN: Error al subir imagen durante pre-registro: $imgErr. Continuando sin imagen.', name: 'ParentForm');
+             finalProfileImageUrl = null;
+           }
+        } else {
+           developer.log('INFO: No se seleccionó imagen para pre-registro de Parent.', name: 'ParentForm');
+        }
+        
+        developer.log('INFO: Llamando a createPendingActivationProvider (sin imageUrl por ahora)', name: 'ParentForm');
+        // TODO: Modificar createPendingActivationProvider para aceptar profileImageUrl
         final String activationCode = await ref.read(createPendingActivationProvider(
-          academyId: academyId, // Usar el ID obtenido
+          academyId: academyId,
           userName: userName,
           role: UserRole.parent,
           createdBy: createdBy,
+          // profileImageUrl: finalProfileImageUrl, // <-- Pasar URL si el provider lo acepta
         ).future);
         
         setState(() {
-          _preRegCode = activationCode; // Asignar el String resultante
+          _preRegCode = activationCode;
           _isLoading = false;
         });
         
@@ -251,15 +245,32 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
       }
       // Modo edición -> Actualizar usuario existente
       else if (_user != null) {
-        developer.log(
-          'INFO: Llamando a userService.updateParent - userId: ${_user!.id}', name: 'ParentForm');
+         // Subir imagen si se seleccionó una nueva
+        if (_newProfileImagePath != null) {
+          developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'ParentForm');
+          try {
+            final String newImageUrl = await userImageService.uploadProfileImage(
+              imagePath: _newProfileImagePath!,
+              userId: _user!.id,
+              academyId: widget.academyId ?? ref.read(currentAcademyIdProvider), // Obtener academyId actual
+            );
+            finalProfileImageUrl = newImageUrl;
+            developer.log('INFO: Nueva imagen subida, URL: $finalProfileImageUrl', name: 'ParentForm');
+          } catch (imgErr) {
+            developer.log('WARN: Error al subir nueva imagen de perfil: $imgErr. Se mantendrá la imagen anterior si existe.', name: 'ParentForm', error: imgErr);
+          }
+        } else {
+          developer.log('INFO: No se seleccionó nueva imagen de perfil.', name: 'ParentForm');
+        }
+
+        developer.log('INFO: Llamando a userService.updateParent - userId: ${_user!.id}', name: 'ParentForm');
 
         await userService.updateParent(
           userId: _user!.id,
           name: _nameController.text.trim(),
-          email: _user!.email,
-          parentData: parentData,
-          profileImageUrl: finalProfileImageUrl,
+          email: _user!.email, // Mantener el email existente
+          parentData: parentData, // Pasar los datos específicos actualizados
+          profileImageUrl: finalProfileImageUrl, // Pasar la URL final de la imagen
         );
         
         if (mounted) {
@@ -281,7 +292,7 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
         _isLoading = false;
       });
     } finally {
-      if (mounted && widget.mode == ParentFormMode.edit && _errorMsg == null) {
+      if (mounted && (widget.mode == ParentFormMode.edit || _errorMsg != null)) {
         setState(() {
           _isLoading = false;
         });
@@ -355,10 +366,71 @@ class _ParentFormScreenState extends ConsumerState<ParentFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(screenTitle),
+        actions: [
+          if (_user?.isPendingActivation ?? false)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Chip(
+                label: Text('Pendiente'),
+                backgroundColor: Colors.orange,
+                labelStyle: TextStyle(color: Colors.white),
+              ),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildForm(buttonText),
+          : Stack(
+              children: [
+                _buildForm(buttonText),
+                if (_user?.isPendingActivation ?? false)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withAlpha(30),
+                      child: Center(
+                        child: Card(
+                          margin: const EdgeInsets.all(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.pending_outlined,
+                                  size: 48,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Usuario Pendiente de Activación',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Este usuario debe activar su cuenta usando el código proporcionado.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (_user != null) {
+                                      _showActivationCodeDialog(_user!.id);
+                                    }
+                                  },
+                                  child: const Text('Ver Código de Activación'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
   

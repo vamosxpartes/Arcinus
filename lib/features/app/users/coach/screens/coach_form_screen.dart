@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:arcinus/features/app/users/user/core/services/user_image_service.dart';
 
 enum CoachFormMode { create, edit }
 
@@ -126,35 +127,46 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
     
     try {
       final currentUser = await ref.read(authStateProvider.future);
+      final userImageService = ref.read(userImageServiceProvider);
+      final userService = ref.read(userServiceProvider);
       String? finalProfileImageUrl = _user?.profileImageUrl;
       
-      // Subir imagen si se seleccionó una nueva (solo en modo edición)
-      if (_newProfileImagePath != null && widget.mode == CoachFormMode.edit && _user != null) {
-        developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'CoachForm');
-        File imageFileToUpload = File(_newProfileImagePath!); // Crear el File
-        final imageUrl = await ref.read(authRepositoryProvider).uploadProfileImage(
-              imageFileToUpload, // Pasar el File
-              _user!.id,
-            );
-        finalProfileImageUrl = imageUrl;
-      } else if (_newProfileImagePath != null && widget.mode == CoachFormMode.create) {
-         developer.log('WARN: _saveForm - Selección de imagen en modo creación ignorada.', name: 'CoachForm');
-      }
-      
-      // Modo creación
+      // Modo creación (pre-registro)
       if (widget.mode == CoachFormMode.create) {
         final academyId = await _getCurrentAcademyId();
         if (academyId.isEmpty) throw Exception('No se pudo determinar la academia actual.');
         final createdBy = currentUser?.id ?? 'sistema';
         final userName = _nameController.text.trim();
 
-        developer.log('INFO: Llamando a createPendingActivationProvider para Coach...', name: 'CoachForm');
+        developer.log('INFO: Iniciando pre-registro para Coach...', name: 'CoachForm');
+        
+        // Subir imagen ANTES de crear el registro pendiente, si existe
+        if (_newProfileImagePath != null) {
+          developer.log('INFO: Subiendo imagen para pre-registro de Coach desde $_newProfileImagePath', name: 'CoachForm');
+          try {
+            // Asegurarse de que el tipo sea String
+            final String uploadedUrl = await userImageService.uploadProfileImage(
+              imagePath: _newProfileImagePath!, 
+              academyId: academyId,
+            );
+            finalProfileImageUrl = uploadedUrl;
+            developer.log('INFO: Imagen subida para pre-registro, URL: $finalProfileImageUrl', name: 'CoachForm');
+          } catch (imgErr) {
+             developer.log('WARN: Error al subir imagen durante pre-registro: $imgErr. Continuando sin imagen.', name: 'CoachForm');
+             finalProfileImageUrl = null;
+          }
+        } else {
+           developer.log('INFO: No se seleccionó imagen para pre-registro de Coach.', name: 'CoachForm');
+        }
 
+        developer.log('INFO: Llamando a createPendingActivationProvider (sin imageUrl por ahora)', name: 'CoachForm');
+        // TODO: Modificar createPendingActivationProvider para aceptar profileImageUrl y pasar finalProfileImageUrl
         final String activationCode = await ref.read(createPendingActivationProvider(
           academyId: academyId,
           userName: userName,
           role: UserRole.coach,
           createdBy: createdBy,
+          // profileImageUrl: finalProfileImageUrl, // <--- Eliminar temporalmente hasta que el provider lo acepte
         ).future);
 
         setState(() {
@@ -168,16 +180,31 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
       }
       // Modo edición
       else if (_user != null) {
+        if (_newProfileImagePath != null) {
+           developer.log('INFO: Subiendo nueva imagen de perfil para ${_user!.id} desde $_newProfileImagePath', name: 'CoachForm');
+           try {
+              // Asegurarse de que el tipo sea String
+              final String newImageUrl = await userImageService.uploadProfileImage(
+                    imagePath: _newProfileImagePath!,
+                    userId: _user!.id,
+                    academyId: widget.academyId ?? await _getCurrentAcademyId(),
+                  );
+              finalProfileImageUrl = newImageUrl;
+              developer.log('INFO: Nueva imagen subida, URL: $finalProfileImageUrl', name: 'CoachForm');
+           } catch (imgErr) {
+             developer.log('WARN: Error al subir nueva imagen de perfil: $imgErr. Se mantendrá la imagen anterior si existe.', name: 'CoachForm', error: imgErr);
+           }
+        } else {
+           developer.log('INFO: No se seleccionó nueva imagen de perfil.', name: 'CoachForm');
+        }
+
         developer.log('INFO: Llamando a userService.updateUser para Coach - userId: ${_user!.id}', name: 'CoachForm');
-        final userService = ref.read(userServiceProvider);
         
-        // Actualizar datos básicos del usuario
         final updatedUser = _user!.copyWith(
           name: _nameController.text.trim(),
-          profileImageUrl: finalProfileImageUrl ?? _user!.profileImageUrl,
+          profileImageUrl: finalProfileImageUrl,
         );
         
-        // Guardar cambios del usuario
         await userService.updateUser(updatedUser);
         
         if (mounted) {
@@ -194,7 +221,7 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
         _isLoading = false;
       });
     } finally {
-      if (mounted && widget.mode == CoachFormMode.edit && _errorMsg == null) {
+      if (mounted && (widget.mode == CoachFormMode.edit || _errorMsg != null)) {
         setState(() {
           _isLoading = false;
         });
@@ -230,10 +257,71 @@ class _CoachFormScreenState extends ConsumerState<CoachFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(screenTitle),
+        actions: [
+          if (_user?.isPendingActivation ?? false)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Chip(
+                label: Text('Pendiente'),
+                backgroundColor: Colors.orange,
+                labelStyle: TextStyle(color: Colors.white),
+              ),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _buildForm(buttonText),
+          : Stack(
+              children: [
+                _buildForm(buttonText),
+                if (_user?.isPendingActivation ?? false)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withAlpha(30),
+                      child: Center(
+                        child: Card(
+                          margin: const EdgeInsets.all(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.pending_outlined,
+                                  size: 48,
+                                  color: Colors.orange,
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Usuario Pendiente de Activación',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Este usuario debe activar su cuenta usando el código proporcionado.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    if (_user != null) {
+                                      _showActivationCodeDialog(_user!.id);
+                                    }
+                                  },
+                                  child: const Text('Ver Código de Activación'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
   

@@ -401,187 +401,76 @@ class UserDetailsScreen extends ConsumerWidget {
                   name: 'UserDetails-Delete',
                 );
                 
-                // Usar el método específico según el rol del usuario
-                bool eliminarExitoso = false;
-                
-                try {
-                  switch (userRole) {
-                    case UserRole.manager:
-                      developer.log(
-                        'Llamando a userService.deleteManager',
-                        name: 'UserDetails-Delete',
-                      );
-                      try {
-                        developer.log(
-                          'INICIO: Ejecutando userService.deleteManager',
-                          name: 'UserDetails-Delete',
-                        );
-                        await userService.deleteManager(userId, currentAcademy.academyId);
-                        developer.log(
-                          'FIN: userService.deleteManager ejecutado con éxito',
-                          name: 'UserDetails-Delete',
-                        );
-                        eliminarExitoso = true;
-                      } catch (managerError) {
-                        developer.log(
-                          'ERROR específico en deleteManager: $managerError',
-                          name: 'UserDetails-Delete',
-                          error: managerError,
-                        );
-                        rethrow;
-                      }
-                      break;
-                      
-                    case UserRole.coach:
-                      developer.log(
-                        'Llamando a userService.deleteCoach',
-                        name: 'UserDetails-Delete',
-                      );
-                      await userService.deleteCoach(userId, currentAcademy.academyId);
-                      eliminarExitoso = true;
-                      break;
-                      
-                    case UserRole.athlete:
-                      developer.log(
-                        'Llamando a userService.deleteAthlete',
-                        name: 'UserDetails-Delete',
-                      );
-                      await userService.deleteAthlete(userId, currentAcademy.academyId);
-                      eliminarExitoso = true;
-                      break;
-                      
-                    case UserRole.parent:
-                      developer.log(
-                        'Llamando a userService.deleteParent',
-                        name: 'UserDetails-Delete',
-                      );
-                      await userService.deleteParent(userId, currentAcademy.academyId);
-                      eliminarExitoso = true;
-                      break;
-                      
-                    default:
-                      // Método genérico para otros roles
-                      developer.log(
-                        'Llamando a userService.deleteUser genérico',
-                        name: 'UserDetails-Delete',
-                      );
-                      await userService.deleteUser(
-                        userId: userId,
-                        academyId: currentAcademy.academyId,
-                        role: userRole,
-                      );
-                      eliminarExitoso = true;
-                  }
-                } catch (methodError) {
-                  developer.log(
-                    'ERROR en método específico de eliminación: $methodError',
-                    name: 'UserDetails-Delete',
-                    error: methodError,
-                  );
-                  
-                  // Intentar eliminar usando el método genérico como fallback
-                  if (!eliminarExitoso) {
-                    try {
-                      developer.log(
-                        'Intentando eliminación con método genérico como fallback',
-                        name: 'UserDetails-Delete',
-                      );
-                      
-                      await userService.deleteUser(
-                        userId: userId,
-                        academyId: currentAcademy.academyId,
-                        role: userRole,
-                      );
-                      
-                      eliminarExitoso = true;
-                      developer.log(
-                        'Eliminación exitosa con método genérico de fallback',
-                        name: 'UserDetails-Delete',
-                      );
-                    } catch (fallbackError) {
-                      developer.log(
-                        'ERROR en método genérico de fallback: $fallbackError',
-                        name: 'UserDetails-Delete',
-                        error: fallbackError,
-                      );
-                      rethrow; // Propagar el error para manejarlo en el bloque catch externo
-                    }
-                  }
+                // Llamada al método de eliminación específico
+                switch (userRole) {
+                  case UserRole.manager:
+                    developer.log('Llamando a userService.deleteManager', name: 'UserDetails-Delete');
+                    await userService.deleteManager(userId, currentAcademy.academyId);
+                    break;
+                  case UserRole.coach:
+                    developer.log('Llamando a userService.deleteCoach', name: 'UserDetails-Delete');
+                    await userService.deleteCoach(userId, currentAcademy.academyId);
+                    break;
+                  case UserRole.athlete:
+                    developer.log('Llamando a userService.deleteAthlete', name: 'UserDetails-Delete');
+                    await userService.deleteAthlete(userId, currentAcademy.academyId);
+                    break;
+                  case UserRole.parent:
+                    developer.log('Llamando a userService.deleteParent', name: 'UserDetails-Delete');
+                    await userService.deleteParent(userId, currentAcademy.academyId);
+                    break;
+                  default:
+                    developer.log('Rol no soportado para eliminación directa: $userRole', name: 'UserDetails-Delete');
+                    throw Exception('Rol no soportado para eliminación');
                 }
                 
-                if (eliminarExitoso) {
-                  developer.log(
-                    'Usuario eliminado exitosamente, cerrando pantallas',
-                    name: 'UserDetails-Delete',
-                  );
-                  
-                  // Cerrar indicador de carga y pantalla de detalles
-                  if (navigator.mounted) { 
-                    try {
-                      // 1. Cerrar pantalla de detalles PRIMERO, devolviendo 'true'
-                      if (contextMounted && context.mounted) {
-                         developer.log(
-                           'Cerrando pantalla de detalles con resultado true',
-                           name: 'UserDetails-Delete',
-                         );
-                         Navigator.pop(context, true);
-                      } else {
-                         developer.log('Contexto original no montado para cerrar pantalla detalles', name:'UserDetails-Delete');
-                      }
-                      
-                      // 2. Cerrar diálogo de carga usando el navigator raíz DESPUÉS
-                      if (indicatorShown) {
-                        developer.log('Cerrando indicador de carga', name:'UserDetails-Delete');
-                        navigator.pop();
-                      }
-                      
-                      // 3. Mostrar mensaje de éxito (idealmente se mostraría en la pantalla anterior)
-                      developer.log('Mostrando SnackBar de éxito', name:'UserDetails-Delete');
-                      scaffoldMessenger.showSnackBar(
-                        SnackBar(content: Text('${_getRoleName(userRole)} eliminado con éxito')),
-                      );
-                    } catch (navigationError) {
-                      developer.log(
-                        'ERROR al cerrar pantallas: $navigationError',
-                        name: 'UserDetails-Delete',
-                        error: navigationError,
-                      );
-                    }
-                  } else {
-                    developer.log(
-                      'Navigator no montado, no se puede cerrar indicador/pantalla',
-                      name: 'UserDetails-Delete',
-                    );
-                  }
+                developer.log(
+                  'Eliminación completada exitosamente en backend',
+                  name: 'UserDetails-Delete',
+                );
+                
+                // Ocultar indicador de carga ANTES de mostrar SnackBar y hacer pop
+                if (indicatorShown && navigator.mounted) {
+                  developer.log('Ocultando indicador de carga (ÉXITO)', name: 'UserDetails-Delete');
+                  navigator.pop(); // Cierra el diálogo del indicador
                 }
+
+                // Mostrar SnackBar de éxito y navegar hacia atrás si el contexto sigue montado
+                if (contextMounted) {
+                   developer.log('Mostrando SnackBar de éxito y haciendo pop(true)', name: 'UserDetails-Delete');
+                   scaffoldMessenger.showSnackBar(
+                     SnackBar(content: Text('${_getRoleName(userRole)} eliminado con éxito')),
+                   );
+                   // Volver a la pantalla anterior indicando éxito
+                  if (context.mounted) {
+                    Navigator.of(context).pop(true);
+                  }
+                } else {
+                  developer.log('Contexto original no montado después de eliminación exitosa.', name: 'UserDetails-Delete');
+                }
+
               } catch (e) {
                 developer.log(
-                  'ERROR durante eliminación: $e',
+                  'ERROR durante el proceso de eliminación: $e',
                   name: 'UserDetails-Delete',
                   error: e,
                 );
                 
-                try {
-                  // Usar navigator para cerrar el indicador
-                  if (indicatorShown && navigator.mounted) {
-                    navigator.pop();
-                  }
-                  // Usar scaffoldMessenger capturado para mostrar error
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('Error al eliminar: $e')),
-                  );
-                } catch (navigationError) {
-                  developer.log(
-                    'ERROR al intentar cerrar el diálogo después del error: $navigationError',
-                    name: 'UserDetails-Delete',
-                    error: navigationError,
-                  );
+                // Asegurarse de ocultar indicador de carga en caso de error
+                if (indicatorShown && navigator.mounted) {
+                  developer.log('Ocultando indicador de carga (ERROR)', name: 'UserDetails-Delete');
+                   navigator.pop(); // Cierra el diálogo del indicador
                 }
-              } finally {
-                developer.log(
-                  '----FIN: Proceso de eliminación desde UI----',
-                  name: 'UserDetails-Delete',
-                );
+                
+                // Mostrar SnackBar de error si el contexto sigue montado
+                if (contextMounted) {
+                  developer.log('Mostrando SnackBar de error', name: 'UserDetails-Delete');
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Error al eliminar ${_getRoleName(userRole)}: ${e.toString()}')),
+                  );
+                } else {
+                   developer.log('Contexto original no montado después de error en eliminación.', name: 'UserDetails-Delete');
+                }
               }
             },
             child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
