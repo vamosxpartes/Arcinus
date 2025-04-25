@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Prácticas Recomendadas para Temas y Colores en Flutter
+
+**Objetivo:** Asegurar el uso consistente y moderno de temas y colores en Flutter, evitando patrones obsoletos o menos preferidos.
+
+## Evitar `withOpacity()` en Colores Constantes
+
+**Regla:** No usar el método `.withOpacity()` directamente sobre colores definidos como constantes (ej. `ArcinusColors.primaryBlue.withOpacity(0.5)`).
+
+**Razón:** Dificulta la gestión centralizada de la paleta de colores y puede llevar a inconsistencias visuales.
+
+**Alternativa Preferida:**
+1.  **Definir colores con opacidad directamente en `ArcinusColors`:** Si un color con una opacidad específica se usa frecuentemente, definirlo como una constante separada.
+    ```dart
+    // En arcinus_colors.dart
+    static const Color primaryBlue50 = Color(0x800D47A1); // primaryBlue con 50% opacidad
+    ```
+2.  **Usar `colorScheme` con opacidad:** Para colores derivados del tema actual, aplicar la opacidad sobre el color obtenido del `colorScheme`.
+    ```dart
+    // En un widget
+    final colorScheme = Theme.of(context).colorScheme;
+    final primaryColorWithOpacity = colorScheme.primary.withOpacity(0.5);
+    ```
+
+## Uso de `backgroundColor`
+
+**Regla:** Evitar el uso directo de la propiedad `backgroundColor` en widgets como `Scaffold`, `AppBar`, `Card`, etc., cuando el color deseado ya está definido semánticamente en el `ThemeData` o `ColorScheme`.
+
+**Razón:** Usar colores directamente rompe la consistencia del tema y dificulta la adaptación a diferentes modos (claro/oscuro) o temas.
+
+**Alternativa Preferida:**
+*   **Confiar en el `ThemeData`:** El `ThemeData` configurado en `ArcinusTheme.darkTheme` ya define los colores apropiados para la mayoría de los componentes (`scaffoldBackgroundColor`, `cardTheme.color`, `appBarTheme.backgroundColor`, etc.). No sobrescribas estos valores innecesariamente.
+*   **Usar `colorScheme`:** Si necesitas un color semántico específico que no es el default del componente, obtenlo del `ColorScheme` actual.
+    ```dart
+    // Ejemplo: Un Card con color de error como fondo
+    Card(
+      color: Theme.of(context).colorScheme.errorContainer, // Usar colores semánticos del scheme
+      child: //...
+    )
+
+    // Ejemplo: Un Scaffold con un fondo ligeramente diferente (si realmente es necesario)
+    Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surfaceVariant, // Usar colores del scheme
+      body: //...
+    )
+    ```
+
+**Resumen:** Priorizar siempre el uso de los colores definidos en el `ThemeData` y `ColorScheme` accedidos mediante `Theme.of(context)` o la extensión `context.colorScheme` para mantener la consistencia y adaptabilidad del tema. Evitar colores hardcodeados y el uso excesivo de `.withOpacity()` sobre constantes.
+
+## Uso de `WidgetStateProperty` sobre `MaterialStateProperty`
+
+**Regla:** Utilizar `WidgetStateProperty` y `WidgetState` en lugar de sus contrapartes obsoletas `MaterialStateProperty` y `MaterialState` al definir estilos que dependen del estado del widget (ej. `hover`, `pressed`, `selected`).
+
+**Razón:** `WidgetStateProperty` es la API más reciente y recomendada, introducida para desacoplar estas funcionalidades de la capa de Material Design y hacerlas disponibles de forma más general en el framework de Widgets.
+
+**Ejemplo:**
+```dart
+checkboxTheme: CheckboxThemeData(
+  fillColor: WidgetStateProperty.resolveWith((states) {
+    if (states.contains(WidgetState.selected)) {
+      return ArcinusColors.embers; // Usar WidgetState
+    }
+    return ArcinusColors.mediumGray;
+  }),
+  checkColor: WidgetStateProperty.all(ArcinusColors.magnoliaWhite),
+),
+```

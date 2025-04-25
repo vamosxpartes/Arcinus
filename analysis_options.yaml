@@ -1,26 +1,17 @@
-include: package:flutter_lints/flutter.yaml
+include: package:very_good_analysis/analysis_options.yaml
+
+# La inclusión de very_good_analysis ya cubre las reglas de flutter_lints 
+# y muchas otras buenas prácticas. 
+# Puedes descomentar y ajustar reglas específicas aquí si es necesario
+# sobrescribir las de very_good_analysis.
 
 linter:
   rules:
-    - always_declare_return_types
-    - avoid_print
-    - avoid_empty_else
-    - avoid_redundant_argument_values
-    - avoid_type_to_string
-    - cancel_subscriptions
-    - close_sinks
-    - comment_references
-    - directives_ordering
-    - package_api_docs
-    - prefer_const_constructors
-    - prefer_final_fields
-    - test_types_in_equals
-    - throw_in_finally
-    - unawaited_futures
-    - unnecessary_null_checks
-    - use_key_in_widget_constructors
+    # Ejemplo de sobrescritura (si fuera necesario):
+    # avoid_print: false 
 
 analyzer:
+  # Configuración existente del analizador
   errors:
     invalid_annotation_target: ignore
   exclude:

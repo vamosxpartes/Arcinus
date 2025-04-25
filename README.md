@@ -2,359 +2,193 @@
 
 Arcinus es una aplicación móvil desarrollada en Flutter para la gestión integral de academias deportivas. Permite administrar entrenadores, atletas, grupos, entrenamientos, clases, asistencia, pagos y comunicaciones.
 
-## Estado Actual del Desarrollo
-
-El proyecto se encuentra en fase activa de desarrollo con los siguientes componentes implementados:
-
-- ✅ **Autenticación y gestión de usuarios** completa
-- ✅ **Sistema de navegación personalizado** sin AppBar, con gestos deslizables y barra inferior configurable
-- ✅ **Gestión de academias** con creación, listado y detalles básicos
-- ✅ **Dashboards dinámicos basados en permisos** con estadísticas y métricas relevantes
-- ✅ **Sistema de permisos granular** para control de acceso a funcionalidades
-- ✅ **Sistema de roles personalizados** con interfaz completa de gestión
-- ✅ **Optimización de verificación de permisos** mediante sistema de caché
-- ✅ **CRUD completo de atletas, entrenadores y gerentes** con pantallas dedicadas
-- ✅ **Gestión de grupos/equipos** con asignación de entrenadores y atletas
-- ✅ **Sistema de entrenamientos y sesiones** con plantillas, recurrencia y asistencia
-
-Actualmente trabajando en:
-- 🔄 Implementación de evaluaciones y seguimiento de atletas
-- 🔄 Integración de calendario y programación de actividades
-- 🔄 Sistema de comunicación interno y notificaciones
-
-## Características Principales
-
-- **Registro jerárquico de usuarios**: Sólo los propietarios pueden registrarse directamente. Los propietarios gestionan la creación de cuentas para entrenadores, atletas y padres/responsables.
-- **Gestión completa de academias deportivas**: Administración de equipos, entrenamientos, clases, asistencia y más.
-- **Seguimiento de rendimiento**: Evaluación y seguimiento del progreso de atletas.
-- **Sistema de pagos**: Control de mensualidades y pagos.
-- **Sistema de comunicación integrado**: Chat interno y notificaciones para mantener a todos los miembros informados.
-- **Control de acceso basado en permisos**: Sistema granular que permite control preciso sobre cada funcionalidad.
-- **Roles personalizados**: Creación y gestión de roles con combinaciones específicas de permisos.
-
-## Sistema de Entrenamientos y Sesiones
-
-El nuevo sistema de entrenamientos implementado ofrece:
-
-- **Gestión completa de entrenamientos**: Creación, edición y eliminación de entrenamientos.
-- **Plantillas reutilizables**: Crear plantillas que pueden utilizarse como base para nuevos entrenamientos.
-- **Entrenamientos recurrentes**: Configurar un entrenamiento para repetirse según un patrón (diario, semanal, mensual).
-- **Sesiones específicas**: Gestión de sesiones individuales derivadas de un entrenamiento.
-- **Registro de asistencia**: Control detallado de asistencia de atletas a cada sesión.
-- **Seguimiento de rendimiento**: Registro de datos de desempeño en cada sesión.
-- **Flujo de trabajo intuitivo**: Interfaz fácil de usar para la gestión completa del ciclo de entrenamiento.
-
-## Mejoras Planificadas e Implementadas
-
-Como parte de nuestra estrategia de mejora continua, se han identificado e implementado las siguientes mejoras arquitectónicas:
-
-### 1. Optimización de Componentes de Navegación ✅
-Se ha centralizado la gestión del BottomNavigationBar en un componente dedicado, reduciendo la duplicación de código en diversas pantallas. Esto ha mejorado la mantenibilidad y asegurado consistencia en la experiencia de navegación.
-
-### 2. Refactorización de Widgets ✅
-Se ha implementado una estrategia de modularización rigurosa para externalizar widgets y métodos reutilizables en las diferentes pantallas, permitiendo:
-- Reducción significativa de la complejidad de archivos principales
-- Mejor capacidad de testing individual de componentes
-- Mayor facilidad de colaboración en el desarrollo del proyecto
-
-### 3. Migración a Arquitectura Basada en Permisos ✅
-Se ha completado la evolución del sistema basado en roles hacia uno fundamentado en permisos específicos, logrando:
-- Mayor granularidad en el control de acceso a funcionalidades
-- Flexibilidad para personalizar permisos sin alterar roles predefinidos
-- Renderización condicional de UI basada en permisos individuales en lugar de roles completos
-- Navegación y visualización de contenido adaptada a los permisos específicos de cada usuario
-
-### 4. Optimización de Verificación de Permisos ✅
-Se ha implementado un sistema para mejorar el rendimiento de las verificaciones de permisos:
-- Caché inteligente de permisos con invalidación automática
-- Reducción significativa de operaciones de verificación repetitivas
-- Widgets optimizados para mostrar/ocultar contenido basado en permisos
-- Mayor fluidez de la interfaz de usuario en pantallas con múltiples comprobaciones
-
-### 5. Sistema de Roles Personalizados ✅
-Se ha desarrollado un sistema completo para la creación y gestión de roles personalizados:
-- Creación de roles con combinaciones específicas de permisos
-- Interfaz para editar y eliminar roles existentes
-- Asignación de roles personalizados a múltiples usuarios
-- Visualización clara de permisos asociados a cada rol
-
-### Próximas Mejoras Planificadas
-
-1. **Sistema de Auditoría de Permisos**: Implementación de registro y seguimiento de cambios en permisos.
-2. **Notificaciones de Cambios de Permisos**: Alertar a usuarios cuando sus permisos son modificados.
-3. **Optimización de Consultas a Firestore**: Mejorar la eficiencia en el acceso a datos.
-
-## Esquema de Roles
-
-1. **SuperAdmin**: Administrador de la plataforma (equipo de Arcinus).
-2. **Propietario**: Dueño de la academia, con acceso completo a su academia.
-3. **Manager**: Gerente administrativo, ayuda en la gestión de la academia.
-4. **Entrenador**: Responsable de grupos/equipos y entrenamientos.
-5. **Atleta**: Miembro de la academia que participa en las actividades.
-6. **Padre/Responsable**: Relacionado con uno o más atletas.
-7. **Roles Personalizados**: Combinaciones específicas de permisos definidas por propietarios o managers.
-
-## Estructura de Firestore
-
-```
-Collection 'academies'
-  |- Document '{academyId}'
-      |- Field: name, logo, sport, sportCharacteristics, ownerId, groupIds, coachIds, athleteIds, settings, subscription, createdAt
-      |- Collection 'groups'
-      |- Collection 'trainings'
-
-Collection 'users'
-  |- Document '{userId}'
-      |- Field: email, name, role, permissions, academyIds, customRoleIds, createdAt
-      |- Collection 'profile'
-      |- Collection 'coach_profile' (si el rol es coach)
-      |- Collection 'athlete_profile' (si el rol es athlete)
-      |- Collection 'parent_profile' (si el rol es parent)
-
-Collection 'custom_roles'
-  |- Document '{roleId}'
-      |- Field: name, description, academyId, permissions, assignedUserIds, createdBy, createdAt, updatedAt
-
-Collection 'classes'
-  |- Document '{classId}'
-      |- Collection 'attendance'
-      |- Collection 'performance'
-
-Collection 'payments'
-  |- Document '{paymentId}'
-
-Collection 'messages'
-  |- Document '{messageId}'
-      |- Field: senderId, receiverId, content, timestamp, read
-
-Collection 'notifications'
-  |- Document '{notificationId}'
-      |- Field: userId, title, body, type, read, timestamp, data
-```
-
-## Gestión de Cuentas (Sistema Jerárquico)
-
-En Arcinus, implementamos un sistema jerárquico para la gestión de cuentas:
-
-1. **Registro Inicial**: Solo los propietarios de academias pueden registrarse directamente en la aplicación.
-
-2. **Flujo de Inicio para Propietarios**:
-   - Después del registro, un propietario debe crear su academia obligatoriamente
-   - No podrá acceder al dashboard hasta completar la creación de la academia
-   - Si cierra la aplicación durante este proceso, al volver a iniciar sesión continuará en la pantalla de creación
-
-3. **Creación de Cuentas**:
-   - Los **Propietarios** pueden crear cuentas para:
-     - Managers
-     - Entrenadores
-     - Atletas
-     - Padres/Responsables
-   
-   - Los **Managers** pueden crear cuentas para:
-     - Entrenadores
-     - Atletas
-     - Padres/Responsables
-
-   - Los **Entrenadores** pueden solicitar la creación de:
-     - Atletas
-     - Padres/Responsables
-
-4. **Vinculación de Cuentas**:
-   - Los atletas pueden ser vinculados a múltiples entrenadores y grupos
-   - Los padres/responsables pueden ser vinculados a múltiples atletas
-
-## Sistema de Gestión de Usuarios
-
-La gestión de usuarios se organiza por categorías:
-
-- **Tabbed Interface**: La pantalla de gestión de usuarios presenta pestañas para diferentes tipos de usuarios:
-  - Managers
-  - Entrenadores
-  - Atletas
-  - Grupos
-
-- **Visibility Control**: Las pestañas se muestran u ocultan según los permisos del usuario.
-
-- **User Search**: Cada categoría incluye un buscador y etiquetas para filtrar usuarios.
-
-## Sistema de Permisos y Roles Personalizados
-
-- **Administración de Permisos**: Interfaz completa para gestionar permisos de usuarios:
-  - Gestión individual por usuario
-  - Gestión por roles
-  - Operaciones por lotes para múltiples usuarios
-
-- **Roles Personalizados**: Sistema para crear y gestionar roles a medida:
-  - Creación de roles con nombres y descripciones personalizadas
-  - Asignación granular de permisos específicos
-  - Visualización de permisos activos en cada rol
-  - Gestión de usuarios asignados a cada rol
-
-## Sistema de Comunicación
-
-- **Chat Interno**: Permite la comunicación directa entre miembros de la academia.
-  - Chats individuales y grupales
-  - Accesible desde la barra de navegación superior y mediante deslizamiento lateral desde el dashboard
-
-- **Notificaciones**: Sistema de alertas para eventos importantes.
-  - Notificaciones de clases, pagos, mensajes y eventos
-  - Accesible desde el icono en la barra de navegación y mediante deslizamiento lateral desde el dashboard
-
-## Sistema de Navegación Mejorado
-
-- **Navegación Deslizable**: Inspirada en Instagram y los sistemas de notificaciones de Android.
-  - Deslizar de izquierda a derecha desde el dashboard para acceder a la pantalla de chat
-  - Deslizar de derecha a izquierda desde el dashboard para acceder a las notificaciones
-  - Experiencia fluida con transiciones animadas entre páginas
-
-- **Interfaz Sin AppBar**: 
-  - Diseño limpio sin barra superior tradicional
-  - Mayor espacio para el contenido principal
-  - Navegación completa basada en el BottomNavigationBar y gestos
-
-- **Bottom Navigation Bar Personalizable**: 
-  - Barra de navegación inferior con 5 elementos visibles fijados por el usuario
-  - Panel expandible con accesos adicionales en formato wrap al deslizar hacia arriba
-  - Personalización de elementos favoritos mediante pulsación larga sobre cualquier icono
-  - Acceso rápido a funciones clave: Perfil, Chat y Notificaciones
-  - Indicador visual de iconos fijados y elemento activo
-
-- **Panel Expandible Interactivo**:
-  - Deslizamiento suave con animaciones fluidas
-  - Detección inteligente de gestos para expandir o contraer el panel
-  - Organización automática de elementos no fijados
-  - Ajuste dinámico de contenido con desplazamiento adaptable
-
-## Instalación y Configuración
-
-### Requisitos
-
-- Flutter 3.0 o superior
-- Firebase CLI
-- Cuenta de Firebase
-
-### Configuración
-
-1. Clone el repositorio
-   ```
-   git clone https://github.com/tu-usuario/arcinus.git
-   cd arcinus
-   ```
-
-2. Instale las dependencias
-   ```
-   flutter pub get
-   ```
-
-3. Genere el código necesario para los modelos
-   ```
-   dart run build_runner build --delete-conflicting-outputs
-   ```
-
-4. Configure Firebase siguiendo las instrucciones en `README_FIREBASE.md`
-
-5. Ejecute la aplicación
-   ```
-   flutter run
-   ```
-
-## Estructura del Proyecto
-
-La aplicación utiliza una arquitectura de módulos funcionales donde cada funcionalidad importante está organizada en su propio directorio con una estructura consistente:
-
-```
-lib/
-├── main.dart
-├── app.dart
-├── firebase_options.dart
-├── state.md
-└── features/            # Características organizadas por módulos
-    ├── academy/         # Gestión de academias
-    │
-    ├── auth/            # Autenticación
-    │   ├── core/        # Componentes principales de autenticación
-    │   │   ├── models/  # Modelos de datos
-    │   │   ├── providers/# Proveedores 
-    │   │   └── repositories/# Repositorios
-    │   ├── login/       # Flujo de inicio de sesión
-    │   │   ├── screens/ # Pantallas de login
-    │   │   └── controllers/# Controladores
-    │   ├── register/    # Flujo de registro
-    │   │   └── screens/ # Pantallas de registro
-    │   ├── recovery/    # Recuperación de contraseña
-    │   │   └── screens/ # Pantallas de recuperación
-    │   └── auth.dart    # Archivo barril para exportaciones
-    │
-    ├── navigation/      # Sistema de navegación
-    │   ├── core/        # Componentes principales
-    │   │   ├── models/  # Modelos para navegación 
-    │   │   └── services/# Servicios de navegación
-    │   ├── components/  # Componentes de UI para navegación
-    │   ├── main/        # Pantalla principal
-    │   │   └── screens/ # Pantallas de navegación principal
-    │   └── splash/      # Pantalla de inicio
-    │       └── screens/ # Pantalla de splash
-    │
-    ├── permissions/     # Administración de permisos
-    │   ├── core/        # Componentes principales
-    │   │   ├── models/  # Definiciones de permisos
-    │   │   └── services/# Servicios para permisos
-    │   ├── providers/   # Proveedores de permisos
-    │   └── ui/          # Interfaz para gestión de permisos
-    │       ├── screens/ # Pantallas de gestión
-    │       └── widgets/ # Widgets para permisos
-    │
-    ├── roles/           # Gestión de roles
-    │   ├── core/        # Componentes principales
-    │   │   ├── models/  # Modelos de roles
-    │   │   └── services/# Servicios para roles
-    │   ├── management/  # Gestión de roles
-    │   │   ├── screens/ # Pantallas de gestión
-    │   │   ├── widgets/ # Widgets específicos
-    │   │   └── controllers/# Controladores
-    │   └── assignment/  # Asignación de roles
-    │       ├── screens/ # Pantallas de asignación
-    │       └── controllers/# Controladores
-    │
-    ├── storage/         # Gestión de almacenamiento
-    │   ├── core/        # Configuración principal
-    │   ├── firebase/    # Integración con Firebase
-    │   │   ├── auth/    # Autenticación Firebase
-    │   │   ├── firestore/# Firestore
-    │   │   └── storage/ # Storage
-    │   ├── hive/        # Almacenamiento local
-    │   │   ├── models/  # Modelos para persistencia
-    │   │   └── services/# Servicios de almacenamiento
-    │   └── sync/        # Sincronización de datos
-    │       └── strategies/# Estrategias de sincronización
-    │
-    └── theme/           # Temas y estilos
-        ├── core/        # Definiciones principales
-        └── components/  # Componentes de UI temáticos
-            ├── loading/ # Indicadores de carga
-            ├── feedback/# Componentes de feedback
-            └── inputs/  # Componentes de entrada
-```
-
-Esta arquitectura de módulos funcionales proporciona:
-
-1. **Mayor cohesión** - Los componentes relacionados están agrupados juntos
-2. **Menor acoplamiento** - Cada módulo funcional puede evolucionar con menos dependencias
-3. **Mejor mantenibilidad** - Estructura predecible que facilita encontrar y modificar código
-4. **Escalabilidad** - Nuevos módulos pueden ser añadidos siguiendo el mismo patrón
-
-## Tecnologías Utilizadas
-
-- **Estado**: Riverpod con anotaciones
-- **Modelos**: Freezed para inmutabilidad
-- **Backend**: Firebase (Auth, Firestore, Storage)
-- **Navegación**: Go Router
-- **Localización**: Flutter Intl
-
-## Contribución
-
-Por favor, lea nuestra guía de contribución en `CONTRIBUTING.md` antes de enviar pull requests.
-
-## Licencia
-
-Este proyecto está licenciado bajo [LICENCIA]. Consulte el archivo `LICENSE` para más detalles.
+##  Indice del Desarrollo
+
+El proyecto se encuentra en fase de planeacion de desarrollo con los siguientes componentes:
+
+**Inicial (Fundamentos y Configuración)**
+*   1.  [x] **Tema centralizado** (UI/UX Base: Colores, Tipografía, Modos)
+*   2.  [ ] **Wireframes** (Revisión y Aprobación Flujos Principales)
+*   3.  [x] **Estructura del Proyecto** (Organización de Carpetas/Módulos)
+*   4.  [ ] **Configuración de Linting/Estilo de Código** (Análisis Estático)
+*   5.  [x] **Estrategia de Manejo de Estado** (Riverpod + Annotations Setup)
+*   6.  [x] **Inyección de Dependencias** (Riverpod como estrategia unificada)
+*   7.  [x] **Modelos de Datos Inmutables** (Freezed Setup - Listo)
+*   8.  [x] **Estrategia de Manejo de Errores** (Definición con Either y Freezed - Lista)
+*   9.  [x] **Sistema de roles y permisos** (Enum y Modelo de Datos Inicial - Listo)
+*   10. [ ] **Autenticación** (Configuración Firebase Auth, Flujo Básico)
+*   11. [ ] **Sistema de navegación** (Configuración GoRouter Básico)
+*   12. [ ] **Localización** (Configuración Flutter Intl, Idioma Base)
+*   13. [ ] **Estrategia de Gestión de Assets** (Imágenes, Fuentes)
+*   14. [ ] **Configuración inicial de Pruebas** (Unit/Widget Setup)
+
+**MVP (Funcionalidad Central)**
+*   15. [ ] **Sistema de subscripción para las academias** (Modelo y Verificación Básica)
+*   16. [ ] **Gestión de academias** (CRUD Propietario)
+*   17. [ ] **Gestión usuarios** (Vinculación Academia, Roles Iniciales)
+*   18. [ ] **Implementación Roles y Permisos** (Firestore Rules, Lógica App para MVP)
+*   19. [ ] **Sistema de pagos interno** (Registro Manual de Pagos Atletas)
+*   20. [ ] **Pruebas** (Cobertura Funcionalidades MVP)
+*   21. [ ] **Configuración CI/CD** (Builds y Despliegues Automatizados Básicos)
+*   22. [ ] **Build Flavors/Environments** (Dev/Prod si es necesario)
+
+**Features a Validar/Post-MVP**
+*   23. [ ] **Gestión de grupos/equipos** (Completo: CRUD, Asignaciones)
+*   24. [ ] **Sistema de entrenamientos y sesiones** (Definición, Planificación, Registro)
+*   25. [ ] **Implementación de evaluaciones y seguimiento de atletas**
+*   26. [ ] **Integración de calendario y programación de actividades**
+*   27. [ ] **Sistema de comunicación interno y notificaciones** (Chat/Anuncios, Push FCM)
+*   28. [ ] **Control de acceso basado en permisos** (Refinamiento Colaborador)
+*   29. [ ] **Integración Pasarela de Pagos** (Suscripciones/Pagos Internos)
+*   30. [ ] **Pruebas de Integración** (Flujos Completos)
+
+Detalle de las features:
+
+## 1. Tema centralizado
+- **Estrategia:** Se implementará un sistema de tema centralizado y flexible utilizando `ThemeData` de Flutter y las mejores prácticas de Material 3.
+- **Base Inicial:** Se comenzará con un tema oscuro (`brightness: Brightness.dark`) inspirado en colores vibrantes sobre fondo oscuro, utilizando `ArcinusColors.primaryBlue` como color semilla (`seedColor`) para `ColorScheme.fromSeed()`. Se planifica añadir soporte para modo claro y otros temas en el futuro.
+- **Paleta de Colores:** Definida en `lib/features/theme/ux/arcinus_colors.dart`. Se utilizará `ColorScheme.fromSeed()` para generar la paleta principal, sobreescribiendo colores específicos (como `background`) según sea necesario para el tema oscuro inicial. Los gradientes definidos se usarán consistentemente.
+- **Tipografía:** Definida en `lib/features/theme/ux/arcinus_text_styles.dart` usando la fuente 'Roboto' (se incluirá en assets). Los estilos definidos (`h1`, `body`, etc.) se mapearán a las propiedades correspondientes de `ThemeData.textTheme`. Se priorizará el uso de estos estilos predefinidos.
+- **Acceso al Tema:** Se crearán extensiones de `BuildContext` (en `lib/features/theme/ux/arcinus_theme.dart` o similar) para un acceso fácil y limpio a las propiedades del tema en los widgets (ej: `context.colorScheme.primary`, `context.textTheme.bodyMedium`).
+- **Componentes UI:** Los widgets reutilizables (en `lib/features/theme/ui/`) obtendrán sus estilos y colores principalmente a través del tema (`Theme.of(context)` o las extensiones), asegurando consistencia y adaptabilidad.
+
+## 2. Wireframes
+- **Enfoque:** Dado que el foco inicial es la funcionalidad y el desarrollo es individual, no se crearán wireframes visuales detallados en esta etapa.
+- **Metodología:** Se definirán los flujos de usuario críticos para cada rol (empezando por Propietario) mediante descripción textual y nombres de pantalla/componentes clave directamente en la documentación (este README o documentos asociados).
+- **Alcance MVP:** Se priorizarán los flujos esenciales para validar las funcionalidades del MVP.
+- **UI Placeholder:** Para las funcionalidades definidas en los flujos pero aún no implementadas visualmente, se utilizará la pantalla genérica `lib/features/utils/screens/screen_under_development.dart` como placeholder en la navegación.
+
+## 3. Estructura del Proyecto
+- **Estrategia Principal:** Se adoptará una organización **por Feature**. El código fuente dentro de `lib/` se estructurará en una carpeta `features/`, con subcarpetas para cada funcionalidad principal (ej. `auth`, `academies`, `users`, `theme`, etc.).
+- **Código Común:** Se utilizará una carpeta `core/` para utilidades, constantes, widgets genéricos, lógica base (como manejo de errores) y la configuración de navegación.
+- **Organización Feature:** Cada carpeta de feature (ej. `lib/features/auth/`) contendrá subcarpetas para las distintas capas o tipos de archivos relevantes a esa feature, como:
+    - `data/`: Repositorios, fuentes de datos (Firestore, etc.), modelos de datos específicos.
+    - `domain/` (Opcional): Entidades de negocio, casos de uso, interfaces de repositorio (si se aplica Clean Architecture estrictamente).
+    - `presentation/`: La UI y la lógica de estado.
+        - `providers/` o `state/`: Lógica de estado con Riverpod (Providers, Notifiers).
+        - `ui/` o `screens_widgets/`: Pantallas y widgets específicos de la feature.
+- **Manejo de Estado (Riverpod):** Los Providers/Notifiers de Riverpod se localizarán dentro de la carpeta `presentation/providers/` (o similar) de la feature correspondiente (Opción 2.1).
+- **Navegación (GoRouter):** La configuración de GoRouter (definición de rutas, router principal) residirá dentro de la carpeta `core/`, por ejemplo en `lib/core/navigation/` (Opción 3.2).
+- **Inyección de Dependencias (GetIt):** La configuración inicial de GetIt se manejará en un archivo dedicado en la raíz de `lib/`, como `dependency_injection.dart`.
+
+## 4. Configuración de Linting/Estilo de Código
+- **Reglas de Linting:** Se utilizará el paquete `flutter_lints` (que incluye `lints`) en combinación con el paquete `very_good_analysis` para un análisis estático estricto y la promoción de código de alta calidad. La configuración se realizará en `analysis_options.yaml`.
+- **Formateo de Código:** Se utilizará el formateador estándar `dart format` para asegurar un estilo de código consistente en todo el proyecto.
+- **Cumplimiento:** Se configurará el IDE (VS Code/Android Studio) para mostrar errores/advertencias de linting en tiempo real y para formatear el código automáticamente al guardar. Adicionalmente, se ejecutarán manualmente los comandos `dart analyze` y `dart format . --fix` antes de realizar commits para asegurar el cumplimiento.
+
+## 5. Estrategia de Manejo de Estado
+- **Framework Principal:** Se utilizará `Riverpod` como solución para el manejo de estado y la inyección de dependencias en toda la aplicación, aprovechando sus características de reactividad y seguridad de tipos en tiempo de compilación.
+- **Generación de Código:** Se empleará `riverpod_generator` (Annotations) para simplificar la definición de providers y reducir el código boilerplate. Se ejecutará `build_runner` según sea necesario.
+- **Organización de Providers:** Dentro de cada feature (`lib/features/[nombre_feature]/presentation/`), los providers se organizarán en subcarpetas específicas según su tipo o la sub-funcionalidad a la que pertenezcan (ej., `providers/auth/`, `providers/profile/`). Esto mejora la modularidad y la localización del estado.
+- **Gestión del Estado de UI y Asíncrono:** Para manejar operaciones asíncronas (llamadas a API, base de datos) y el estado resultante en la UI (carga, éxito, error), se utilizará el patrón de **máquinas de estado** implementado con `Freezed`. Los `AsyncNotifier` expondrán un estado (`state`) definido como una unión Freezed (ej., `AsyncValue<Data>` o un estado personalizado como `sealed class MiEstado with _$MiEstado { const factory MiEstado.initial(); const factory MiEstado.loading(); const factory MiEstado.success(Data data); const factory MiEstado.failure(Error error); }`). Esto permitirá un manejo explícito y seguro de los diferentes estados en la UI mediante `state.when(...)`.
+
+## 6. Inyección de Dependencias
+- **Estrategia Unificada con Riverpod:** Se utilizará `Riverpod` no solo para el manejo de estado, sino también como el mecanismo principal para la inyección de dependencias (DI) en toda la aplicación.
+- **Registro de Dependencias:** Clases como repositorios, clientes de API, servicios de utilidad, etc., se registrarán como `Provider` simples (o `FutureProvider` si requieren inicialización asíncrona). Por ejemplo: `final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());`.
+- **Acceso a Dependencias:** Las dependencias registradas se consumirán dentro de otros providers (ej., `Notifier`) o widgets utilizando `ref.watch` o `ref.read`, según el caso de uso (observar cambios vs. obtener una sola vez).
+- **Ventaja:** Esta estrategia mantiene una única herramienta para el estado y la DI, simplificando el conjunto de tecnologías y potencialmente la curva de aprendizaje.
+
+## 7. Modelos de Datos Inmutables
+- **Herramienta Principal:** Se utilizará el paquete `freezed` para definir todos los modelos de datos (entidades, DTOs, estados) de la aplicación. Esto asegura la inmutabilidad y proporciona automáticamente métodos útiles como `copyWith`, `==`, y `toString`.
+- **Generación de Código:** Se requerirá la ejecución regular de `build_runner` para generar el código asociado a Freezed (`*.freezed.dart`).
+- **Serialización JSON:** Para la conversión de objetos desde/hacia JSON (necesario para interactuar con Firestore y otras APIs), se utilizará el paquete `json_serializable` en conjunto con `freezed`. Las clases modelo incluirán las anotaciones `@freezed` y `@JsonSerializable()` (o `@Freezed(toJson: true, fromJson: true)`), y `build_runner` generará los archivos `*.g.dart` con los métodos `fromJson` y `toJson`.
+- **Ubicación:** Los modelos de datos específicos de una feature se definirán dentro de la carpeta `data/models/` (o una subcarpeta apropiada como `dto/` si se diferencia) dentro del directorio de esa feature. Por ejemplo: `lib/features/academies/data/models/academy_model.dart`. Los modelos compartidos podrían residir en `lib/core/models/`.
+
+## 8. Estrategia de Manejo de Errores
+- **Retorno Funcional con `Either`:** Las operaciones en las capas de datos (repositorios) y dominio (casos de uso, si se implementan) que puedan fallar devolverán un tipo `Either<Failure, SuccessData>` (utilizando el paquete `fpdart`). Esto obliga al llamador a manejar explícitamente tanto el caso de éxito (`Right`) como el de fallo (`Left`).
+- **Jerarquía de Fallos (`Failure`):** Se definirá una estructura clara para los errores de la aplicación mediante una clase base abstracta `Failure` y subclases específicas que representen diferentes tipos de errores (ej., `ServerFailure`, `NetworkFailure`, `AuthenticationFailure`, `ValidationFailure`, `CacheFailure`). Se utilizará `Freezed` para definir esta jerarquía de forma concisa y robusta.
+    ```dart
+    // Ejemplo conceptual (en lib/core/error/failures.dart)
+    @freezed
+    sealed class Failure with _$Failure {
+      const factory Failure.serverError({String? message}) = ServerFailure;
+      const factory Failure.networkError() = NetworkFailure;
+      const factory Failure.authError(String code) = AuthFailure;
+      // ... otros tipos de fallos
+    }
+    ```
+- **Manejo en la Capa de Presentación:** Los `Notifier` / `AsyncNotifier` de Riverpod serán responsables de llamar a los métodos que devuelven `Either`. Utilizarán `.fold()` (o un `switch` sobre el `Either`) para manejar el resultado:
+    - En caso de `Right(SuccessData)`, actualizarán el estado a `MiEstado.success(data)` (o similar).
+    - En caso de `Left(Failure)`, capturarán el objeto `Failure` específico y actualizarán el estado a `MiEstado.failure(failure)`. 
+- **Presentación en la UI:** La UI (Widgets) observará el estado del provider (`state.when(...)`) y reaccionará a los diferentes estados definidos por la máquina de estados Freezed, mostrando la información, indicadores de carga o mensajes/widgets de error apropiados basados en el tipo de `Failure` recibido en el estado `failure`.
+
+## 9. Sistema de roles y permisos
+- **Definición de Roles Base:** Se utilizarán los roles definidos previamente: `SuperAdmin`, `Propietario`, `Colaborador`, `Atleta`, `Padre/Responsable`.
+- **Representación en Código:** Los roles se representarán en el código Dart mediante un `enum AppRole` para garantizar la seguridad de tipos y la claridad.
+    ```dart
+    // Ejemplo (en lib/core/auth/roles.dart o similar)
+    enum AppRole { superAdmin, propietario, colaborador, atleta, padre, desconocido }
+    ```
+- **Almacenamiento del Rol Principal:** El rol principal de cada usuario (Propietario, Atleta, Padre, etc.) se almacenará como **Custom Claim** en Firebase Authentication. Esto permite un acceso rápido y eficiente al rol del usuario autenticado, tanto en el backend (Firestore Rules) como en el frontend.
+- **Permisos Específicos para Colaboradores:** Para el rol `Colaborador`, se implementará un sistema de permisos granulares. Un `Propietario` podrá asignar permisos específicos a un `Colaborador` marcando/desmarcando acciones permitidas (ej., `manage_groups`, `record_attendance`, `manage_payments`). Esta **lista explícita de permisos** (`List<String>`) se almacenará probablemente en el documento de Firestore que representa la membresía o relación del colaborador con la academia, debido a los límites de tamaño de los Custom Claims.
+- **Modelo de Datos:** Se necesitará un modelo de datos para representar la relación usuario-academia-rol-permisos, especialmente para `Colaborador` y `Padre/Responsable` (que puede estar vinculado a varios atletas).
+- **Cumplimiento y Seguridad:**
+    - **Firestore Security Rules:** Serán la principal línea de defensa. Las reglas verificarán el rol del usuario (obtenido del Custom Claim del token de autenticación) y, para operaciones específicas de Colaborador, podrán verificar la presencia del permiso requerido (leyendo el documento de membresía/relación correspondiente).
+    - **Lógica en la Aplicación (Frontend):** La UI se adaptará dinámicamente según el rol y los permisos del usuario actual (obtenidos a través de un provider que lea los Custom Claims y/o datos de Firestore). Se mostrarán/ocultarán opciones, y se habilitarán/deshabilitarán botones para reflejar lo que el usuario tiene permitido hacer.
+
+## 10 Autenticacion
+- **Proveedor Principal:** Se utilizará `Firebase Authentication`.
+- **Métodos Soportados:** Inicialmente, solo se habilitarán los métodos de inicio de sesión social: **Google Sign-In** y **Apple Sign-In**. No se implementará el registro/inicio de sesión con correo electrónico y contraseña en la fase inicial.
+- **Flujo de Registro:** El registro de nuevos usuarios será **exclusivamente por invitación**. No habrá opción de auto-registro público en el MVP. Un usuario existente con permisos (ej. Propietario) deberá iniciar el proceso de invitación (mecanismo TBD).
+- **Proceso Post-Autenticación Inicial:**
+    1.  El usuario invitado sigue el flujo de invitación y se autentica utilizando Google o Apple.
+    2.  Tras la primera autenticación exitosa, será redirigido a una pantalla obligatoria de **"Completar Perfil"**.
+    3.  **Creación del Documento Firestore:** El documento correspondiente al usuario en la colección `users` de Firestore se creará **únicamente después** de que el formulario de "Completar Perfil" sea enviado exitosamente. Este documento contendrá información adicional del usuario.
+    4.  **Asignación de Rol (Custom Claim):** El `AppRole` principal asignado durante el proceso de invitación se establecerá como Custom Claim en Firebase Authentication. Esto probablemente ocurrirá mediante una Cloud Function (posiblemente trigger `onCall` activado desde el frontend tras completar perfil, o como parte del proceso de invitación si es posible) para asegurar que el rol correcto esté asociado al token del usuario.
+- **Gestión del Estado de Sesión:** Se utilizará un `StreamProvider` de Riverpod que escuche el stream `FirebaseAuth.instance.authStateChanges()`. Este provider expondrá el `User?` de Firebase actual y será la fuente principal de verdad para conocer el estado de autenticación del usuario en toda la aplicación, controlando redirecciones (GoRouter) y la UI.
+
+## 11 Sistema de navegacion
+- **Framework:** Se utilizará `GoRouter` como solución de navegación declarativa para la aplicación.
+- **Configuración:** La configuración principal de `GoRouter` residirá en `lib/core/navigation/` (como se definió en la estructura del proyecto).
+- **Definición de Rutas:**
+    - Se emplearán **clases o constantes estáticas** para definir los nombres y paths de las rutas (ej., `AppRoutes.home = '/home';`, `AppRoutes.profile = '/profile/:userId';`). Esto mejorará la mantenibilidad y reducirá errores al navegar (`context.go(AppRoutes.home)`).
+    - La estructura de las rutas (`GoRoute`) se organizará de forma lógica, potencialmente agrupando rutas relacionadas si la aplicación crece.
+- **Redirección (Guardias de Ruta):** La lógica de redirección basada en el estado de autenticación (y potencialmente roles/permisos) se implementará centralizadamente utilizando el parámetro **`redirect`** de `GoRouter`. Esta función observará el estado del provider de autenticación (`StreamProvider` de `authStateChanges`) y otros providers relevantes (perfil, roles) para determinar si el usuario puede acceder a la ruta solicitada, redirigiendo a `/login` o `/home` según sea necesario.
+- **Navegación Anidada:** Si se requiere navegación anidada (ej., para una `BottomNavigationBar` donde cada pestaña mantenga su propio historial), se utilizará **`ShellRoute`** de GoRouter para implementarla correctamente.
+- **Paso de Parámetros:** El método principal para pasar parámetros requeridos entre pantallas será a través de **parámetros de ruta** definidos en el path (ej., `/academies/:academyId/groups/:groupId`). Estos se extraerán en la pantalla destino utilizando `GoRouterState.of(context).pathParameters['paramName']`. Se usarán parámetros de consulta (`queryParameters`) para datos opcionales/filtros y el parámetro `extra` con moderación para objetos complejos no serializables.
+- **Integración con Riverpod:** Se pasará la `ProviderContainer` (o `ProviderScope.containerOf(context)`) a `GoRouter` si es necesario acceder a providers dentro de constructores de `GoRoute` o en la función `redirect`, aunque se preferirá acceder a `ref` dentro de los `builder` de las rutas.
+
+## 12 Localización
+- **Framework Base:** Se utilizará el soporte incorporado de Flutter a través de los paquetes `flutter_localizations` y `intl`.
+- **Gestión Manual:** La configuración inicial se realizará manualmente, definiendo las clases `LocalizationsDelegate` y `AppLocalizations` necesarias sin depender de herramientas de generación de código como `intl_utils` en la fase inicial.
+- **Estructura de Archivos:** Los archivos de traducción (probablemente en formato `.arb` para compatibilidad con `intl`) se organizarán de forma distribuida:
+    - Un conjunto global de traducciones en `lib/l10n/` (ej., `app_es.arb`) para textos comunes.
+    - Archivos de traducción específicos para cada feature dentro de su propia carpeta `l10n/` (ej., `lib/features/auth/l10n/auth_es.arb`).
+    - **Nota:** Esto requerirá configurar múltiples `LocalizationsDelegates` (uno global y uno por feature o un delegado compuesto) en `MaterialApp`.
+- **Idiomas Soportados:** Se comenzará con el **Español (`es`)** como idioma base y por defecto. La estructura y configuración se realizarán de manera que sea sencillo añadir soporte para otros idiomas (como Inglés - `en`) en el futuro, simplemente añadiendo los archivos `.arb` correspondientes y actualizando los delegados.
+- **Acceso a Traducciones:** Las cadenas traducidas se accederán en el código (principalmente en widgets) utilizando el método estándar `AppLocalizations.of(context)!.nombreClave`. Será necesario asegurarse de que las claves de traducción sean únicas globalmente o estén correctamente prefijadas/gestionadas si se cargan desde múltiples archivos/delegados.
+
+## 13 Estrategia de Gestión de Assets
+- **Estrategia:** Se implementará una estrategia para gestionar y organizar los assets (imágenes, fuentes, etc.) de manera eficiente y coherente en la aplicación.
+- **Organización:** Los assets se organizarán en carpetas específicas según su tipo (ej., `images/`, `fonts/`, `icons/`, etc.) dentro del directorio `assets/`.
+- **Uso:** Los assets se accederán de manera eficiente desde el código Dart utilizando el paquete `path` para rutas relativas y `package:flutter/assets.dart` para acceder a los assets.
+
+## 14 Configuración inicial de Pruebas
+- **Estrategia:** Se adoptará un **Enfoque Equilibrado Inicial** para las pruebas del MVP.
+- **Alcance Inicial:** Se implementará un conjunto básico tanto de **pruebas unitarias** (utilizando `package:test`) como de **pruebas de widgets** (utilizando `package:flutter_test`).
+- **Foco Pruebas Unitarias:** Se priorizará la lógica de negocio crítica seleccionada (ej., funciones clave en `Notifier`/`Provider`, utilidades complejas, manejo de errores) para validar su corrección independientemente de la UI.
+- **Foco Pruebas de Widgets:** Se priorizarán las pantallas y componentes fundamentales de los flujos de usuario más importantes (ej., flujo de autenticación, pantallas principales) para asegurar que la interacción básica y la renderización funcionen correctamente.
+- **Objetivo:** Lograr una cobertura inicial mínima pero representativa en ambas capas (lógica y UI) para aumentar la confianza en la estabilidad del MVP.
+- **Herramientas:** Se utilizarán los paquetes estándar `test` y `flutter_test`. La configuración del IDE (VS Code/Android Studio) se ajustará para facilitar la ejecución y visualización de los resultados de las pruebas.
+
+## 15 Sistema de subscripción para las academias
+- **Modelo de Datos:** Se creará una nueva colección de nivel superior en Firestore llamada `subscriptions` para almacenar la información de las suscripciones de las academias.
+- **Estructura del Documento:** Cada documento en la colección `subscriptions` representará una suscripción y contendrá como mínimo los siguientes campos:
+    - `academyId`: El ID del documento de la academia a la que pertenece la suscripción (referencia o string).
+    - `status`: El estado actual de la suscripción (ej. `'active'`, `'inactive'`, `'trial'`, `'expired'`). Para el MVP, un valor simple como `'active'` podría ser suficiente inicialmente.
+    - `endDate`: La fecha (Timestamp) en la que expira la suscripción actual.
+    - (Opcional/Futuro): `planId`, `startDate`, etc.
+- **Verificación Básica en el MVP:**
+    - **Lógica:** La verificación de si una academia tiene una suscripción activa se realizará consultando la colección `subscriptions`.
+    - **Implementación:** Se buscará un documento en `subscriptions` donde `academyId` coincida con el ID de la academia actual y el `status` sea `'active'` (y opcionalmente, `endDate` sea posterior a la fecha actual).
+    - **Propósito MVP:** Esta verificación básica se utilizará principalmente para habilitar/deshabilitar el acceso a la funcionalidad principal de la academia para el `Propietario` y `Colaborador`. No se implementarán restricciones complejas en este punto.
+- **Consideraciones:** Este enfoque separa la lógica de suscripción de la entidad `Academy`, facilitando la gestión futura de historiales de suscripción, diferentes planes, etc.
+
+## 16 Gestión de academias
+- **Alcance:** Esta funcionalidad se centra en las operaciones que un usuario con rol `Propietario` puede realizar sobre **su propia** academia.
+- **Operaciones CRUD para el Propietario (MVP):**
+    - **Crear (Create):** El Propietario creará su academia una única vez, probablemente como parte del flujo inicial de configuración después del registro/invitación y completar perfil. No habrá opción para crear múltiples academias por Propietario en el MVP.
+    - **Leer (Read):** El Propietario podrá ver toda la información relevante de su academia (nombre, detalles de contacto, etc.) en una pantalla dedicada (ej. perfil de la academia).
+    - **Actualizar (Update):** El Propietario podrá modificar la información básica de su academia (ej. nombre, descripción, datos de contacto, logo/imagen). Se implementará un formulario para editar estos detalles.
+    - **Eliminar (Delete):** La operación de **eliminar** una academia **NO** se implementará en el MVP. Se considera una operación compleja por las implicaciones en datos asociados (usuarios, grupos, etc.) y se pospondrá.
+- **Modelo de Datos:** Se definirá el `AcademyModel`
