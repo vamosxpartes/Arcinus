@@ -4,14 +4,11 @@ import 'package:flutter/material.dart';
 /// y un botón opcional para reintentar una acción.
 class ErrorDisplay extends StatelessWidget {
   /// Crea un widget de visualización de error.
-  const ErrorDisplay({
-    required this.error, 
-    super.key,
-    this.onRetry,
-  });
+  const ErrorDisplay({required this.error, super.key, this.onRetry});
 
   /// El mensaje de error específico a mostrar.
   final String error;
+
   /// Callback opcional a ejecutar cuando se presiona el botón "Reintentar".
   final VoidCallback? onRetry;
 
@@ -26,16 +23,12 @@ class ErrorDisplay extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              color: colorScheme.error, 
-              size: 64,
-            ),
+            Icon(Icons.error_outline, color: colorScheme.error, size: 64),
             const SizedBox(height: 16),
             Text(
               'Ocurrió un error',
               style: textTheme.titleLarge?.copyWith(
-                color: colorScheme.onSurface, 
+                color: colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -43,7 +36,7 @@ class ErrorDisplay extends StatelessWidget {
             Text(
               error,
               style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant, 
+                color: colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.center,
             ),
@@ -54,12 +47,12 @@ class ErrorDisplay extends StatelessWidget {
                 icon: const Icon(Icons.refresh),
                 label: const Text('Reintentar'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.error, 
-                  foregroundColor: colorScheme.onError, 
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24, 
+                    horizontal: 24,
                     vertical: 12,
-                    ),
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),

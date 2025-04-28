@@ -10,10 +10,11 @@ class PlacePrediction {
       placeId: json['place_id'] as String,
     );
   }
-  
-  /// La descripción textual de la predicción del lugar 
+
+  /// La descripción textual de la predicción del lugar
   /// (ej. nombre de calle, ciudad).
   final String description;
+
   /// El identificador único del lugar.
   final String placeId;
-} 
+}

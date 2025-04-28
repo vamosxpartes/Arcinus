@@ -1,52 +1,31 @@
 import 'package:flutter/material.dart';
 
-/// Pantalla que indica que la funcionalidad está en desarrollo.
-class UnderDevelopmentScreen extends StatelessWidget {
+/// Una pantalla genérica para indicar que una sección está en desarrollo.
+class ScreenUnderDevelopment extends StatelessWidget {
+  /// El título a mostrar en la AppBar (opcional).
+  final String? title;
 
-  /// Crea una pantalla de desarrollo con el [title] proporcionado.
-  const UnderDevelopmentScreen({
-    required this.title, super.key,
-  });
-  /// El título principal que se muestra en la pantalla.
-  final String title;
+  /// Crea una instancia de [ScreenUnderDevelopment].
+  const ScreenUnderDevelopment({this.title, super.key, required String message});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.construction,
-                size: 80,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                title,
-                style: theme.textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  'Esta funcionalidad se encuentra actualmente ' 
-                  'en desarrollo. ¡Vuelve pronto!',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge,
-                ),
-              ),
-              const SizedBox(height: 32),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Volver'),
-              ),
-            ],
-          ),
+      appBar: AppBar(
+        title: Text(title ?? 'En Desarrollo'),
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.construction, size: 80, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'Esta sección está en construcción',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

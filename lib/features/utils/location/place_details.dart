@@ -11,10 +11,13 @@ class PlaceDetails {
 
   /// La dirección formateada completa del lugar.
   final String formattedAddress;
+
   /// La latitud geográfica del lugar.
   final double latitude;
+
   /// La longitud geográfica del lugar.
   final double longitude;
+
   /// El identificador único del lugar.
   final String placeId;
-} 
+}

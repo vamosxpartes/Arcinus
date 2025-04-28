@@ -1,0 +1,72 @@
+---
+description: Guía para Evitar Advertencias de Linter en Flutter
+globs: 
+alwaysApply: false
+---
+# Guía para Evitar Advertencias de Linter en Flutter
+
+Esta guía resume las prácticas recomendadas para cumplir con las reglas de linter comunes en proyectos Flutter, especialmente aquellas incluidas en `very_good_analysis` y las configuraciones estándar de `analysis_options.yaml`.
+
+## Principios Generales
+
+- **Actualiza Dependencias:** Mantén `flutter_lints` o `very_good_analysis` actualizados en tus `dev_dependencies`.
+- **Configura `analysis_options.yaml`:** Usa `include` para heredar de conjuntos de reglas base (`package:flutter_lints/flutter.yaml` o `package:very_good_analysis/analysis_options.yaml`).
+- **Corre `flutter analyze`:** Ejecuta este comando regularmente para detectar problemas.
+- **Usa `dart fix --apply`:** Aplica correcciones automáticas sugeridas por el analizador.
+- **Personaliza Reglas:** Desactiva o ajusta la severidad de reglas específicas en `analysis_options.yaml` si es necesario para tu proyecto, pero hazlo con moderación y justificación.
+- **Suprime Advertencias Específicas:** Usa `// ignore: rule_name` para una línea o `// ignore_for_file: rule_name` para un archivo cuando una regla genere un falso positivo o haya una razón específica para ignorarla. Documenta por qué se ignora.
+
+## Prácticas Comunes para Evitar Advertencias
+
+### Estilo y Formato
+
+- **`prefer_single_quotes`:** Usa comillas simples para strings.
+- **`prefer_const_constructors` / `prefer_const_literals_to_create_immutables` / `prefer_const_declarations`:** Usa `const` siempre que sea posible para mejorar el rendimiento.
+- **`prefer_final_fields` / `prefer_final_locals`:** Declara variables y campos como `final` si no se reasignan.
+- **`camel_case_types` / `non_constant_identifier_names`:** Sigue las convenciones de nomenclatura estándar de Dart (UpperCamelCase para tipos, lowerCamelCase para variables, métodos, etc.).
+- **`curly_braces_in_flow_control_structures`:** Siempre usa llaves `{}` para bloques de control (if, else, for, while, etc.), incluso si son de una sola línea.
+- **`directives_ordering`:** Ordena las directivas (`import`, `export`, `part`) alfabéticamente y agrúpalas (dart:, package:, relative).
+- **`eol_at_end_of_file`:** Asegúrate de que haya una línea en blanco al final de cada archivo.
+- **`slash_for_doc_comments`:** Usa `///` para comentarios de documentación.
+- **`sort_constructors_first` / `sort_unnamed_constructors_first`:** Coloca los constructores antes que otros miembros de la clase.
+- **`avoid_print`:** Reemplaza las llamadas a `print()` con un logger adecuado (como `package:logger`) para el código de producción. `print` está bien para ejemplos o código temporal.
+
+### Tipado y Nulabilidad
+
+- **`always_specify_types`:** Declara explícitamente los tipos de variables y parámetros, aunque a veces se puede inferir (`omit_local_variable_types` puede ser preferible en algunos equipos). `very_good_analysis` es más estricto con esto.
+- **`avoid_annotating_with_dynamic` / `strict-inference` / `strict-raw-types`:** Evita el uso implícito o explícito de `dynamic`. Especifica tipos concretos siempre que sea posible.
+- **`avoid_init_to_null`:** No inicialices variables a `null` si no es necesario; Dart lo hace por defecto.
+- **`avoid_returning_null_for_void`:** Las funciones `void` no deben retornar `null` explícitamente.
+- **`prefer_void_to_null`:** Usa `void` en lugar de `Null` para tipos de retorno que no devuelven nada.
+- **`cast_nullable_to_non_nullable`:** Evita casts inseguros de tipos nulables a no nulables. Realiza comprobaciones de nulidad adecuadas.
+- **`unnecessary_null_checks`:** No uses el operador `!` si el analizador puede determinar que el valor no es nulo.
+
+### Uso de Características del Lenguaje
+
+- **`prefer_is_empty` / `prefer_is_not_empty`:** Usa `.isEmpty` o `.isNotEmpty` en lugar de comparar `.length` con 0.
+- **`prefer_adjacent_string_concatenation`:** Usa literales de string adyacentes (`'a' 'b'`) en lugar del operador `+` para concatenar strings constantes.
+- **`prefer_interpolation_to_compose_strings`:** Usa interpolación (`'$variable'`) en lugar de `+` para construir strings con variables.
+- **`prefer_collection_literals`:** Usa literales (`[]`, `{}`) en lugar de constructores (`List()`, `Map()`) cuando sea posible.
+- **`avoid_function_literals_in_foreach_calls`:** Prefiere bucles `for-in` en lugar de `list.forEach(...)` si el cuerpo de la función es complejo o realiza operaciones asíncronas.
+- **`use_rethrow_when_possible`:** Usa `rethrow` en bloques `catch` para relanzar la misma excepción manteniendo el stack trace original.
+- **`unnecessary_const` / `unnecessary_new` / `unnecessary_this`:** Elimina palabras clave redundantes.
+- **`await_only_futures`:** Solo usa `await` en expresiones de tipo `Future`.
+- **`async_foreach` (Regla personalizada o implícita):** Evita usar `async` en el callback de `forEach`. Usa `Future.forEach` o un bucle `for-in` con `await`.
+- **`use_super_parameters`:** Utiliza la sintaxis de super parámetros (`super.paramName`) introducida en Dart 2.17.
+
+### Flutter Específico
+
+- **`use_key_in_widget_constructors`:** Incluye un parámetro `Key? key` en los constructores de tus Widgets y pásalo al constructor `super`.
+- **`prefer_const_constructors_in_immutables`:** Marca las clases inmutables (anotadas con `@immutable`) con constructores `const` si es posible.
+- **`avoid_unnecessary_containers`:** No uses un `Container` si no necesitas decoración, padding, margin, etc. Usa `SizedBox` o simplemente no lo envuelvas.
+- **`sized_box_for_whitespace`:** Usa `SizedBox(width: ..., height: ...)` para añadir espacio entre widgets en lugar de `Container` con `padding/margin`.
+- **`use_build_context_synchronously`:** Asegúrate de que el `BuildContext` sigue siendo válido antes de usarlo después de una operación `await`. Verifica `if (context.mounted)` (o `if (!mounted)` en State).
+- **`no_logic_in_create_state`:** El método `createState` debe ser simple y solo retornar la instancia del `State`. Evita lógica compleja aquí.
+- **`public_member_api_docs`:** Documenta todos los miembros públicos (clases, métodos, variables) si estás creando un paquete. Puedes desactivarlo para proyectos de aplicación (`public_member_api_docs: false`).
+
+## Recursos
+
+- **Reglas de Linter de Dart:** [https://dart.dev/tools/linter-rules](mdc:https:/dart.dev/tools/linter-rules)
+- **`package:flutter_lints`:** [https://pub.dev/packages/flutter_lints](mdc:https:/pub.dev/packages/flutter_lints)
+- **`package:very_good_analysis`:** [https://pub.dev/packages/very_good_analysis](mdc:https:/pub.dev/packages/very_good_analysis)
+- **Customizing Static Analysis:** [https://dart.dev/tools/analysis](mdc:https:/dart.dev/tools/analysis)

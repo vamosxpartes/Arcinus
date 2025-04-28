@@ -15,20 +15,26 @@ abstract class ArcinusColors {
   // --- Neutral Colors ---
   /// Base background color for dark theme.
   static const Color darkBackground = Color(0xFF121212);
+
   /// Color for surfaces like cards, dialogs in dark theme.
   static const Color darkSurface = Color(0xFF1E1E1E);
+
   /// Primary text color on dark backgrounds.
   static const Color textOnDark = Color(0xFFFFFFFF);
+
   /// Secondary text color (less emphasis) on dark backgrounds.
   static const Color textOnDarkSecondary = Color(0xB3FFFFFF); // White 70%
 
   // --- Status Colors ---
   /// Color indicating success or confirmation.
   static const Color success = Color(0xFF4CAF50);
+
   /// Color indicating errors or danger.
   static const Color error = Color(0xFFF44336);
+
   /// Color indicating warnings or potential issues.
   static const Color warning = Color(0xFFFFC107);
+
   /// Color indicating informational messages.
   static const Color info = Color(0xFF2196F3);
 

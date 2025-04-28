@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// {@template loading_overlay}
-/// Un widget que muestra una superposición de carga sobre 
+/// Un widget que muestra una superposición de carga sobre
 /// su widget hijo [child] cuando [isLoading] es verdadero.
 /// {@endtemplate}
 class LoadingOverlay extends StatelessWidget {
@@ -17,18 +17,18 @@ class LoadingOverlay extends StatelessWidget {
 
   /// El widget hijo sobre el cual se mostrará la superposición.
   final Widget child;
-  
+
   /// Indica si la superposición de carga está activa.
   final bool isLoading;
-  
-  /// El color de la superposición. 
+
+  /// El color de la superposición.
   /// Si es nulo, usa `colorScheme.scrim.withAlpha(125)`.
   final Color? overlayColor;
-  
-  /// El color del indicador de progreso. 
+
+  /// El color del indicador de progreso.
   /// Si es nulo, usa `colorScheme.primary`.
   final Color? progressColor;
-  
+
   /// El mensaje opcional a mostrar debajo del indicador de progreso.
   final String? message;
 
@@ -57,7 +57,7 @@ class LoadingOverlay extends StatelessWidget {
                     Text(
                       message!,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onPrimary, 
+                        color: colorScheme.onPrimary,
                         // Assuming background is dark
                       ),
                     ),
@@ -69,4 +69,4 @@ class LoadingOverlay extends StatelessWidget {
       ],
     );
   }
-} 
+}

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 /// Un widget reutilizable para mostrar un estado vacío o sin datos,
 /// con un icono, mensaje, sugerencia opcional y botón de acción.
 class EmptyState extends StatelessWidget {
-
   /// Crea un widget de estado vacío.
   const EmptyState({
     required this.icon,
@@ -16,12 +15,16 @@ class EmptyState extends StatelessWidget {
 
   /// El icono a mostrar.
   final IconData icon;
+
   /// El mensaje principal que describe el estado vacío.
   final String message;
+
   /// Etiqueta para el botón de acción.
   final String? actionLabel;
+
   /// Callback a ejecutar cuando se presiona el botón de acción.
   final VoidCallback? onAction;
+
   /// Un mensaje secundario opcional con una sugerencia.
   final String? suggestion;
 
@@ -36,16 +39,12 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: colorScheme.onSurfaceVariant, 
-              size: 64,
-            ),
+            Icon(icon, color: colorScheme.onSurfaceVariant, size: 64),
             const SizedBox(height: 16),
             Text(
               message,
               style: textTheme.titleLarge?.copyWith(
-                color: colorScheme.onSurface, 
+                color: colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
@@ -54,7 +53,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 suggestion!,
                 style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant, 
+                  color: colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -64,10 +63,10 @@ class EmptyState extends StatelessWidget {
               ElevatedButton(
                 onPressed: onAction,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: colorScheme.primary, 
-                  foregroundColor: colorScheme.onPrimary, 
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24, 
+                    horizontal: 24,
                     vertical: 12,
                   ),
                   shape: RoundedRectangleBorder(

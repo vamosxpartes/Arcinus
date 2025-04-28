@@ -1,38 +1,33 @@
-import 'package:arcinus/core/auth/roles.dart'; // Asegúrate que la ruta sea correcta
+import 'package:arcinus/core/auth/roles.dart'; // Importar AppRole
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:arcinus/core/utils/timestamp_converter.dart'; // Asumiendo existe
 
 part 'membership_model.freezed.dart';
 part 'membership_model.g.dart';
 
-/// Representa la membresía de un usuario dentro de una academia,
-/// incluyendo su rol y permisos específicos.
+/// Representa la membresía de un usuario a una academia específica,
+/// incluyendo su rol y permisos dentro de ella.
 @freezed
 class MembershipModel with _$MembershipModel {
-  /// Crea una instancia de [MembershipModel].
-  factory MembershipModel({
-    /// ID único del documento de membresía 
-    /// (puede ser el mismo que userId si es 1:1)
-    required String id, 
-    /// ID del usuario al que pertenece esta membresía.
+  @JsonSerializable(explicitToJson: true, converters: [TimestampConverter()])
+  const factory MembershipModel({
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    String? id, // ID del documento de membresía en Firestore
     required String userId,
-    /// ID de la academia a la que pertenece esta membresía.
     required String academyId,
-    /// Rol principal del usuario dentro de esta academia.
-    @JsonKey(fromJson: appRoleFromJson)
-    required AppRole role,
-    /// Lista de permisos específicos (strings) asignados,
-    /// relevante para Colaboradores.
-    @Default([]) List<String> permissions,
-    /// Lista de IDs de atletas vinculados, relevante para Padres/Responsables.
-    @Default([]) List<String> linkedAthleteIds,
-    /// Fecha de creación de la membresía (opcional, pero útil).
-    DateTime? createdAt,
+    // Usar el enum AppRole directamente, json_serializable lo manejará con @JsonEnum
+    required AppRole role, 
+    // Lista de permisos específicos (strings), útil para Colaboradores
+    @Default([]) List<String> permissions, 
+    // Fecha en que se añadió/creó la membresía
+    required DateTime addedAt, 
   }) = _MembershipModel;
 
-  /// Constructor privado para posibles métodos futuros.
-  const MembershipModel._();
-
-  /// Crea una instancia de MembershipModel desde un mapa JSON.
   factory MembershipModel.fromJson(Map<String, dynamic> json) =>
       _$MembershipModelFromJson(json);
-} 
+}
+
+// Helpers para serialización/deserialización de AppRole
+AppRole _roleFromJson(dynamic json) => AppRole.fromString(json as String?);
+String _roleToJson(AppRole role) => role.name;

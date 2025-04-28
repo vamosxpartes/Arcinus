@@ -18,23 +18,26 @@ abstract class ArcinusTheme {
     );
 
     final textTheme = ArcinusTextStyles.createTextTheme(
-      ArcinusColors.textOnDark,);
+      ArcinusColors.textOnDark,
+    );
     final primaryTextTheme = ArcinusTextStyles.createTextTheme(
-      colorScheme.onPrimary,);
+      colorScheme.onPrimary,
+    );
 
     return ThemeData(
       brightness: Brightness.dark,
       colorScheme: colorScheme,
       textTheme: textTheme,
-      primaryTextTheme: primaryTextTheme, 
+      primaryTextTheme: primaryTextTheme,
       // For text on primary colored surfaces
       scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
         backgroundColor: colorScheme.surface,
-         // Or surfaceVariant, surfaceContainerHighest
+        // Or surfaceVariant, surfaceContainerHighest
         elevation: 0,
         titleTextStyle: ArcinusTextStyles.titleLarge.copyWith(
-          color: colorScheme.onSurface,),
+          color: colorScheme.onSurface,
+        ),
         iconTheme: IconThemeData(color: colorScheme.onSurface),
       ),
       // --- Component Themes ---
@@ -48,7 +51,8 @@ abstract class ArcinusTheme {
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
           textStyle: ArcinusTextStyles.labelLarge.copyWith(
-            color: colorScheme.onPrimary,),
+            color: colorScheme.onPrimary,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
@@ -58,7 +62,8 @@ abstract class ArcinusTheme {
           foregroundColor: colorScheme.primary,
           side: BorderSide(color: colorScheme.primary),
           textStyle: ArcinusTextStyles.labelLarge.copyWith(
-            color: colorScheme.primary,),
+            color: colorScheme.primary,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
@@ -67,7 +72,8 @@ abstract class ArcinusTheme {
         style: TextButton.styleFrom(
           foregroundColor: colorScheme.primary,
           textStyle: ArcinusTextStyles.labelLarge.copyWith(
-            color: colorScheme.primary,),
+            color: colorScheme.primary,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -86,19 +92,23 @@ abstract class ArcinusTheme {
           borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         labelStyle: ArcinusTextStyles.bodyMedium.copyWith(
-          color: ArcinusColors.textOnDarkSecondary,),
+          color: ArcinusColors.textOnDarkSecondary,
+        ),
         hintStyle: ArcinusTextStyles.bodyMedium.copyWith(
-          color: ArcinusColors.textOnDarkSecondary,),
+          color: ArcinusColors.textOnDarkSecondary,
+        ),
       ),
       dialogTheme: DialogTheme(
         backgroundColor: colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         titleTextStyle: ArcinusTextStyles.titleLarge.copyWith(
-          color: colorScheme.onSurface,),
+          color: colorScheme.onSurface,
+        ),
         contentTextStyle: ArcinusTextStyles.bodyMedium.copyWith(
-          color: colorScheme.onSurface,),
+          color: colorScheme.onSurface,
+        ),
       ),
-      // Add more component themes as needed 
+      // Add more component themes as needed
       //(FloatingActionButton, BottomNavigationBar, etc.)
 
       // Use Material 3 features
@@ -121,4 +131,4 @@ extension ArcinusThemeExtension on BuildContext {
   // Add shortcuts for specific colors or styles if frequently used
   // e.g., Color get primaryColor => colorScheme.primary;
   // e.g., TextStyle get bodyStyle => textTheme.bodyMedium!;
-} 
+}

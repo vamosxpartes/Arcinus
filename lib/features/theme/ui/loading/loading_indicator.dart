@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
 /// {@template loading_indicator}
-/// Un widget que muestra un indicador de progreso circular 
+/// Un widget que muestra un indicador de progreso circular
 /// con un mensaje opcional debajo.
 /// {@endtemplate}
 class LoadingIndicator extends StatelessWidget {
   /// {@macro loading_indicator}
   const LoadingIndicator({
     super.key,
-    this.color, 
+    this.color,
     this.size = 48.0,
     this.message,
   });
 
-  /// El color del indicador de progreso circular. 
+  /// El color del indicador de progreso circular.
   /// Si es nulo, utiliza el color primario del tema.
   final Color? color;
-  
+
   /// El tamaño (alto y ancho) del indicador de progreso.
   final double size;
-  
+
   /// El mensaje opcional a mostrar debajo del indicador.
   final String? message;
 

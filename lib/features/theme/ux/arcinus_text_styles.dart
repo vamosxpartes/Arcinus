@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 /// Defines the text styles for the Arcinus application using the 'Roboto' font.
 ///
 /// Centralizes all typography to ensure consistency.
@@ -18,11 +19,13 @@ abstract class ArcinusTextStyles {
     fontWeight: FontWeight.w400,
     letterSpacing: -0.25,
   );
+
   /// Display Medium text style.
   static final TextStyle displayMedium = _base.copyWith(
     fontSize: 45,
     fontWeight: FontWeight.w400,
   );
+
   /// Display Small text style.
   static final TextStyle displaySmall = _base.copyWith(
     fontSize: 36,
@@ -34,11 +37,13 @@ abstract class ArcinusTextStyles {
     fontSize: 32,
     fontWeight: FontWeight.w400,
   );
+
   /// Headline Medium text style.
   static final TextStyle headlineMedium = _base.copyWith(
     fontSize: 28,
     fontWeight: FontWeight.w400,
   );
+
   /// Headline Small text style.
   static final TextStyle headlineSmall = _base.copyWith(
     fontSize: 24,
@@ -52,12 +57,14 @@ abstract class ArcinusTextStyles {
     fontWeight: FontWeight.w500,
     letterSpacing: 0.15,
   );
+
   /// Title Medium text style.
   static final TextStyle titleMedium = _base.copyWith(
     fontSize: 16,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.15,
   );
+
   /// Title Small text style.
   static final TextStyle titleSmall = _base.copyWith(
     fontSize: 14,
@@ -72,12 +79,14 @@ abstract class ArcinusTextStyles {
     fontWeight: FontWeight.w400,
     letterSpacing: 0.5,
   );
+
   /// Body Medium text style.
   static final TextStyle bodyMedium = _base.copyWith(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     letterSpacing: 0.25,
   );
+
   /// Body Small text style.
   static final TextStyle bodySmall = _base.copyWith(
     fontSize: 12,
@@ -92,12 +101,14 @@ abstract class ArcinusTextStyles {
     fontWeight: FontWeight.w500, // Medium weight
     letterSpacing: 0.1,
   );
+
   /// Label Medium text style.
   static final TextStyle labelMedium = _base.copyWith(
     fontSize: 12,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.5,
   );
+
   /// Label Small text style.
   static final TextStyle labelSmall = _base.copyWith(
     fontSize: 11,
@@ -105,7 +116,7 @@ abstract class ArcinusTextStyles {
     letterSpacing: 0.5,
   );
 
-  /// Creates a [TextTheme] object using the defined styles 
+  /// Creates a [TextTheme] object using the defined styles
   /// with the provided [textColor].
   static TextTheme createTextTheme(Color textColor) {
     // Create styles with the specified text color
@@ -143,4 +154,4 @@ abstract class ArcinusTextStyles {
       labelSmall: labelSmallC,
     );
   }
-} 
+}

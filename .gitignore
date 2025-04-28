@@ -52,3 +52,6 @@ app.*.map.json
 
 # Archivo de variables de entorno
 .env
+
+# Ignorar config privada de Firebase
+/android/app/google-services.json
