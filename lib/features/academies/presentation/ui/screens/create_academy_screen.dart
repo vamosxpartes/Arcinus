@@ -1,10 +1,12 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/academies/presentation/providers/create_academy_provider.dart';
-import 'package:arcinus/features/academies/presentation/state/create_academy_state.dart';
 import 'package:arcinus/features/theme/ui/loading/loading_indicator.dart'; // Usar el mismo LoadingIndicator
 import 'package:arcinus/features/theme/ui/feedback/error_display.dart'; // Usar el mismo ErrorDisplay
-import 'package:arcinus/core/error/failures.dart'; // Necesario para el tipo Failure
+import 'package:go_router/go_router.dart'; // Importar GoRouter
+import 'package:arcinus/core/navigation/app_routes.dart'; // Importar rutas de la app
 
 // TODO: Definir provider y estado para el formulario de creación de academia
 
@@ -37,11 +39,11 @@ class CreateAcademyScreen extends ConsumerWidget {
         },
         success: (academyId) {
           // La navegación debería ocurrir automáticamente por GoRouter.redirect
-          print('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
-          // Opcionalmente mostrar un SnackBar de éxito
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   const SnackBar(content: Text('¡Academia creada!')),
-          // );
+          developer.log('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
+          
+          // Redirección manual al dashboard del propietario
+          developer.log('Forzando redirección manual a la ruta del propietario');
+          context.go(AppRoutes.ownerRoot);
         },
         orElse: () {},
       );

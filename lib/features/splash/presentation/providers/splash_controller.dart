@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // flutter_riverpod es importado por riverpod_annotation, 
 //no es necesario importarlo directamente
@@ -14,7 +13,6 @@ enum AppInitialState {
   
   /// Usuario autenticado pero necesita completar su perfil.
   needsProfileCompletion,
-  
   /// Usuario completamente autenticado y con perfil listo, puede ir a home.
   authenticated
 }
@@ -31,27 +29,9 @@ class SplashController extends _$SplashController {
     // Simulamos una carga mínima para mostrar el splash
     await Future<void>.delayed(const Duration(seconds: 2));
     
-    // TODO(you): Inyectar FirebaseAuth en lugar de usar la instancia global.
-    // Ejemplo: final auth = ref.watch(firebaseAuthProvider);
-    // final user = auth.currentUser;
-    final user = FirebaseAuth.instance.currentUser;
-    
-    if (user == null) {
-      // El usuario no está autenticado
-      return AppInitialState.notAuthenticated;
-    }
-    
-    // Verificar si el usuario ha completado su perfil
-    // Esto podría verificar si existe un documento en Firestore
-    // o si ciertos campos en el perfil de usuario están completos
-    // Por ahora usamos una lógica simple basada en displayName como ejemplo
-    // TODO(you): Implementar lógica real de verificación de perfil completo.
-    if (user.displayName == null || user.displayName!.isEmpty) {
-      return AppInitialState.needsProfileCompletion;
-    }
-    
-    // Usuario completamente autenticado y con perfil completo
-    return AppInitialState.authenticated;
+    // La lógica de redirección real ahora está en AppRouter.
+    // Simplemente devolvemos un estado para indicar que el splash terminó.
+    return AppInitialState.authenticated; 
   }
 }
 

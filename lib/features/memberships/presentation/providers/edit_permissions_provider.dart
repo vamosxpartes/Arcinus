@@ -1,7 +1,5 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/memberships/data/models/membership_model.dart';
-import 'package:arcinus/features/memberships/data/repositories/membership_repository_impl.dart';
-import 'package:arcinus/features/memberships/domain/repositories/membership_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Estados posibles durante la edición de permisos
@@ -21,7 +19,7 @@ class EditPermissionsNotifier extends StateNotifier<({
 })> {
   final String membershipId;
   final String academyId;
-  final StateNotifierProviderRef ref;
+  final Ref ref;
 
   EditPermissionsNotifier(
     this.ref, {
@@ -89,7 +87,7 @@ class EditPermissionsNotifier extends StateNotifier<({
       );
 
       // Obtener el repositorio
-      final MembershipRepository membershipRepository = ref.read(membershipRepositoryProvider);
+      // final MembershipRepository memberhipRepository = ref.read(membershipRepositoryProvider);
 
       // Guardar en Firestore
       // TODO: Implementar el método updateMembership en el repositorio

@@ -1,6 +1,7 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart'; // Importa el provider del repo
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'academy_provider.g.dart';
@@ -61,7 +62,7 @@ class Academy extends _$Academy {
 /// Retorna un [Future<AcademyModel>]. Lanza una excepción si la academia no se encuentra
 /// o si ocurre un error durante la obtención.
 @riverpod
-Future<AcademyModel> academy(AcademyRef ref, String academyId) async {
+Future<AcademyModel> academy(Ref ref, String academyId) async {
   // No cargar si el ID está vacío para evitar llamadas innecesarias.
   if (academyId.isEmpty) {
     // Lanzar una excepción específica.

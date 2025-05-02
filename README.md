@@ -140,44 +140,27 @@ Detalle de las features:
 - **Modelo de Datos:** Se necesitará un modelo de datos para representar la relación usuario-academia-rol-permisos, especialmente para `Colaborador` y `Padre/Responsable` (que puede estar vinculado a varios atletas).
 - **Cumplimiento y Seguridad:**
     - **Firestore Security Rules:** Serán la principal línea de defensa. Las reglas verificarán el rol del usuario (obtenido del Custom Claim del token de autenticación) y, para operaciones específicas de Colaborador, podrán verificar la presencia del permiso requerido (leyendo el documento de membresía/relación correspondiente).
-    - **Lógica en la Aplicación (Frontend):** La UI se adaptará dinámicamente según el rol y los permisos del usuario actual (obtenidos a través de un provider que lea los Custom Claims y/o datos de Firestore). Se mostrarán/ocultarán opciones, y se habilitarán/deshabilitarán botones para reflejar lo que el usuario tiene permitido hacer.
+    - **Lógica en la Aplicación (Frontend):** La UI se adaptará dinámicamente según el rol y los permisos del usuario actual (obtenidos a través de un provider que lea los Custom Claims y/o datos de Firestore). Se utilizará un enfoque de **ShellRoute por rol** (ver sección Sistema de Navegación) donde cada Shell (Scaffold específico del rol) puede contener lógica para mostrar/ocultar opciones o renderizar contenido condicionalmente según los permisos y otros estados (como suscripción).
 
-## 11 Autenticacion
-- **Proveedor Principal:** Se utilizará `Firebase Authentication` dentro de un **único proyecto Firebase** para toda la aplicación.
-- **Métodos Soportados:** Inicialmente, se habilitará el método de **Correo electrónico y contraseña**. Google/Apple se implementarán post-MVP.
-- **Flujo Inicial de la Aplicación:**
-    1. **SplashScreen:** Verifica estado de autenticación.
-    2. **Si NO autenticado Y Primera Vez / Sin Rol Definido:** Navega a una **Pantalla Informativa/Introductoria**.
-        - **Opción Propietario:** Navega a la pantalla de **Login/Registro**.
-        - **Opción Miembro (Invitado):** Navega a una pantalla para **Elegir/Buscar Academia** (si aplica) o directamente a **Completar Registro** (si la invitación ya especifica la academia).
-    3. **Si autenticado PERO sin perfil completo:** Navega a **Completar Perfil**.
-    4. **Si autenticado Y perfil completo:** Navega a **HomeScreen** (o dashboard apropiado según el rol).
-
-- **Flujo de Registro (Detalle):**
-    - **Propietario (`owner`):**
-        - Desde la Pantalla Informativa/Introductoria elige "Soy Propietario".
-        - Va a la pantalla de **Login/Registro**.
-        - Elige "Registrarse".
-        - Completa el registro con correo/contraseña.
-        - Se redirige a "Completar Perfil".
-        - Tras completar perfil, se crea documento en `users` y se asigna Custom Claim de rol `propietario`.
-        - Se redirige a `CreateAcademyScreen`.
-    - **Otros Roles (`collaborator`, `athlete`, `parent`):**
-        - Desde la Pantalla Informativa/Introductoria elige "Soy Miembro".
-        - (Flujo de búsqueda/selección de academia si es necesario - Post-MVP).
-        - Recibe una invitación (enlace, código).
-        - Se le guía para **Registrarse** o **Iniciar Sesión** si ya tiene cuenta.
-        - Se le redirige a "Completar Perfil".
-        - Tras completar perfil, se crea/actualiza documento en `users`. El Custom Claim del rol se asigna basado en la invitación.
-        - Se actualiza el registro correspondiente en `academyMembers` (o similar) para vincular el `firebaseUserId` a la academia.
-
-## 11 Sistema de navegacion
+## 11 Sistema de navegacion y Estructura UI por Rol
 - **Framework:** Se utilizará `GoRouter` como solución de navegación declarativa para la aplicación.
 - **Configuración:** La configuración principal de `GoRouter` residirá en `lib/core/navigation/` (como se definió en la estructura del proyecto).
+- **Estrategia de Shell por Rol:** Se adoptará un enfoque basado en `ShellRoute` (o un patrón similar) para estructurar la interfaz de usuario según el rol principal del usuario (`Propietario`, `Atleta`, `Colaborador`, `SuperAdmin`).
+    - **Switcher Inicial:** Un widget raíz o la lógica de `GoRouter.redirect` observará el estado global `AuthState`.
+        - Si `unauthenticated`, dirigirá a las rutas de autenticación (`/login`, `/welcome`).
+        - Si `authenticated`, leerá el rol principal del `User` (probablemente desde los Custom Claims).
+        - Según el rol, redirigirá a la ruta raíz correspondiente a ese rol (ej. `context.go('/owner')`, `context.go('/athlete')`).
+    - **ShellRoutes por Rol:** Se definirán `ShellRoute` distintas para cada rol principal. El constructor (`shellBuilder` o similar) de cada `ShellRoute` creará un `Scaffold` específico para ese rol (ej., `OwnerScaffold`, `AthleteScaffold`) que contendrá la estructura base de la UI (AppBar, Drawer, BottomNavigationBar, etc.).
+    - **Rutas Anidadas:** Las rutas específicas para las funcionalidades de cada rol (ej., `/owner/dashboard`, `/owner/groups`, `/athlete/trainings`) se definirán como rutas hijas anidadas dentro de su `ShellRoute` correspondiente. GoRouter se encargará de renderizar la pantalla de la ruta hija activa dentro del `body` del `Scaffold` del rol.
 - **Definición de Rutas:**
-    - Se emplearán **clases o constantes estáticas** para definir los nombres y paths de las rutas (ej., `AppRoutes.home = '/home';`, `AppRoutes.profile = '/profile/:userId';`). Esto mejorará la mantenibilidad y reducirá errores al navegar (`context.go(AppRoutes.home)`).
-    - La estructura de las rutas (`GoRoute`) se organizará de forma lógica, potencialmente agrupando rutas relacionadas si la aplicación crece.
-- **Redirección (Guardias de Ruta):** La lógica de redirección basada en el estado de autenticación, la completitud del perfil y potencialmente roles/permisos se implementará centralizadamente utilizando el parámetro **`redirect`** de `GoRouter`. Esta función observará los providers relevantes (autenticación, perfil, roles) para determinar la ruta correcta según el flujo definido en la sección de Autenticación (SplashScreen > Informativa > Login/Registro o Completar Perfil > Home). Redirigirá a las pantallas correspondientes (`/splash`, `/welcome`, `/auth/login`, `/auth/complete-profile`, `/home`, etc.) según sea necesario.
+    - Se emplearán **clases o constantes estáticas** para definir los nombres y paths de las rutas (ej., `AppRoutes.ownerDashboard = '/owner/dashboard';`).
+- **Renderizado Condicional dentro del Shell:** Los Scaffolds específicos de cada rol (`OwnerScaffold`, `AthleteScaffold`, etc.) serán responsables de:
+    - Mostrar la UI base común para ese rol.
+    - Renderizar el widget `child` (la pantalla de la ruta hija actual proporcionada por GoRouter) en su `body`.
+    - **Implementar Diseño Responsivo:** Adaptar la estructura base (ej., usar `Drawer` en móvil/tablet, `BottomNavigationBar` en móvil, o paneles laterales permanentes en web/escritorio) según el tamaño de la pantalla o plataforma, utilizando `LayoutBuilder` o `MediaQuery`.
+    - Observar estados adicionales relevantes para ese rol (ej., estado de la suscripción de la academia para el `Propietario`, permisos específicos para el `Colaborador`).
+    - **Renderizar condicionalmente** contenido alternativo en el `body` (ej., mostrar una pantalla de "Suscripción requerida" en lugar del dashboard si la suscripción no está activa) o adaptar la UI base (mostrar/ocultar acciones en el `AppBar` según los permisos) basándose en estos estados.
+- **Ventajas:** Esta estructura centraliza la UI base por rol, simplifica las definiciones de rutas hijas y permite un control granular sobre lo que se muestra al usuario basándose en múltiples factores (autenticación, rol, permisos, estado de suscripción, etc.) dentro del contexto de cada rol.
 
 ## 12 Localización
 - **Framework Base:** Se utilizará el soporte incorporado de Flutter a través de los paquetes `flutter_localizations` y `intl`.
@@ -225,3 +208,8 @@ Detalle de las features:
     - **Eliminar (Delete):** NO se implementará en el MVP.
 - **Modelo de Datos:** Se definirá `AcademyModel` (con `ownerId`, `sportCode`, etc.).
 - **Características por Deporte:** Se usará un modelo `SportCharacteristics` (ubicado en `lib/core/sports/models/`) que define atributos específicos por deporte (posiciones, estadísticas, etc.). Un provider (`sportCharacteristicsProvider`) expondrá las características correspondientes a la academia *seleccionada actualmente*, basándose en su `sportCode`.
+
+## To Do
+1. **Agregar todas las rutas para owner al GoRouter**: Completar la implementación de todas las rutas necesarias para el rol de propietario en el sistema de navegación GoRouter.
+
+2. **Control de "completar perfil" para creación de academia**: Mejorar el flujo de usuario para que si un usuario completa su perfil pero experimenta un error al crear la academia, al volver a la aplicación no se le solicite completar el perfil nuevamente, sino que sea redirigido directamente a la pantalla de creación de academia.

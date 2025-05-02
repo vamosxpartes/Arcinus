@@ -27,7 +27,3 @@ class MembershipModel with _$MembershipModel {
   factory MembershipModel.fromJson(Map<String, dynamic> json) =>
       _$MembershipModelFromJson(json);
 }
-
-// Helpers para serialización/deserialización de AppRole
-AppRole _roleFromJson(dynamic json) => AppRole.fromString(json as String?);
-String _roleToJson(AppRole role) => role.name;

@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 class ScreenUnderDevelopment extends StatelessWidget {
   /// El título a mostrar en la AppBar (opcional).
   final String? title;
+  
+  /// El mensaje personalizado a mostrar.
+  final String message;
 
   /// Crea una instancia de [ScreenUnderDevelopment].
-  const ScreenUnderDevelopment({this.title, super.key, required String message});
+  const ScreenUnderDevelopment({this.title, required this.message, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,15 +17,21 @@ class ScreenUnderDevelopment extends StatelessWidget {
       appBar: AppBar(
         title: Text(title ?? 'En Desarrollo'),
       ),
-      body: const Center(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.construction, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
+            const Icon(Icons.construction, size: 80, color: Colors.grey),
+            const SizedBox(height: 16),
             Text(
               'Esta sección está en construcción',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],

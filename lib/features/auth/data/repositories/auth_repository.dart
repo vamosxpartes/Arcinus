@@ -156,16 +156,63 @@ class FirebaseAuthRepository implements AuthRepository {
     return _mapFirebaseUserSync(firebaseUser);
   }
 
+  @override
+  Future<Either<Failure, User>> createUserWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      // Crear documento en Firestore para el nuevo usuario con rol de Propietario por defecto
+      if (userCredential.user != null) {
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'email': email,
+          'role': AppRole.propietario.name,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+      
+      final user = await _mapFirebaseUser(userCredential.user);
+      if (user == null) {
+        return left(
+          const Failure.authError(
+            code: 'unknown',
+            message: 'No se pudo crear el usuario.',
+          ),
+        );
+      }
+      return right(user);
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      return left(_handleAuthError(e));
+    } catch (e) {
+      return left(Failure.unexpectedError(error: e));
+    }
+  }
+
   // Mapeo ASÍNCRONO: Puede refrescar token para obtener Claims
   Future<User?> _mapFirebaseUser(firebase_auth.User? firebaseUser) async {
     if (firebaseUser == null) {
       return null;
     }
     try {
-      // Forzar refresco para obtener los últimos claims
+      // Intentar obtener rol desde Custom Claims primero
       final idTokenResult = await firebaseUser.getIdTokenResult(true);
-      final roleString = idTokenResult.claims?['role'] as String?;
-      final role = AppRole.fromString(roleString);
+      String? roleString = idTokenResult.claims?['role'] as String?;
+      AppRole? role;
+      
+      // Si no hay rol en claims, intentar obtenerlo desde Firestore
+      if (roleString == null) {
+        final userDoc = await _firestore.collection('users').doc(firebaseUser.uid).get();
+        if (userDoc.exists) {
+          roleString = userDoc.data()?['role'] as String?;
+        }
+      }
+      
+      role = AppRole.fromString(roleString);
 
       return User(
         id: firebaseUser.uid,
@@ -178,7 +225,7 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     } catch (e) {
       // Si hay error al obtener token/claims, devolver usuario básico
-      developer.log('Error getting user claims: $e');
+      developer.log('Error getting user claims or Firestore data: $e');
       // TODO(User): Usar logger
       return _mapFirebaseUserSync(firebaseUser);
     }
@@ -191,35 +238,8 @@ class FirebaseAuthRepository implements AuthRepository {
       email: firebaseUser.email ?? '',
       name: firebaseUser.displayName,
       photoUrl: firebaseUser.photoURL,
-      // No se pueden obtener claims sincrónicamente de forma fiable
+      role: AppRole.desconocido, // Valor por defecto
     );
-  }
-
-  @override
-  Future<Either<Failure, User>> signInWithEmailAndPassword(
-    String email,
-    String password,
-  ) async {
-    try {
-      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      final user = await _mapFirebaseUser(userCredential.user);
-      if (user == null) {
-        return left(
-          const Failure.authError(
-            code: 'unknown',
-            message: 'Failed to map authenticated user.',
-          ),
-        );
-      }
-      return right(user);
-    } on firebase_auth.FirebaseAuthException catch (e) {
-      return left(_handleAuthError(e));
-    } catch (e) {
-      return left(Failure.unexpectedError(error: e));
-    }
   }
 
   @override
@@ -354,12 +374,12 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, User>> createUserWithEmailAndPassword(
+  Future<Either<Failure, User>> signInWithEmailAndPassword(
     String email,
     String password,
   ) async {
     try {
-      final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      final userCredential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -368,7 +388,7 @@ class FirebaseAuthRepository implements AuthRepository {
         return left(
           const Failure.authError(
             code: 'unknown',
-            message: 'No se pudo crear el usuario.',
+            message: 'Failed to map authenticated user.',
           ),
         );
       }

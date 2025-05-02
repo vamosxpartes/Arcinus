@@ -1,6 +1,6 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'dart:developer' as developer;
+
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
-import 'package:arcinus/features/users/data/repositories/user_repository_impl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +14,7 @@ part 'register_payment_screen.g.dart';
 /// Pantalla para registrar un nuevo pago
 class RegisterPaymentScreen extends ConsumerStatefulWidget {
   /// Constructor
-  const RegisterPaymentScreen({Key? key}) : super(key: key);
+  const RegisterPaymentScreen({super.key});
 
   @override
   RegisterPaymentScreenState createState() => RegisterPaymentScreenState();
@@ -44,7 +44,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   @override
   Widget build(BuildContext context) {
     // Observar el estado del formulario
-    final formState = ref.watch(paymentFormNotifierProvider);
+    // final formState = ref.watch(paymentFormNotifierProvider);
     
     // Si cambia el estado a éxito, cerrar la pantalla
     ref.listen(paymentFormNotifierProvider, (previous, current) {
@@ -63,7 +63,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
           SnackBar(
             content: Text(
               current.failure!.maybeWhen(
-                serverError: (message) => message ?? 'Error al registrar el pago',
+                serverError: (message) => message,
                 orElse: () => 'Error al registrar el pago',
               ),
             ),
@@ -305,8 +305,8 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
 
 /// Provider para obtener los atletas de la academia actual
 @riverpod
-Future<List<UserModel>> academyAthletes(AutoDisposeFutureProviderRef ref) async {
+Future<List<UserModel>> academyAthletes(Ref ref) async {
   // Devolver una lista vacía temporalmente para evitar errores
-  print('ADVERTENCIA: academyAthletesProvider está devolviendo una lista vacía.');
+  developer.log('ADVERTENCIA: academyAthletesProvider está devolviendo una lista vacía.');
   return Future.value([]); 
 } 

@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class EditAcademyScreen extends ConsumerStatefulWidget {
   final AcademyModel initialAcademy;
 
-  const EditAcademyScreen({super.key, required this.initialAcademy});
+  const EditAcademyScreen({super.key, required this.initialAcademy, required AcademyModel academy});
 
   @override
   ConsumerState<EditAcademyScreen> createState() => _EditAcademyScreenState();

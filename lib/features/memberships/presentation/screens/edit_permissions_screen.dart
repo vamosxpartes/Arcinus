@@ -136,7 +136,7 @@ class EditPermissionsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Miembro desde: ${membership.addedAt?.toString().split(' ')[0] ?? 'N/A'}',
+              'Miembro desde: ${membership.addedAt.toString().split(' ')[0]}',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],

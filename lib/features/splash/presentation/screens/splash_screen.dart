@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:arcinus/features/theme/ui/widgets/adaptive_logo.dart';
 import 'package:arcinus/features/theme/ux/arcinus_colors.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,8 @@ class SplashScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(
+    developer.log('SplashScreen: Build started', name: 'AppRouter.Splash');
+    final widget = const Scaffold(
       backgroundColor: ArcinusColors.darkBackground,
       body: Center(
         child: Column(
@@ -37,5 +39,7 @@ class SplashScreen extends ConsumerWidget {
         ),
       ),
     );
+    developer.log('SplashScreen: Build finished', name: 'AppRouter.Splash');
+    return widget;
   }
 }

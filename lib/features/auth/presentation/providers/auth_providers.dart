@@ -37,22 +37,39 @@ class AuthStateNotifier extends _$AuthStateNotifier {
 
   /// Configura un listener para el stream de cambios de autenticación.
   void _setupAuthListener() {
+    // Marcar como cargando inmediatamente
+    state = const AuthState.loading();
+    
+    // Escuchar cambios futuros
     ref.listen<AsyncValue<User?>>(authStateChangesProvider, (previous, next) {
-      next.whenData((user) {
-        if (user != null) {
-          state = AuthState.authenticated(user: user);
-        } else {
-          // Solo cambiar a no autenticado si no estamos
-          // en estado inicial o cargando
-          final isInitialOrLoading = state.mapOrNull(
-            initial: (_) => true,
-            loading: (_) => true,
-          );
-          if (isInitialOrLoading != true) {
+      next.when(
+        data: (user) {
+          if (user != null) {
+            state = AuthState.authenticated(user: user);
+          } else {
             state = const AuthState.unauthenticated();
           }
-        }
-      });
+        },
+        loading: () {
+          // Mantener estado de carga si estamos esperando
+          if (!state.isLoading) {
+            state = const AuthState.loading();
+          }
+        },
+        error: (error, stackTrace) {
+          state = AuthState.error(message: error.toString());
+        },
+      );
+    });
+
+    // También verificar el estado actual inmediatamente
+    final currentAuthState = ref.read(authStateChangesProvider);
+    currentAuthState.whenData((user) {
+      if (user != null) {
+        state = AuthState.authenticated(user: user);
+      } else {
+        state = const AuthState.unauthenticated();
+      }
     });
   }
 

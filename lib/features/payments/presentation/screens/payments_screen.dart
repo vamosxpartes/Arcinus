@@ -1,12 +1,10 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
-import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:arcinus/features/auth/data/models/user_model.dart';
 
 /// Pantalla que muestra la lista de pagos de la academia
 class PaymentsScreen extends ConsumerWidget {
@@ -15,7 +13,8 @@ class PaymentsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final paymentsState = ref.watch(academyPaymentsNotifierProvider);
+    // Ahora observamos el AsyncValue
+    final paymentsAsyncValue = ref.watch(academyPaymentsNotifierProvider);
     
     return Scaffold(
       appBar: AppBar(
@@ -27,29 +26,34 @@ class PaymentsScreen extends ConsumerWidget {
               // TODO: Implementar filtros de búsqueda
             },
           ),
+          // Añadir un botón para refrescar manualmente
+          IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref.invalidate(academyPaymentsNotifierProvider),
+           ),
         ],
       ),
-      body: _buildBody(context, paymentsState, ref),
+      // Usamos .when para manejar los diferentes estados de AsyncValue
+      body: paymentsAsyncValue.when(
+        data: (payments) => _buildPaymentsList(context, payments, ref),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => _buildErrorWidget(context, error, ref),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          context.push('/payments/register');
+          // TODO: Actualizar la navegación a la pantalla de registro
+          // context.push('/owner/payments/register'); // Asegúrate que la ruta es correcta
+           context.push('/owner/payments/register'); // Usar la ruta completa correcta
         },
         icon: const Icon(Icons.add),
-        label: const Text('Registrar Pago'),
+        label: const Text('Registrar Pago'), // Texto más descriptivo
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, PaymentsState state, WidgetRef ref) {
-    if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (state.failure != null) {
-      return _buildErrorWidget(context, state.failure!, ref);
-    }
-
-    if (state.payments.isEmpty) {
+  // Renombrado de _buildBody a _buildPaymentsList
+  Widget _buildPaymentsList(BuildContext context, List<PaymentModel> payments, WidgetRef ref) {
+    if (payments.isEmpty) {
       return const Center(
         child: Text(
           'No hay pagos registrados',
@@ -59,15 +63,19 @@ class PaymentsScreen extends ConsumerWidget {
     }
 
     return ListView.builder(
-      itemCount: state.payments.length,
+      itemCount: payments.length,
       itemBuilder: (context, index) {
-        final payment = state.payments[index];
+        final payment = payments[index];
         return _buildPaymentCard(context, payment, ref);
       },
     );
   }
 
-  Widget _buildErrorWidget(BuildContext context, Failure failure, WidgetRef ref) {
+  // Modificado _buildErrorWidget para aceptar Object (error) y llamar a refreshPayments
+  Widget _buildErrorWidget(BuildContext context, Object error, WidgetRef ref) {
+    // Convertir el Object a Failure si es posible
+    final failure = error is Failure ? error : Failure.unexpectedError(error: error);
+  
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -81,16 +89,19 @@ class PaymentsScreen extends ConsumerWidget {
           Text(
             failure.maybeWhen(
               serverError: (message) => message,
-              orElse: () => 'Error al cargar los pagos',
+              networkError: () => 'Error de red',
+              authError: (code, message) => message,
+              validationError: (message) => message,
+              cacheError: (message) => message,
+              unexpectedError: (err, _) => err?.toString() ?? 'Ocurrió un error inesperado al cargar los pagos',
+              orElse: () => 'Ocurrió un error inesperado al cargar los pagos',
             ),
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 16),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref
-                .read(academyPaymentsNotifierProvider.notifier)
-                .loadPayments(),
+            onPressed: () => ref.invalidate(academyPaymentsNotifierProvider),
             child: const Text('Intentar de nuevo'),
           ),
         ],

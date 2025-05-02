@@ -1,6 +1,7 @@
 import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:arcinus/features/academies/data/repositories/academy_repository_impl.dart';
 import 'package:arcinus/features/academies/domain/repositories/academy_repository.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'academy_providers.g.dart';
@@ -9,7 +10,7 @@ part 'academy_providers.g.dart';
 ///
 /// Utiliza el provider de Firestore para obtener la instancia necesaria.
 @riverpod
-AcademyRepository academyRepository(AcademyRepositoryRef ref) {
+AcademyRepository academyRepository(Ref ref) {
   final firestore = ref.watch(firestoreProvider);
   return AcademyRepositoryImpl(firestore);
 }

@@ -12,7 +12,7 @@ abstract class ArcinusColors {
   /// Accent color, used for highlighting elements or secondary actions.
   static const Color accentGold = Color(0xFFFFD700); // Example: Gold
 
-  // --- Neutral Colors ---
+  // --- Neutral Colors (Dark Theme) ---
   /// Base background color for dark theme.
   static const Color darkBackground = Color(0xFF121212);
 
@@ -24,6 +24,19 @@ abstract class ArcinusColors {
 
   /// Secondary text color (less emphasis) on dark backgrounds.
   static const Color textOnDarkSecondary = Color(0xB3FFFFFF); // White 70%
+
+  // --- Neutral Colors (Light Theme) ---
+  /// Base background color for light theme.
+  static const Color lightBackground = Color(0xFFF5F5F5);
+
+  /// Color for surfaces like cards, dialogs in light theme.
+  static const Color lightSurface = Color(0xFFFFFFFF);
+
+  /// Primary text color on light backgrounds.
+  static const Color textOnLight = Color(0xFF121212);
+
+  /// Secondary text color (less emphasis) on light backgrounds.
+  static const Color textOnLightSecondary = Color(0x99121212); // Black 60%
 
   // --- Status Colors ---
   /// Color indicating success or confirmation.
@@ -42,6 +55,13 @@ abstract class ArcinusColors {
   /// Example gradient, can be used for backgrounds or decorative elements.
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryBlue, Color(0xFF1976D2)], // Lighter blue
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Light theme gradient, more subtle than the dark theme variant.
+  static LinearGradient get lightGradient => LinearGradient(
+    colors: [primaryBlue.withAlpha(200), Color(0xFF1976D2).withAlpha(180)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

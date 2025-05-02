@@ -4,6 +4,7 @@ import 'package:arcinus/features/auth/data/models/user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/user_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'user_repository_impl.g.dart';
@@ -88,7 +89,7 @@ class UserRepositoryImpl implements UserRepository {
 
 /// Provider para la implementación del repositorio de usuarios.
 @riverpod
-UserRepository userRepository(UserRepositoryRef ref) {
+UserRepository userRepository(Ref ref) {
   final firestore = ref.watch(firestoreProvider);
   return UserRepositoryImpl(firestore);
 } 

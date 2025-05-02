@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:arcinus/core/localization/app_localizations.dart';
 import 'package:arcinus/core/navigation/app_router.dart';
 import 'package:arcinus/features/theme/ux/app_theme.dart';
@@ -12,27 +13,38 @@ class ArcinusApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Obtenemos el router desde el provider
-    final router = ref.watch(routerProvider);
-    
-    return MaterialApp.router(
-      title: 'Arcinus',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      darkTheme: AppTheme.darkTheme, 
-      // Considera si necesitas un tema oscuro diferente
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('es', ''), // Español
-        // Locale('en', ''), // Puedes descomentar si añades inglés
-      ],
-      // Configuración de GoRouter
-      routerConfig: router,
-    );
+    developer.log('ArcinusApp: Build started', name: 'AppLifecycle');
+    try {
+      // Obtenemos el router desde el provider
+      developer.log('ArcinusApp: Watching routerProvider...', name: 'AppLifecycle');
+      final router = ref.watch(routerProvider);
+      developer.log('ArcinusApp: routerProvider obtained', name: 'AppLifecycle');
+      
+      final appWidget = MaterialApp.router(
+        title: 'Arcinus',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme, 
+        // Considera si necesitas un tema oscuro diferente
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es', ''), // Español
+          // Locale('en', ''), // Puedes descomentar si añades inglés
+        ],
+        // Configuración de GoRouter
+        routerConfig: router,
+      );
+      developer.log('ArcinusApp: Build finished successfully', name: 'AppLifecycle');
+      return appWidget;
+    } catch (e, stackTrace) {
+      developer.log('ArcinusApp: CRITICAL ERROR during build', error: e, stackTrace: stackTrace, name: 'AppLifecycle.Error');
+      // Fallback UI
+      return MaterialApp(home: Scaffold(body: Center(child: Text("Error en ArcinusApp build: $e"))));
+    }
   }
 }

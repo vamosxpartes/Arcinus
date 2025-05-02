@@ -116,8 +116,120 @@ abstract class ArcinusTheme {
     );
   }
 
-  // TODO(user): Define lightTheme in the future
-  // static ThemeData get lightTheme { ... }
+  /// Defines the light theme for the application.
+  static ThemeData get lightTheme {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: ArcinusColors.primaryBlue,
+      brightness: Brightness.light,
+      // Override specific colors if needed
+      surface: ArcinusColors.lightSurface,
+      error: ArcinusColors.error,
+      // Ensure primary, secondary, etc., are generated well from the seed
+      // primary: ArcinusColors.primaryBlue, // Usually generated correctly
+      // secondary: ArcinusColors.accentGold, // Can override if needed
+    );
+
+    final textTheme = ArcinusTextStyles.createTextTheme(
+      ArcinusColors.textOnLight,
+    );
+    final primaryTextTheme = ArcinusTextStyles.createTextTheme(
+      colorScheme.onPrimary,
+    );
+
+    return ThemeData(
+      brightness: Brightness.light,
+      colorScheme: colorScheme,
+      textTheme: textTheme,
+      primaryTextTheme: primaryTextTheme,
+      // For text on primary colored surfaces
+      scaffoldBackgroundColor: colorScheme.surface,
+      appBarTheme: AppBarTheme(
+        backgroundColor: colorScheme.surface,
+        // Or surfaceVariant, surfaceContainerHighest
+        elevation: 0,
+        titleTextStyle: ArcinusTextStyles.titleLarge.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        iconTheme: IconThemeData(color: colorScheme.onSurface),
+      ),
+      // --- Component Themes ---
+      cardTheme: CardTheme(
+        color: colorScheme.surface,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shadowColor: Colors.black.withAlpha(30),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          textStyle: ArcinusTextStyles.labelLarge.copyWith(
+            color: colorScheme.onPrimary,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          elevation: 2,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(color: colorScheme.primary),
+          textStyle: ArcinusTextStyles.labelLarge.copyWith(
+            color: colorScheme.primary,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          textStyle: ArcinusTextStyles.labelLarge.copyWith(
+            color: colorScheme.primary,
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: colorScheme.surface, 
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.onSurface.withAlpha(60)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+        ),
+        labelStyle: ArcinusTextStyles.bodyMedium.copyWith(
+          color: ArcinusColors.textOnLightSecondary,
+        ),
+        hintStyle: ArcinusTextStyles.bodyMedium.copyWith(
+          color: ArcinusColors.textOnLightSecondary,
+        ),
+      ),
+      dialogTheme: DialogTheme(
+        backgroundColor: colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titleTextStyle: ArcinusTextStyles.titleLarge.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        contentTextStyle: ArcinusTextStyles.bodyMedium.copyWith(
+          color: colorScheme.onSurface,
+        ),
+        shadowColor: Colors.black.withAlpha(30),
+      ),
+      // Add more component themes as needed
+      //(FloatingActionButton, BottomNavigationBar, etc.)
+
+      // Use Material 3 features
+      useMaterial3: true,
+    );
+  }
 }
 
 /// Extensions on BuildContext for easy access to theme properties.

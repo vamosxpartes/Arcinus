@@ -33,35 +33,35 @@ class PaymentFormState with _$PaymentFormState {
 @riverpod
 class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
   @override
-  PaymentsState build() {
-    loadPayments();
-    return const PaymentsState();
+  FutureOr<List<PaymentModel>> build() async {
+    // El método build ahora devuelve directamente la Future que carga los datos
+    // No se retorna un PaymentsState aquí, Riverpod maneja el AsyncValue
+    return _fetchPayments();
   }
 
-  /// Carga todos los pagos de la academia actual
-  Future<void> loadPayments() async {
-    state = state.copyWith(isLoading: true, failure: null);
-    
+  /// Método privado para obtener los pagos
+  Future<List<PaymentModel>> _fetchPayments() async {
     final academyId = ref.read(currentAcademyIdProvider);
     if (academyId == null) {
-      state = state.copyWith(
-        isLoading: false,
-        failure: const Failure.serverError(
-            message: 'No se pudo determinar la academia actual'),
-      );
-      return;
+      throw const Failure.serverError(
+            message: 'No se pudo determinar la academia actual');
     }
     
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final result = await paymentRepo.getPaymentsByAcademy(academyId);
     
-    result.fold(
-      (failure) => state = state.copyWith(isLoading: false, failure: failure),
-      (payments) => state = state.copyWith(
-        isLoading: false,
-        payments: payments,
-      ),
+    return result.fold(
+      (failure) => throw failure, // Lanzar el Failure en caso de error
+      (payments) => payments, // Devolver la lista de pagos en caso de éxito
     );
+  }
+  
+  /// Carga/recarga los pagos invalidando el estado del provider.
+  Future<void> refreshPayments() async {
+    // Invalida el provider para forzar la re-ejecución de build
+    ref.invalidateSelf();
+    // Opcionalmente, esperar a que la nueva carga termine si es necesario
+    // await future;
   }
 
   /// Registra un nuevo pago en la academia actual
@@ -74,18 +74,17 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
     String? notes,
     String? receiptUrl,
   }) async {
-    state = state.copyWith(isLoading: true, failure: null);
+    // Ya no se modifica el state aquí directamente para indicar carga
+    // El estado AsyncValue se manejará automáticamente por la recarga
     
     final academyId = ref.read(currentAcademyIdProvider);
     final userId = ref.read(authStateNotifierProvider).user?.id;
     
     if (academyId == null || userId == null) {
-      state = state.copyWith(
-        isLoading: false,
-        failure: const Failure.serverError(
-            message: 'Error al obtener información necesaria'),
-      );
-      return;
+      // Lanzar un error o manejarlo de forma apropiada
+      // En un AsyncNotifier, esto pondría el estado en AsyncError
+      throw const Failure.serverError(
+            message: 'Error al obtener información necesaria');
     }
     
     final payment = PaymentModel(
@@ -104,25 +103,34 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final result = await paymentRepo.registerPayment(payment);
     
-    result.fold(
-      (failure) => state = state.copyWith(isLoading: false, failure: failure),
-      (newPayment) {
-        loadPayments(); // Recargar la lista de pagos
+    await result.fold(
+      (failure) async {
+        // En caso de error al registrar, lanzar la excepción
+        // para que la UI pueda reaccionar al estado AsyncError.
+        throw failure;
+      },
+      (newPayment) async {
+        // Si el registro fue exitoso, invalidar para recargar la lista
+        ref.invalidateSelf();
       },
     );
   }
 
   /// Elimina un pago (soft delete)
   Future<void> deletePayment(String paymentId) async {
-    state = state.copyWith(isLoading: true, failure: null);
+    // Ya no se modifica el state aquí directamente para indicar carga
     
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final result = await paymentRepo.deletePayment(paymentId);
     
-    result.fold(
-      (failure) => state = state.copyWith(isLoading: false, failure: failure),
-      (_) {
-        loadPayments(); // Recargar la lista de pagos
+    await result.fold(
+      (failure) async {
+         // Lanzar excepción en caso de error
+        throw failure;
+      },
+      (_) async {
+        // Invalidar para recargar la lista tras eliminar
+        ref.invalidateSelf();
       },
     );
   }
@@ -131,36 +139,33 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
 /// Provider que gestiona los pagos de un atleta específico
 @riverpod
 class AthletePaymentsNotifier extends _$AthletePaymentsNotifier {
+  // Convertir también a AsyncNotifier si se necesita estado AsyncValue
   @override
-  PaymentsState build(String athleteId) {
-    _loadAthletePayments(athleteId);
-    return const PaymentsState();
+  FutureOr<List<PaymentModel>> build(String athleteId) {
+    return _fetchAthletePayments(athleteId);
   }
 
   /// Carga los pagos de un atleta específico
-  Future<void> _loadAthletePayments(String athleteId) async {
-    state = state.copyWith(isLoading: true, failure: null);
-    
+  Future<List<PaymentModel>> _fetchAthletePayments(String athleteId) async {
     final academyId = ref.read(currentAcademyIdProvider);
     if (academyId == null) {
-      state = state.copyWith(
-        isLoading: false,
-        failure: const Failure.serverError(
-            message: 'No se pudo determinar la academia actual'),
-      );
-      return;
+       throw const Failure.serverError(
+            message: 'No se pudo determinar la academia actual');
     }
     
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final result = await paymentRepo.getPaymentsByAthlete(academyId, athleteId);
     
-    result.fold(
-      (failure) => state = state.copyWith(isLoading: false, failure: failure),
-      (payments) => state = state.copyWith(
-        isLoading: false,
-        payments: payments,
-      ),
+    return result.fold(
+      (failure) => throw failure,
+      (payments) => payments,
     );
+  }
+  
+  /// Recarga los pagos del atleta.
+  Future<void> refreshAthletePayments(String athleteId) async {
+      ref.invalidateSelf();
+      // await future;
   }
 }
 
@@ -184,35 +189,28 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
   }) async {
     state = state.copyWith(isSubmitting: true, failure: null, isSuccess: false);
     
-    // Delegar al notifier de pagos de academia para el registro efectivo
-    final academyPaymentsNotifier = ref.read(academyPaymentsNotifierProvider.notifier);
-    
-    // Capturar el estado actual para detectar errores
-    final previousFailure = ref.read(academyPaymentsNotifierProvider).failure;
-    
-    await academyPaymentsNotifier.registerPayment(
-      athleteId: athleteId,
-      amount: amount,
-      currency: currency,
-      paymentDate: paymentDate,
-      concept: concept,
-      notes: notes,
-      receiptUrl: receiptUrl,
-    );
-    
-    // Verificar si hubo error en el registro
-    final currentFailure = ref.read(academyPaymentsNotifierProvider).failure;
-    
-    if (currentFailure != null && currentFailure != previousFailure) {
-      state = state.copyWith(
-        isSubmitting: false,
-        failure: currentFailure,
-        isSuccess: false,
+    try {
+      // Llamar directamente al método del Notifier de pagos de academia
+      await ref.read(academyPaymentsNotifierProvider.notifier).registerPayment(
+        athleteId: athleteId,
+        amount: amount,
+        currency: currency,
+        paymentDate: paymentDate,
+        concept: concept,
+        notes: notes,
+        receiptUrl: receiptUrl,
       );
-    } else {
-      state = state.copyWith(
-        isSubmitting: false,
-        isSuccess: true,
+      // Si la llamada anterior no lanzó excepción, fue exitosa
+      state = state.copyWith(isSubmitting: false, isSuccess: true);
+    } on Failure catch (failure) {
+      // Si registerPayment lanzó un Failure, lo capturamos aquí
+      state = state.copyWith(isSubmitting: false, failure: failure, isSuccess: false);
+    } catch (e) {
+      // Capturar otros posibles errores
+       state = state.copyWith(
+         isSubmitting: false, 
+         failure: Failure.unexpectedError(error: e), 
+         isSuccess: false
       );
     }
   }
