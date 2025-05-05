@@ -17,7 +17,7 @@ class MemberAccessScreen extends ConsumerStatefulWidget {
 
 class _MemberAccessScreenState extends ConsumerState<MemberAccessScreen> {
   final _invitationCodeController = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   void dispose() {
@@ -137,8 +137,6 @@ class _MemberAccessScreenState extends ConsumerState<MemberAccessScreen> {
                       height: 50,
                       child: OutlinedButton(
                         onPressed: () {
-                          // TODO: Implementar búsqueda de academia
-                          // Para el MVP, mostramos un SnackBar informativo
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(

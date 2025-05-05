@@ -17,42 +17,25 @@ class OwnerShell extends StatefulWidget {
 
 class _OwnerShellState extends State<OwnerShell> {
   int _selectedIndex = 0;
-  bool _isSearchActive = false;
 
   @override
   Widget build(BuildContext context) {
-    final brightness = Theme.of(context).brightness;
-    final isDarkMode = brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: !_isSearchActive ? const Text('Arcinus') : _buildSearchField(),
+        title: const Text('Arcinus'),
         elevation: 0,
         scrolledUnderElevation: 2,
         actions: [
-          // Selector de academia (si el propietario tiene más de una)
-          IconButton(
-            icon: const Icon(Icons.school_rounded),
-            onPressed: () {
-              // TODO: Implementar selector de academia
-            },
-          ),
           // Notificaciones
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () {
-              // TODO: Implementar notificaciones
+              //Implementar notificaciones
             },
           ),
           // Avatar o perfil
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: CircleAvatar(
-              backgroundColor: isDarkMode ? Colors.white10 : Colors.grey.shade200,
-              child: const Icon(Icons.person),
-            ),
-          ),
-        ],
+    ],
       ),
       
       // Drawer para navegación en pantallas grandes
@@ -60,25 +43,6 @@ class _OwnerShellState extends State<OwnerShell> {
       
       // En pantallas grandes, usamos un layout con el drawer permanente a la izquierda
       body: widget.child,
-    );
-  }
-
-  // Widget de campo de búsqueda para el AppBar
-  Widget _buildSearchField() {
-    return TextField(
-      autofocus: true,
-      decoration: const InputDecoration(
-        hintText: 'Buscar...',
-        border: InputBorder.none,
-        hintStyle: TextStyle(color: Colors.white70),
-      ),
-      style: const TextStyle(color: Colors.white),
-      onSubmitted: (value) {
-        // TODO: Implementar búsqueda
-        setState(() {
-          _isSearchActive = false;
-        });
-      },
     );
   }
 
@@ -92,30 +56,36 @@ class _OwnerShellState extends State<OwnerShell> {
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary,
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  child: Icon(Icons.person, size: 30),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Academia Deportiva',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
+            child: InkWell(
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/owner/profile');
+              },
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    child: Icon(Icons.person, size: 30),
                   ),
-                ),
-                Text(
-                  'Propietario',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
+                  SizedBox(height: 10),
+                  Text(
+                    'Academia Deportiva',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                    ),
                   ),
-                ),
-              ],
+                  Text(
+                    'Propietario',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           _buildDrawerNavItems(context),
@@ -132,13 +102,14 @@ class _OwnerShellState extends State<OwnerShell> {
 
     return Column(
       children: [
+        // --- Sección Implementada ---
         ListTile(
-          leading: const Icon(Icons.dashboard_rounded),
-          title: const Text('Dashboard'),
-          selected: _selectedIndex == 0,
+          leading: const Icon(Icons.account_balance_rounded),
+          title: const Text('Academia'),
+          // selected: _selectedIndex == X, // Determinar índice si es necesario
           onTap: () {
             Navigator.pop(context);
-            _navigateToPage(context, 0, '/owner/dashboard');
+            context.go('/owner/academy_details'); // O la ruta raíz de academia
           },
         ),
         ListTile(
@@ -151,15 +122,6 @@ class _OwnerShellState extends State<OwnerShell> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.calendar_month_rounded),
-          title: const Text('Horarios'),
-          selected: _selectedIndex == 2,
-          onTap: () {
-            Navigator.pop(context);
-            _navigateToPage(context, 2, '/owner/schedule');
-          },
-        ),
-        ListTile(
           leading: const Icon(Icons.paid_rounded),
           title: const Text('Pagos'),
           selected: _selectedIndex == 3,
@@ -167,6 +129,33 @@ class _OwnerShellState extends State<OwnerShell> {
             Navigator.pop(context);
             _navigateToPage(context, 3, '/owner/payments');
           },
+        ),
+        const Divider(),
+
+        // --- Sección Por Implementar ---
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text('Por Implementar', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        ListTile(
+          leading: const Icon(Icons.dashboard_rounded),
+          title: const Text('Dashboard'),
+          selected: _selectedIndex == 0,
+          onTap: () {
+            Navigator.pop(context);
+            _navigateToPage(context, 0, '/owner/dashboard');
+          },
+          enabled: false, // Deshabilitar temporalmente
+        ),
+        ListTile(
+          leading: const Icon(Icons.calendar_month_rounded),
+          title: const Text('Horarios'),
+          selected: _selectedIndex == 2,
+          onTap: () {
+            Navigator.pop(context);
+            _navigateToPage(context, 2, '/owner/schedule');
+          },
+           enabled: false, // Deshabilitar temporalmente
         ),
         ListTile(
           leading: const Icon(Icons.insights_rounded),
@@ -176,6 +165,7 @@ class _OwnerShellState extends State<OwnerShell> {
             Navigator.pop(context);
             _navigateToPage(context, 4, '/owner/stats');
           },
+           enabled: false, // Deshabilitar temporalmente
         ),
         ListTile(
           leading: const Icon(Icons.group_work_rounded),
@@ -184,6 +174,7 @@ class _OwnerShellState extends State<OwnerShell> {
             Navigator.pop(context);
             context.go('/owner/groups');
           },
+           enabled: false, // Deshabilitar temporalmente
         ),
         ListTile(
           leading: const Icon(Icons.fitness_center_rounded),
@@ -192,14 +183,7 @@ class _OwnerShellState extends State<OwnerShell> {
             Navigator.pop(context);
             context.go('/owner/trainings');
           },
-        ),
-        ListTile(
-          leading: const Icon(Icons.account_balance_rounded),
-          title: const Text('Academia'),
-          onTap: () {
-            Navigator.pop(context);
-            context.go('/owner/academy_details');
-          },
+           enabled: false, // Deshabilitar temporalmente
         ),
         ListTile(
           leading: const Icon(Icons.settings),
@@ -208,22 +192,25 @@ class _OwnerShellState extends State<OwnerShell> {
             Navigator.pop(context);
             context.go('/owner/settings');
           },
+           enabled: false, // Deshabilitar temporalmente
         ),
-        ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Cerrar Sesión'),
-          onTap: () {
-            Navigator.pop(context);
-            context.go('/auth');
-          },
-        ),
-        ListTile(
+         ListTile(
           leading: const Icon(Icons.more_horiz),
           title: const Text('Más'),
           selected: _selectedIndex == 5,
           onTap: () {
             Navigator.pop(context);
             _navigateToPage(context, 5, '/owner/more');
+          },
+          enabled: false, // Deshabilitar temporalmente
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.logout),
+          title: const Text('Cerrar Sesión'),
+          onTap: () {
+            Navigator.pop(context);
+             context.go('/auth/login');
           },
         ),
       ],

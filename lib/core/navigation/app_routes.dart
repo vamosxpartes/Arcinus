@@ -74,6 +74,8 @@ class AppRoutes {
   static const String ownerTrainings = 'trainings';
   static const String ownerAcademyDetails = 'academy_details';
   static const String ownerSettings = 'settings';
+  static const String ownerProfile = 'profile'; // Ruta para el perfil del owner
+  static const String payments = 'payments'; // Ruta para la seccion de pagos del owner
   
   // Añadir aquí otras rutas específicas del Propietario (perfil, ajustes, etc.)
   // static const String ownerProfile = 'profile';

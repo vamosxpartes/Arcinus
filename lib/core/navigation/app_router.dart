@@ -449,6 +449,22 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
               ],
             ),
+            GoRoute(
+              path: AppRoutes.payments,
+              name: AppRoutes.payments,
+              builder: (context, state) => const PaymentsScreen(),
+            ),
+             GoRoute(
+              path: '/owner/profile',
+              name: 'ownerProfile',
+              builder: (context, state) {
+                _logger.d('Navigating to Owner Profile (Under Development)'); // Reemplazado
+                return const ScreenUnderDevelopment(
+                    title: 'Perfil de Propietario',
+                    message: 'La pantalla de perfil para propietarios está en desarrollo.',
+                );
+              },
+            ),
           ],
         ),
 

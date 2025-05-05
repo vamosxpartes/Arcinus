@@ -14,51 +14,6 @@ import 'package:logger/logger.dart';
 // Instancia de Logger
 final _logger = Logger();
 
-// TODO: Crear e importar el provider para manejar el estado y la lógica
-// final completeProfileProvider = StateNotifierProvider<CompleteProfileNotifier, CompleteProfileState>((ref) {
-//   // TODO: Obtener dependencias (repositorio) via ref.watch/read
-//   return CompleteProfileNotifier(/* userRepository */);
-// });
-
-// TODO: Definir el estado del formulario (ej. loading, error, data) si es necesario
-// class CompleteProfileState { ... }
-
-// TODO: Definir el Notifier
-// class CompleteProfileNotifier extends StateNotifier<CompleteProfileState> {
-//   CompleteProfileNotifier(/* this._userRepository */) : super(InitialState()); // TODO: Definir estado inicial
-
-//   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-//   final TextEditingController nameController = TextEditingController();
-//   final TextEditingController lastNameController = TextEditingController();
-
-//   Future<void> submitProfile() async {
-//     if (formKey.currentState!.validate()) {
-//       // state = LoadingState(); // TODO: Actualizar estado a cargando
-//       try {
-//         // TODO: Llamar al repositorio para guardar los datos
-//         // final result = await _userRepository.updateProfile(
-//         //   name: nameController.text,
-//         //   lastName: lastNameController.text,
-//         // );
-//         // result.fold(
-//         //   (failure) => state = ErrorState(failure), // TODO: Manejar error
-//         //   (_) => state = SuccessState(), // TODO: Estado de éxito (GoRouter se encargará de redirigir)
-//         // );
-//         print('Perfil guardado (simulado)');
-//       } catch (e) {
-//         // state = ErrorState(SomeFailure(e.toString())); // TODO: Manejar excepción
-//       }
-//     }
-//   }
-
-//   @override
-//   void dispose() {
-//     nameController.dispose();
-//     lastNameController.dispose();
-//     super.dispose();
-//   }
-// }
-
 class CompleteProfileScreen extends ConsumerWidget {
   const CompleteProfileScreen({super.key});
 

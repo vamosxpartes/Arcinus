@@ -78,14 +78,12 @@ class _ParentShellState extends State<ParentShell> {
           IconButton(
             icon: const Icon(Icons.family_restroom),
             onPressed: () {
-              // TODO: Implementar selector de atleta/hijo
             },
           ),
           // Notificaciones
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () {
-              // TODO: Implementar notificaciones
             },
           ),
           // Avatar o perfil
@@ -128,7 +126,6 @@ class _ParentShellState extends State<ParentShell> {
       ),
       style: const TextStyle(color: Colors.white),
       onSubmitted: (value) {
-        // TODO: Implementar búsqueda
         setState(() {
           _isSearchActive = false;
         });
@@ -254,23 +251,17 @@ class _ParentShellState extends State<ParentShell> {
         ListTile(
           leading: const Icon(Icons.messenger_outline),
           title: const Text('Mensajes'),
-          onTap: () {
-            // TODO: Implementar navegación a mensajes
-          },
+          onTap: () {},
         ),
         ListTile(
           leading: const Icon(Icons.fitness_center_rounded),
           title: const Text('Entrenamientos'),
-          onTap: () {
-            // TODO: Implementar navegación a entrenamientos
-          },
+          onTap: () {},
         ),
         ListTile(
           leading: const Icon(Icons.star_rounded),
           title: const Text('Evaluaciones'),
-          onTap: () {
-            // TODO: Implementar navegación a evaluaciones
-          },
+          onTap: () {},
         ),
         const Divider(),
         ListTile(
@@ -281,9 +272,7 @@ class _ParentShellState extends State<ParentShell> {
         ListTile(
           leading: const Icon(Icons.settings),
           title: const Text('Configuración'),
-          onTap: () {
-            // TODO: Implementar navegación a configuración
-          },
+          onTap: () {},
         ),
       ],
     );
