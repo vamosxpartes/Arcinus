@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,8 +6,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/features/auth/data/models/user_model.dart';
+import 'package:logger/logger.dart';
 
 part 'register_payment_screen.g.dart';
+
+// Instancia de Logger
+final _logger = Logger();
 
 /// Pantalla para registrar un nuevo pago
 class RegisterPaymentScreen extends ConsumerStatefulWidget {
@@ -307,6 +309,6 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
 @riverpod
 Future<List<UserModel>> academyAthletes(Ref ref) async {
   // Devolver una lista vacía temporalmente para evitar errores
-  developer.log('ADVERTENCIA: academyAthletesProvider está devolviendo una lista vacía.');
+  _logger.w('ADVERTENCIA: academyAthletesProvider está devolviendo una lista vacía.');
   return Future.value([]); 
 } 

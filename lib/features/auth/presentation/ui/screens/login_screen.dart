@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:arcinus/core/constants/app_assets.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/auth/presentation/ui/widgets/auth_error_message.dart';
@@ -8,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reactive_forms/reactive_forms.dart';
+import 'package:logger/logger.dart'; // Importar logger
+
+// Instancia de Logger
+final _logger = Logger();
 
 /// Pantalla para iniciar sesión utilizando correo electrónico y contraseña.
 ///
@@ -201,10 +203,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
       // No necesitamos manejar la navegación aquí;
       // se manejará en el router basado en el estado de autenticación
-    } catch (e) {
+    } catch (e, s) {
       // El error ya se ha manejado en el notifier y se mostrará a través del estado
-      developer.log('Error durante el login: $e');
-      // TODO: Usar logger
+      _logger.e('Error durante el login', error: e, stackTrace: s); // Reemplazado
     } finally {
       if (mounted) {
         setState(() {

@@ -23,7 +23,6 @@ class PaymentsScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
-              // TODO: Implementar filtros de búsqueda
             },
           ),
           // Añadir un botón para refrescar manualmente
@@ -41,8 +40,6 @@ class PaymentsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Actualizar la navegación a la pantalla de registro
-          // context.push('/owner/payments/register'); // Asegúrate que la ruta es correcta
            context.push('/owner/payments/register'); // Usar la ruta completa correcta
         },
         icon: const Icon(Icons.add),
@@ -150,7 +147,7 @@ class PaymentsScreen extends ConsumerWidget {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    payment.athleteId, // TODO: Mostrar nombre del atleta
+                    payment.athleteId, 
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

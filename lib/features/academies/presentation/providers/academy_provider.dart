@@ -1,7 +1,6 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart'; // Importa el provider del repo
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'academy_provider.g.dart';
@@ -55,29 +54,4 @@ class Academy extends _$Academy {
   // Métodos para actualizar la academia podrían ir aquí
   // Future<void> updateAcademyDetails(AcademyModel updatedAcademy)
   //async { ... }
-}
-
-/// Provider que obtiene los detalles de una academia específica por su ID.
-///
-/// Retorna un [Future<AcademyModel>]. Lanza una excepción si la academia no se encuentra
-/// o si ocurre un error durante la obtención.
-@riverpod
-Future<AcademyModel> academy(Ref ref, String academyId) async {
-  // No cargar si el ID está vacío para evitar llamadas innecesarias.
-  if (academyId.isEmpty) {
-    // Lanzar una excepción específica.
-    throw Exception('Academy ID cannot be empty when fetching details.');
-  }
-
-  // Usar el provider importado correctamente
-  final academyRepository = ref.watch(academyRepositoryProvider);
-  final result = await academyRepository.getAcademyById(academyId);
-
-  return result.fold(
-    (failure) {
-      // Usar el mensaje del Failure para la Exception.
-      throw Exception(failure.message);
-    },
-    (academy) => academy, // Devuelve la academia en caso de éxito.
-  );
 }

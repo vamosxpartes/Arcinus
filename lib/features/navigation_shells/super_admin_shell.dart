@@ -12,7 +12,6 @@ class SuperAdminShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Implementar AppBar, Drawer/Panel lateral responsivo
     return Scaffold(
       appBar: AppBar(
         title: const Text('Panel SuperAdmin'),

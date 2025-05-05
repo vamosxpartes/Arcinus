@@ -15,5 +15,9 @@ sealed class CreateAcademyState with _$CreateAcademyState {
   const factory CreateAcademyState.success(String academyId) = _Success;
 
   /// Estado de error al guardar.
-  const factory CreateAcademyState.error(Failure failure) = _Error;
+  const factory CreateAcademyState.error(
+    Failure failure, {
+    String? nameError,
+    String? sportCodeError,
+  }) = _Error;
 } 

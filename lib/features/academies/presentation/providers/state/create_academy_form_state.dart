@@ -15,9 +15,8 @@ class CreateAcademyFormState with _$CreateAcademyFormState {
     /// Flag indicating if the form is currently valid.
     /// Could be expanded later for field-specific errors.
     @Default(false) bool isFormValid,
-    // TODO: Potentially add field-specific error messages
-    // String? nameError,
-    // String? sportCodeError,
+    // String? nameError, // Eliminado
+    // String? sportCodeError, // Eliminado
   }) = _CreateAcademyFormState;
 
   /// Initial state for the form.

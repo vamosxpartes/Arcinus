@@ -25,4 +25,25 @@ Future<List<MembershipModel>> academyMembers(Ref ref, String academyId) async {
     },
     (memberships) => memberships, // Devuelve la lista en caso de éxito
   );
+}
+
+/// Provider que obtiene una membresía específica por su ID.
+///
+/// Retorna un [Future<MembershipModel>]. Lanza una excepción si ocurre un error o no se encuentra.
+@riverpod
+Future<MembershipModel> membershipById(Ref ref, String membershipId) async {
+  if (membershipId.isEmpty) {
+    throw Exception('Membership ID inválido.');
+  }
+
+  final membershipRepository = ref.watch(membershipRepositoryProvider);
+  final result = await membershipRepository.getMembershipById(membershipId);
+
+  return result.fold(
+    (failure) {
+      // Mapear Failure a Exception
+      throw Exception('Error obteniendo membresía por ID: ${failure.message}');
+    },
+    (membership) => membership, // Devuelve la membresía en caso de éxito
+  );
 } 

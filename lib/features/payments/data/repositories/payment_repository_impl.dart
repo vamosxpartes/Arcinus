@@ -2,6 +2,7 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/domain/repositories/payment_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -9,7 +10,7 @@ part 'payment_repository_impl.g.dart';
 
 /// Proveedor del repositorio de pagos
 @riverpod
-PaymentRepository paymentRepository(PaymentRepositoryRef ref) {
+PaymentRepository paymentRepository(Ref ref) {
   return PaymentRepositoryImpl(
     firestore: FirebaseFirestore.instance,
   );

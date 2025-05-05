@@ -3,8 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// TODO(you): Consider using a proper logging package instead of dart:developer or print.
-// import 'package:logger/logger.dart'; 
+import 'package:logger/logger.dart';
 
 // Generated file - Manually created for now based on app_es.arb
 // Contains methods to access the localized strings.
@@ -21,7 +20,7 @@ class AppLocalizations {
   
   /// Almacena los strings localizados cargados desde el archivo ARB.
   final Map<String, String> _localizedStrings = {};
-  // final Logger _logger = Logger(); // Uncomment if using logger
+  final Logger _logger = Logger(); // Uncommented
 
   /// Obtiene la instancia de [AppLocalizations] más cercana en el árbol de widgets.
   ///
@@ -67,11 +66,10 @@ class AppLocalizations {
   String translate(String key, {Map<String, Object>? args}) {
      // Return key if not found, maybe log this?
     if (!_localizedStrings.containsKey(key)) {
-      // TODO(you): Usar un logger en lugar de print.
-      // _logger.w('Warning: Translation key "$key" not found for locale "${locale.languageCode}".');
-      debugPrint(
-        'Warning: Translation key "$key" not found for locale "${locale.languageCode}".',
-      );
+      _logger.w('Warning: Translation key "$key" not found for locale "${locale.languageCode}".'); // Replaced debugPrint
+      // debugPrint(
+      //   'Warning: Translation key "$key" not found for locale "${locale.languageCode}".',
+      // );
       return key;
     }
     final baseString = _localizedStrings[key]!;

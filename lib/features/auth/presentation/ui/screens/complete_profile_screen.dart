@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/auth/presentation/providers/complete_profile_provider.dart';
@@ -11,6 +9,10 @@ import 'package:arcinus/features/auth/presentation/providers/user_profile_provid
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/navigation/app_routes.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logger/logger.dart';
+
+// Instancia de Logger
+final _logger = Logger();
 
 // TODO: Crear e importar el provider para manejar el estado y la lógica
 // final completeProfileProvider = StateNotifierProvider<CompleteProfileNotifier, CompleteProfileState>((ref) {
@@ -70,15 +72,23 @@ class CompleteProfileScreen extends ConsumerWidget {
     ref.listen<CompleteProfileState>(completeProfileProvider, (previous, next) {
       next.maybeWhen(
         error: (failure) {
+          // Usar el mensaje de Failure si está disponible, o un mensaje genérico
+          final errorMessage = failure.maybeMap(
+            authError: (f) => f.message,
+            serverError: (f) => f.message,
+            validationError: (f) => f.message,
+            orElse: () => 'Ocurrió un error inesperado',
+          );
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: ${failure.toString()}')), // TODO: Mejorar mensaje
+            SnackBar(content: Text(errorMessage)), 
           );
         },
         success: () {
           // La navegación debería manejarse por GoRouter.redirect observando el estado de autenticación/perfil
-          developer.log('Perfil guardado con éxito, GoRouter debería redirigir.');
+          _logger.i('Perfil guardado con éxito, GoRouter debería redirigir.');
           
           // Redirección manual como fallback si el router no redirecciona automáticamente
+          // (Podría eliminarse si GoRouter.redirect es robusto)
           final authState = ref.read(authStateNotifierProvider);
           if (authState.isAuthenticated && authState.user != null) {
             final user = authState.user!;
@@ -88,12 +98,16 @@ class CompleteProfileScreen extends ConsumerWidget {
             // Esperar un momento y luego redirigir manualmente
             Future.delayed(const Duration(milliseconds: 500), () {
               if (user.role == AppRole.propietario) {
-                developer.log('Redirigiendo manualmente a la pantalla de creación de academia');
-                context.go(AppRoutes.createAcademy);
+                _logger.d('Redirigiendo manualmente a la pantalla de creación de academia');
+                if (context.mounted) {
+                  context.go(AppRoutes.createAcademy);
+                }
               } else {
                 final targetRoute = _getRoleRootRoute(user.role);
-                developer.log('Redirigiendo manualmente a $targetRoute');
-                context.go(targetRoute);
+                _logger.d('Redirigiendo manualmente a $targetRoute');
+                if (context.mounted) {
+                  context.go(targetRoute);
+                }
               }
             });
           }

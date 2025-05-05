@@ -16,14 +16,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arcinus/features/memberships/presentation/screens/invite_member_screen.dart';
-import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/screens/edit_academy_screen.dart';
+import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_members_screen.dart';
 import 'package:arcinus/features/memberships/presentation/screens/edit_permissions_screen.dart';
-import 'package:arcinus/features/memberships/data/models/membership_model.dart';
 import 'package:arcinus/features/theme/ui/feedback/error_display.dart';
 import 'package:arcinus/features/payments/presentation/screens/payments_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
+
+// Importar providers necesarios
+import 'package:arcinus/features/memberships/presentation/providers/membership_providers.dart';
 
 // Importar los nuevos Shell Widgets
 import 'package:arcinus/features/navigation_shells/owner_shell.dart';
@@ -32,22 +34,18 @@ import 'package:arcinus/features/navigation_shells/collaborator_shell.dart';
 import 'package:arcinus/features/navigation_shells/super_admin_shell.dart';
 import 'package:arcinus/features/navigation_shells/parent_shell.dart';
 
-// Importar pantallas Dashboard (placeholders por ahora)
-// TODO: Crear estas pantallas
-// import 'package:arcinus/features/dashboard/owner_dashboard_screen.dart';
-// import 'package:arcinus/features/dashboard/athlete_dashboard_screen.dart';
-// import 'package:arcinus/features/dashboard/collaborator_dashboard_screen.dart';
-// import 'package:arcinus/features/dashboard/super_admin_dashboard_screen.dart';
+import 'package:logger/logger.dart'; // Importar logger
 
-import 'dart:developer' as developer;
+// Instancia de Logger
+final _logger = Logger();
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
-  developer.log('routerProvider: Creating GoRouter instance...', name: 'AppLifecycle');
+  _logger.d('routerProvider: Creating GoRouter instance...'); // Reemplazado
   try {
     // Observar el estado de autenticación para el refreshListenable
     final authStateListenable = GoRouterRefreshStream(ref, authStateNotifierProvider);
-    developer.log('routerProvider: GoRouterRefreshStream created', name: 'AppLifecycle');
+    _logger.d('routerProvider: GoRouterRefreshStream created'); // Reemplazado
 
     // Clave global para el Navigator principal
     final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -58,7 +56,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     final superAdminShellNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'superAdminShell');
     final parentShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'parentShell');
 
-    developer.log('routerProvider: Navigator keys created', name: 'AppLifecycle');
+    _logger.d('routerProvider: Navigator keys created'); // Reemplazado
 
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
@@ -66,13 +64,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       debugLogDiagnostics: true,
       refreshListenable: authStateListenable, // Escuchar solo cambios de AuthState
       redirect: (BuildContext context, GoRouterState state) async {
-        developer.log('Redirect triggered: current=${state.matchedLocation}, target=${state.uri}', name: 'AppRouter.Redirect');
+        _logger.d('AppRouter.Redirect - Redirect triggered: current=${state.matchedLocation}, target=${state.uri}'); // Reemplazado
         // --- Leer el estado de autenticación y perfil ---
         final authState = ref.read(authStateNotifierProvider);
         final isLoggedIn = authState.isAuthenticated;
         final currentUserId = authState.user?.id;
         final userRole = authState.user?.role;
-        developer.log('Auth state: isLoggedIn=$isLoggedIn, userId=$currentUserId, role=$userRole', name: 'AppRouter.Redirect');
+        _logger.d('AppRouter.Redirect - Auth state: isLoggedIn=$isLoggedIn, userId=$currentUserId, role=$userRole'); // Reemplazado
 
         // --- Definir rutas públicas/de autenticación ---
         final publicRoutes = [
@@ -94,11 +92,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         final isGoingToPublic       = publicRoutes.contains(currentLocation);
         final isGoingToIntermediate = intermediateRoutes.contains(currentLocation);
         final isGoingToSplash       = currentLocation == AppRoutes.splash;
-        developer.log('Route categories: isPublic=$isGoingToPublic, isIntermediate=$isGoingToIntermediate, isSplash=$isGoingToSplash', name: 'AppRouter.Redirect');
+        _logger.d('AppRouter.Redirect - Route categories: isPublic=$isGoingToPublic, isIntermediate=$isGoingToIntermediate, isSplash=$isGoingToSplash'); // Reemplazado
 
         // --- Lógica de Splash ---
         if (authState == const AuthState.initial() || (authState.isLoading && isGoingToSplash)) {
-           developer.log('Redirect decision: Keep on Splash (initial/loading)', name: 'AppRouter.Redirect');
+           _logger.d('AppRouter.Redirect - Redirect decision: Keep on Splash (initial/loading)'); // Reemplazado
            return isGoingToSplash ? null : AppRoutes.splash;
         }
         if (isGoingToSplash && !(authState == const AuthState.initial()) && !authState.isLoading) {
@@ -112,12 +110,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                  loading: () => false,
                  orElse: () => false,
                );
-               
+
                if (needsProfileCompletion) {
-                 developer.log('Redirect decision: From Splash - needs profile completion', name: 'AppRouter.Redirect');
+                 _logger.d('AppRouter.Redirect - Redirect decision: From Splash - needs profile completion'); // Reemplazado
                  return AppRoutes.completeProfile;
                }
-               
+
                // Si es propietario, verificar si necesita crear academia
                if (userRole == AppRole.propietario) {
                  final academiesState = ref.read(ownerHasAcademiesProvider(currentUserId));
@@ -126,20 +124,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                    loading: () => false,
                    orElse: () => false,
                  );
-                 
+
                  if (needsToCreateAcademy) {
-                   developer.log('Redirect decision: From Splash - owner needs academy', name: 'AppRouter.Redirect');
+                   _logger.d('AppRouter.Redirect - Redirect decision: From Splash - owner needs academy'); // Reemplazado
                    return AppRoutes.createAcademy;
                  }
                }
-               
+
                // Si no necesita completar perfil ni crear academia, redirigir a la ruta del rol
                final targetRoute = _getRoleRootRoute(userRole);
-               developer.log('Redirect decision: From Splash to $targetRoute', name: 'AppRouter.Redirect');
+               _logger.d('AppRouter.Redirect - Redirect decision: From Splash to $targetRoute'); // Reemplazado
                return targetRoute;
              }
            } else {
-             developer.log('Redirect decision: From Splash to Welcome', name: 'AppRouter.Redirect');
+             _logger.d('AppRouter.Redirect - Redirect decision: From Splash to Welcome'); // Reemplazado
              return AppRoutes.welcome;
            }
         }
@@ -147,16 +145,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         // --- Lógica Principal de Redirección ---
         if (!isLoggedIn) {
           if (!isGoingToPublic) {
-            developer.log('Redirect decision: Not logged in, redirecting to Welcome', name: 'AppRouter.Redirect');
+            _logger.d('AppRouter.Redirect - Redirect decision: Not logged in, redirecting to Welcome'); // Reemplazado
             return AppRoutes.welcome;
           }
-          developer.log('Redirect decision: Not logged in, staying on public route', name: 'AppRouter.Redirect');
+          _logger.d('AppRouter.Redirect - Redirect decision: Not logged in, staying on public route'); // Reemplazado
           return null; // Stay on public route
         }
 
         // --- Usuario Logueado ---
         if (currentUserId == null) {
-          developer.log('Redirect decision: Logged in but no userId, redirecting to Welcome', name: 'AppRouter.Redirect');
+          _logger.d('AppRouter.Redirect - Redirect decision: Logged in but no userId, redirecting to Welcome'); // Reemplazado
           return AppRoutes.welcome;
         }
 
@@ -167,19 +165,19 @@ final routerProvider = Provider<GoRouter>((ref) {
            loading: () => false,
            orElse: () => false,
         );
-        developer.log('Profile state: needsCompletion=$needsProfileCompletion', name: 'AppRouter.Redirect');
+        _logger.d('AppRouter.Redirect - Profile state: needsCompletion=$needsProfileCompletion'); // Reemplazado
 
         if (needsProfileCompletion) {
             if (currentLocation != AppRoutes.completeProfile) {
-              developer.log('Redirect decision: Needs profile completion, redirecting to CompleteProfile', name: 'AppRouter.Redirect');
+              _logger.d('AppRouter.Redirect - Redirect decision: Needs profile completion, redirecting to CompleteProfile'); // Reemplazado
               return AppRoutes.completeProfile;
             }
-            developer.log('Redirect decision: Needs profile completion, staying on CompleteProfile', name: 'AppRouter.Redirect');
+            _logger.d('AppRouter.Redirect - Redirect decision: Needs profile completion, staying on CompleteProfile'); // Reemplazado
             return null; // Stay on complete profile
         }
         if (currentLocation == AppRoutes.completeProfile && !needsProfileCompletion) {
             final targetRoute = _getRoleRootRoute(userRole);
-            developer.log('Redirect decision: Profile complete, redirecting FROM CompleteProfile to $targetRoute', name: 'AppRouter.Redirect');
+            _logger.d('AppRouter.Redirect - Redirect decision: Profile complete, redirecting FROM CompleteProfile to $targetRoute'); // Reemplazado
             return targetRoute;
         }
 
@@ -191,18 +189,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                 loading: () => false,
                 orElse: () => false,
             );
-            developer.log('Academy state (owner): needsToCreate=$needsToCreateAcademy', name: 'AppRouter.Redirect');
+            _logger.d('AppRouter.Redirect - Academy state (owner): needsToCreate=$needsToCreateAcademy'); // Reemplazado
 
             if (needsToCreateAcademy) {
                 if (currentLocation != AppRoutes.createAcademy) {
-                  developer.log('Redirect decision: Owner needs academy, redirecting to CreateAcademy', name: 'AppRouter.Redirect');
+                  _logger.d('AppRouter.Redirect - Redirect decision: Owner needs academy, redirecting to CreateAcademy'); // Reemplazado
                   return AppRoutes.createAcademy;
                 }
-                developer.log('Redirect decision: Owner needs academy, staying on CreateAcademy', name: 'AppRouter.Redirect');
+                _logger.d('AppRouter.Redirect - Redirect decision: Owner needs academy, staying on CreateAcademy'); // Reemplazado
                 return null; // Stay on create academy
             }
              if (currentLocation == AppRoutes.createAcademy && !needsToCreateAcademy) {
-                 developer.log('Redirect decision: Owner has academy, redirecting FROM CreateAcademy to Owner root', name: 'AppRouter.Redirect');
+                 _logger.d('AppRouter.Redirect - Redirect decision: Owner has academy, redirecting FROM CreateAcademy to Owner root'); // Reemplazado
                  return AppRoutes.ownerRoot;
              }
         }
@@ -210,12 +208,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         // 3. Usuario logueado, perfil completo, (propietario con academia):
         if (!isGoingToSplash && (isGoingToPublic || isGoingToIntermediate)) {
             final targetRoute = _getRoleRootRoute(userRole);
-            developer.log('Redirect decision: Logged in, redirecting FROM public/intermediate to $targetRoute', name: 'AppRouter.Redirect');
+            _logger.d('AppRouter.Redirect - Redirect decision: Logged in, redirecting FROM public/intermediate to $targetRoute'); // Reemplazado
             return targetRoute;
         }
 
         // 4. Si no aplica ninguna redirección
-        developer.log('Redirect decision: No redirection needed, allowing access to ${state.matchedLocation}', name: 'AppRouter.Redirect');
+        _logger.d('AppRouter.Redirect - Redirect decision: No redirection needed, allowing access to ${state.matchedLocation}'); // Reemplazado
         return null;
       },
       routes: <RouteBase>[
@@ -269,7 +267,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           routes: <RouteBase>[
             // Ruta raíz del Shell: /owner (puede mostrar el dashboard por defecto)
             GoRoute(
-              path: AppRoutes.ownerRoot, 
+              path: AppRoutes.ownerRoot,
               name: 'ownerRoot', // Darle un nombre único a la raíz
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Owner Dashboard'),
               // Ya no anidamos las secciones principales aquí
@@ -277,37 +275,52 @@ final routerProvider = Provider<GoRouter>((ref) {
             // --- Secciones Principales como hijas directas del ShellRoute ---
             GoRoute(
               path: '/owner/dashboard', // Path completo ahora
-              name: AppRoutes.ownerDashboard, 
+              name: AppRoutes.ownerDashboard,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Owner Dashboard'),
             ),
              GoRoute(
                 path: '/owner/academy/:academyId', // Path completo
-                name: 'ownerAcademyBase', 
+                name: 'ownerAcademyBase',
                  builder: (context, state) {
                    final academyId = state.pathParameters['academyId']!;
                    return ScreenUnderDevelopment(message: 'Academy Base: $academyId');
                  },
                 routes: [ // Rutas anidadas de academia (edit, members, etc.) sí van aquí
                    GoRoute(
-                      path: 'edit', 
+                      path: 'edit',
                       name: AppRoutes.ownerEditAcademy,
                       builder: (context, state) {
                          final academyId = state.pathParameters['academyId']!;
-                         // TODO: Obtener la academia real
-                         final dummyAcademy = AcademyModel(
-                           id: academyId,
-                           name: 'Academia $academyId',
-                           sportCode: 'test',
-                           ownerId: 'test-owner',
-                           location: 'Ubicación Ficticia', // Añadido location
-                           createdAt: DateTime.now(), // Añadir si es necesario
-                           // Añadir otros campos requeridos si los hay
+                         // Utilizar Consumer para obtener la academia real
+                         return Consumer(
+                           builder: (context, ref, child) {
+                             final academyAsyncValue = ref.watch(academyProvider(academyId));
+                             // No necesitamos comprobar si es null, el provider lanza error
+                             return academyAsyncValue.when(
+                               data: (academy) {
+                                 // Añadir chequeo de nulidad
+                                 if (academy == null) {
+                                    return Scaffold(
+                                       appBar: AppBar(title: const Text('Error')),
+                                       body: const Center(child: Text('Academia no encontrada.')),
+                                    );
+                                 }
+                                 // Pasar la academia real (ahora no nula) a EditAcademyScreen
+                                 return EditAcademyScreen(academy: academy, initialAcademy: academy);
+                               },
+                               loading: () => const Scaffold(
+                                 body: Center(child: CircularProgressIndicator()),
+                               ),
+                               error: (error, stackTrace) => Scaffold(
+                                 body: Center(child: Text('Error cargando academia: $error')),
+                               ),
+                             );
+                           },
                          );
-                         return EditAcademyScreen(academy: dummyAcademy, initialAcademy: dummyAcademy);
                       },
                    ),
                    GoRoute(
-                      path: 'members', 
+                      path: 'members',
                       name: AppRoutes.ownerAcademyMembers,
                        builder: (context, state) {
                          final academyId = state.pathParameters['academyId']!;
@@ -315,7 +328,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                        },
                       routes: [
                          GoRoute(
-                            path: 'invite', 
+                            path: 'invite',
                             name: AppRoutes.ownerInviteMember,
                              builder: (context, state) {
                                final academyId = state.pathParameters['academyId']!;
@@ -324,13 +337,36 @@ final routerProvider = Provider<GoRouter>((ref) {
                          ),
                          GoRoute(
                             path: AppRoutes.ownerEditMemberPermissions.split('/').last, // 'permissions'
-                            name: 'ownerEditMemberPermissions', 
+                            name: 'ownerEditMemberPermissions',
                              builder: (context, state) {
                                final academyId = state.pathParameters['academyId']!;
                                final membershipId = state.pathParameters['membershipId']!;
-                               // TODO: Obtener la membresía real
-                               final dummyMembership = MembershipModel(id: membershipId, userId: 'test', academyId: academyId, role: AppRole.colaborador, addedAt: DateTime.now());
-                               return EditPermissionsScreen(academyId: academyId, membershipId: membershipId, membership: dummyMembership);
+
+                               // Usar Consumer para obtener la membresía real
+                               return Consumer(
+                                   builder: (context, ref, child) {
+                                       // Asume que membershipByIdProvider(membershipId) existe
+                                       final membershipAsyncValue = ref.watch(membershipByIdProvider(membershipId));
+
+                                       return membershipAsyncValue.when(
+                                           data: (membership) {
+                                               // Pasar la membresía real a EditPermissionsScreen
+                                               return EditPermissionsScreen(
+                                                   academyId: academyId,
+                                                   membershipId: membershipId,
+                                                   membership: membership, // <- Membresía real
+                                               );
+                                           },
+                                           loading: () => const Scaffold(
+                                               body: Center(child: CircularProgressIndicator()),
+                                           ),
+                                           error: (error, stackTrace) => Scaffold(
+                                               appBar: AppBar(title: const Text('Error')),
+                                               body: Center(child: Text('Error cargando membresía: $error')),
+                                           ),
+                                       );
+                                   },
+                               );
                              },
                          ),
                       ]
@@ -381,29 +417,29 @@ final routerProvider = Provider<GoRouter>((ref) {
             // Ruta de Pagos como hija directa del ShellRoute
             GoRoute(
               path: '/owner/payments', // Path completo
-              name: AppRoutes.ownerPayments, 
+              name: AppRoutes.ownerPayments,
               builder: (context, state) {
-                return PaymentsScreen(); 
+                return PaymentsScreen();
               },
               routes: [ // Rutas anidadas de pagos (register, :paymentId) sí van aquí
                   GoRoute(
-                    path: 'register', 
-                    name: AppRoutes.ownerRegisterPayment, 
+                    path: 'register',
+                    name: AppRoutes.ownerRegisterPayment,
                     builder: (context, state) {
                       return RegisterPaymentScreen();
                     },
                   ),
                   GoRoute(
-                    path: ':paymentId', 
-                    name: AppRoutes.ownerPaymentDetails, 
+                    path: ':paymentId',
+                    name: AppRoutes.ownerPaymentDetails,
                     builder: (context, state) {
                       final paymentId = state.pathParameters['paymentId']!;
                       return ScreenUnderDevelopment(message: 'Detalles del pago $paymentId');
                     },
                     routes: [
                         GoRoute(
-                          path: 'edit', 
-                          name: AppRoutes.ownerEditPayment, 
+                          path: 'edit',
+                          name: AppRoutes.ownerEditPayment,
                           builder: (context, state) {
                             final paymentId = state.pathParameters['paymentId']!;
                             return ScreenUnderDevelopment(message: 'Editar pago $paymentId');
@@ -426,11 +462,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                  // En lugar de redirigir, construimos directamente el dashboard
                  builder: (context, state) => const ScreenUnderDevelopment(message: 'Athlete Dashboard'), // Placeholder
                 routes: [
-                    // TODO: Crear AthleteDashboardScreen
                    GoRoute(
                       path: AppRoutes.athleteDashboard, // -> /athlete/dashboard
                       name: AppRoutes.athleteDashboard, // Nombre único
-                      builder: (context, state) => const ScreenUnderDevelopment(message: 'Athlete Dashboard'), // Placeholder
+                      builder: (context, state) => const ScreenUnderDevelopment(message: 'Athlete Dashboard'), // <- Builder añadido
                    ),
                    // Otras rutas específicas para atletas...
                 ]
@@ -447,11 +482,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: AppRoutes.collaboratorRoot, // Ruta raíz del Shell: /collaborator
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Collaborator Dashboard'), // Placeholder
               routes: [
-                 // TODO: Crear CollaboratorDashboardScreen
                  GoRoute(
                     path: AppRoutes.collaboratorDashboard, // -> /collaborator/dashboard
                     name: AppRoutes.collaboratorDashboard, // Nombre único
-                    builder: (context, state) => const ScreenUnderDevelopment(message: 'Collaborator Dashboard'), // Placeholder
+                    builder: (context, state) => const ScreenUnderDevelopment(message: 'Collaborator Dashboard'), // <- Builder añadido
                  ),
                  // Otras rutas específicas para colaboradores...
               ]
@@ -468,11 +502,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: AppRoutes.superAdminRoot, // Ruta raíz del Shell: /superadmin
               builder: (context, state) => const ScreenUnderDevelopment(message: 'SuperAdmin Dashboard'), // Placeholder
               routes: [
-                 // TODO: Crear SuperAdminDashboardScreen
                  GoRoute(
                     path: AppRoutes.superAdminDashboard, // -> /superadmin/dashboard
                     name: AppRoutes.superAdminDashboard, // Nombre único
-                    builder: (context, state) => const ScreenUnderDevelopment(message: 'SuperAdmin Dashboard'), // Placeholder
+                    builder: (context, state) => const ScreenUnderDevelopment(message: 'SuperAdmin Dashboard'), // <- Builder añadido
                  ),
                  // Otras rutas específicas para superadmins...
               ]
@@ -489,11 +522,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: AppRoutes.parentRoot, // Ruta raíz del Shell: /parent
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Parent Dashboard'), // Placeholder
               routes: [
-                // TODO: Crear ParentDashboardScreen
                 GoRoute(
                   path: AppRoutes.parentDashboard, // -> /parent/dashboard
                   name: AppRoutes.parentDashboard, // Nombre único
-                  builder: (context, state) => const ScreenUnderDevelopment(message: 'Parent Dashboard'), // Placeholder
+                  builder: (context, state) => const ScreenUnderDevelopment(message: 'Parent Dashboard'), // <- Builder añadido
                 ),
                 // Otras rutas específicas para padres...
               ],
@@ -503,17 +535,17 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       ],
       errorBuilder: (context, state) {
-         developer.log('GoRouter ErrorBuilder triggered', error: state.error, name: 'AppRouter.Error');
+         _logger.e('AppRouter.Error - GoRouter ErrorBuilder triggered', error: state.error); // Reemplazado
          return Scaffold(
             appBar: AppBar(title: const Text('Error de Navegación')),
             body: ErrorDisplay(error: state.error?.toString() ?? 'Error desconocido'),
          );
       }
     );
-    developer.log('routerProvider: GoRouter instance created successfully', name: 'AppLifecycle');
+    _logger.d('routerProvider: GoRouter instance created successfully'); // Reemplazado
     return router;
   } catch (e, stackTrace) {
-    developer.log('routerProvider: CRITICAL ERROR during GoRouter creation', error: e, stackTrace: stackTrace, name: 'AppLifecycle.Error');
+    _logger.e('routerProvider: CRITICAL ERROR during GoRouter creation', error: e, stackTrace: stackTrace); // Reemplazado
     // Rethrow para que Riverpod lo maneje o propague
     rethrow;
   }

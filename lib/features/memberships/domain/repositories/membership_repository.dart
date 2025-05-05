@@ -19,6 +19,11 @@ abstract class MembershipRepository {
     String academyId,
   );
 
+  /// Obtiene una membresía específica por su ID de documento.
+  ///
+  /// Devuelve un [MembershipModel] o un [Failure].
+  Future<Either<Failure, MembershipModel>> getMembershipById(String membershipId);
+
   // --- Métodos Potenciales para el Futuro ---
 
   // Future<Either<Failure, MembershipModel?>> getMembership(

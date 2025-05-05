@@ -1,8 +1,11 @@
-import 'dart:developer' as developer;
 import 'package:arcinus/features/theme/ui/widgets/adaptive_logo.dart';
 import 'package:arcinus/features/theme/ux/arcinus_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
+
+// Instancia de Logger
+final _logger = Logger();
 
 /// Pantalla de splash que se muestra durante la inicialización de la app.
 class SplashScreen extends ConsumerWidget {
@@ -11,7 +14,7 @@ class SplashScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    developer.log('SplashScreen: Build started', name: 'AppRouter.Splash');
+    _logger.d('AppRouter.Splash - SplashScreen: Build started');
     final widget = const Scaffold(
       backgroundColor: ArcinusColors.darkBackground,
       body: Center(
@@ -39,7 +42,7 @@ class SplashScreen extends ConsumerWidget {
         ),
       ),
     );
-    developer.log('SplashScreen: Build finished', name: 'AppRouter.Splash');
+    _logger.d('AppRouter.Splash - SplashScreen: Build finished');
     return widget;
   }
 }

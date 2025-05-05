@@ -187,16 +187,6 @@ class _OwnerShellState extends State<OwnerShell> {
           },
         ),
         ListTile(
-          leading: const Icon(Icons.more_horiz),
-          title: const Text('Más'),
-          selected: _selectedIndex == 5,
-          onTap: () {
-            Navigator.pop(context);
-            _navigateToPage(context, 5, '/owner/more');
-          },
-        ),
-        const Divider(),
-        ListTile(
           leading: const Icon(Icons.group_work_rounded),
           title: const Text('Grupos/Equipos'),
           onTap: () {
@@ -220,7 +210,6 @@ class _OwnerShellState extends State<OwnerShell> {
             context.go('/owner/academy_details');
           },
         ),
-        const Divider(),
         ListTile(
           leading: const Icon(Icons.settings),
           title: const Text('Configuración'),
@@ -235,6 +224,15 @@ class _OwnerShellState extends State<OwnerShell> {
           onTap: () {
             Navigator.pop(context);
             context.go('/auth');
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.more_horiz),
+          title: const Text('Más'),
+          selected: _selectedIndex == 5,
+          onTap: () {
+            Navigator.pop(context);
+            _navigateToPage(context, 5, '/owner/more');
           },
         ),
       ],

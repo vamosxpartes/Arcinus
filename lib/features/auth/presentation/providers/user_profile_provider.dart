@@ -1,6 +1,10 @@
 import 'package:arcinus/core/models/user_model.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
+
+// Instancia de Logger
+final _logger = Logger();
 
 /// Provider that provides a stream of the user's profile data.
 ///
@@ -21,8 +25,8 @@ final userProfileProvider =
     if (docSnapshot.exists && docSnapshot.data() != null) {
       try {
         return UserModel.fromJson(docSnapshot.data()!);
-      } catch (e) {
-        print('Error parsing UserModel for $userId: $e');
+      } catch (e, s) {
+        _logger.e('Error parsing UserModel for $userId', error: e, stackTrace: s);
         // Podrías devolver null o lanzar un error específico
         return null; 
       }

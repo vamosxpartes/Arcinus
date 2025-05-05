@@ -71,6 +71,30 @@ class MembershipRepositoryImpl implements MembershipRepository {
       return Left(ServerFailure(message: 'Error inesperado obteniendo membresías: $e'));
     }
   }
+
+  @override
+  Future<Either<Failure, MembershipModel>> getMembershipById(String membershipId) async {
+    if (membershipId.isEmpty) {
+      return const Left(Failure.validationError(message: 'Membership ID no puede estar vacío'));
+    }
+    try {
+      final docSnapshot = await _membershipsCollection.doc(membershipId).get();
+
+      if (!docSnapshot.exists) {
+        return const Left(ServerFailure(message: 'Membresía no encontrada'));
+      }
+
+      final data = docSnapshot.data()! as Map<String, dynamic>;
+      // Añadir el ID del documento al modelo
+      final membership = MembershipModel.fromJson(data).copyWith(id: docSnapshot.id);
+      return Right(membership);
+
+    } on FirebaseException catch (e) {
+      return Left(ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'));
+    } catch (e) {
+      return Left(ServerFailure(message: 'Error inesperado obteniendo membresía por ID: $e'));
+    }
+  }
 }
 
 /// Provider para la implementación del repositorio de membresías.

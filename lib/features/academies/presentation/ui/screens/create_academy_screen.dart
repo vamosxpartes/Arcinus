@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/academies/presentation/providers/create_academy_provider.dart';
@@ -7,8 +5,10 @@ import 'package:arcinus/features/theme/ui/loading/loading_indicator.dart'; // Us
 import 'package:arcinus/features/theme/ui/feedback/error_display.dart'; // Usar el mismo ErrorDisplay
 import 'package:go_router/go_router.dart'; // Importar GoRouter
 import 'package:arcinus/core/navigation/app_routes.dart'; // Importar rutas de la app
+import 'package:logger/logger.dart'; // Importar logger
 
-// TODO: Definir provider y estado para el formulario de creación de academia
+// Instancia de Logger
+final _logger = Logger();
 
 class CreateAcademyScreen extends ConsumerWidget {
   const CreateAcademyScreen({super.key});
@@ -19,16 +19,26 @@ class CreateAcademyScreen extends ConsumerWidget {
     final state = ref.watch(createAcademyProvider);
     final isLoading = state.maybeWhen(loading: () => true, orElse: () => false);
 
+    // Extraer errores específicos del estado si existen
+    String? nameErrorFromState;
+    String? sportCodeErrorFromState;
+    state.maybeWhen(
+      error: (failure, nameError, sportCodeError) {
+        nameErrorFromState = nameError;
+        sportCodeErrorFromState = sportCodeError;
+      },
+      orElse: () {},
+    );
+
     // Escuchar para mostrar errores como Snackbars (además del ErrorDisplay)
     ref.listen(createAcademyProvider, (previous, next) {
       next.maybeWhen(
-        error: (failure) {
+        error: (failure, nameError, sportCodeError) {
           // Comprobar si el estado anterior NO era initial o error
           final wasNotInitialOrError = !(previous?.maybeMap(
                 initial: (_) => true,
                 error: (_) => true,
-                orElse: () => false,
-              ) ?? false);
+                orElse: () => false) ?? false);
           
           if (wasNotInitialOrError) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -39,10 +49,10 @@ class CreateAcademyScreen extends ConsumerWidget {
         },
         success: (academyId) {
           // La navegación debería ocurrir automáticamente por GoRouter.redirect
-          developer.log('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
+          _logger.i('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
           
           // Redirección manual al dashboard del propietario
-          developer.log('Forzando redirección manual a la ruta del propietario');
+          _logger.d('Forzando redirección manual a la ruta del propietario');
           context.go(AppRoutes.ownerRoot);
         },
         orElse: () {},
@@ -63,10 +73,11 @@ class CreateAcademyScreen extends ConsumerWidget {
                 children: [
                   TextFormField(
                     controller: notifier.nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nombre de la Academia',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.business_rounded),
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.business_rounded),
+                      errorText: nameErrorFromState,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -82,9 +93,12 @@ class CreateAcademyScreen extends ConsumerWidget {
                     value: notifier.selectedSportCode, // Valor seleccionado actual
                     hint: const Text('Selecciona un Deporte'),
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                       border: OutlineInputBorder(),
-                       prefixIcon: Icon(Icons.sports_soccer), // Icono genérico de deporte
+                    decoration: InputDecoration(
+                      labelText: 'Selecciona un Deporte',
+                      hintText: 'Selecciona un Deporte',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.sports_soccer),
+                      errorText: sportCodeErrorFromState,
                     ),
                     items: notifier.availableSports.map((sport) {
                       return DropdownMenuItem<String>(
@@ -117,10 +131,10 @@ class CreateAcademyScreen extends ConsumerWidget {
                   ),
                   // Mostrar widget de error si el estado es error
                   state.maybeWhen(
-                    error: (failure) => Padding(
+                    error: (failure, nameError, sportCodeError) => Padding(
                       padding: const EdgeInsets.only(top: 16.0),
-                      // Pasar el mensaje del failure
-                      child: ErrorDisplay(error: failure.message), // Usar failure.message
+                      // Pasar el mensaje del failure genérico
+                      child: ErrorDisplay(error: failure.message),
                     ),
                     orElse: () => const SizedBox.shrink(),
                   ),

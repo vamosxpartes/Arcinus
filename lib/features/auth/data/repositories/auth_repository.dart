@@ -1,5 +1,3 @@
-import 'dart:developer' as developer;
-
 import 'package:arcinus/core/auth/roles.dart'; // Importar roles
 import 'package:arcinus/core/auth/user.dart';
 import 'package:arcinus/core/error/failures.dart';
@@ -9,8 +7,12 @@ import 'package:firebase_auth/firebase_auth.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:logger/logger.dart'; // Importar logger
 
 part 'auth_repository.g.dart';
+
+// Instancia de Logger
+final _logger = Logger();
 
 // Provider para la instancia de FirebaseAuth
 @Riverpod(keepAlive: true)
@@ -186,9 +188,11 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
       return right(user);
-    } on firebase_auth.FirebaseAuthException catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e, s) {
+      _logger.e('Error creando usuario', error: e, stackTrace: s);
       return left(_handleAuthError(e));
-    } catch (e) {
+    } catch (e, s) {
+      _logger.e('Error inesperado creando usuario', error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -220,13 +224,11 @@ class FirebaseAuthRepository implements AuthRepository {
         name: firebaseUser.displayName,
         photoUrl: firebaseUser.photoURL,
         role: role,
-        // TODO(User): Obtener academyId, permissions, etc. desde Firestore si es necesario aquí
-        // o dejarlo para un provider de perfil de usuario separado.
+        // El UserProfileProvider se encargará de obtener estos detalles.
       );
-    } catch (e) {
+    } catch (e, s) {
       // Si hay error al obtener token/claims, devolver usuario básico
-      developer.log('Error getting user claims or Firestore data: $e');
-      // TODO(User): Usar logger
+      _logger.w('Error al obtener claims de usuario o datos de Firestore: $e', error: e, stackTrace: s);
       return _mapFirebaseUserSync(firebaseUser);
     }
   }
@@ -247,7 +249,8 @@ class FirebaseAuthRepository implements AuthRepository {
     try {
       await _firebaseAuth.signOut();
       return right(unit);
-    } catch (e) {
+    } catch (e, s) {
+      _logger.e('Error durante signOut', error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -303,20 +306,24 @@ class FirebaseAuthRepository implements AuthRepository {
 
       // 3. Llamar a la Cloud Function para establecer el rol (Custom Claim)
       // En un entorno real, esto enviaría una solicitud a una API o Cloud Function
-      final roleResult = await setUserRole(newUserId, invitation.role);
+      final Either<Failure, void> roleResult = await setUserRole(newUserId, invitation.role);
 
       if (roleResult.isLeft()) {
         // Si falla establecer el rol, continuamos pero registramos el error
-        developer.log('Error setting role for invited user: $newUserId');
+        _logger.w('Error estableciendo rol para usuario invitado: $newUserId');
       }
 
       // 4. En una implementación real, enviaríamos un email al usuario
       // con instrucciones para completar su registro o establecer contraseña
 
       return right(unit);
-    } on firebase_auth.FirebaseAuthException catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e, s) {
+      _logger.e('Error al crear usuario por invitación (FirebaseAuthException)', 
+        error: e, stackTrace: s);
       return left(_handleAuthError(e));
-    } catch (e) {
+    } catch (e, s) {
+      _logger.e('Error al crear usuario por invitación (Inesperado)', 
+        error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -344,13 +351,12 @@ class FirebaseAuthRepository implements AuthRepository {
       */
 
       // Para este ejemplo, simulamos que la operación fue exitosa
-      developer.log('Estableciendo rol $role para usuario $userId');
-      developer.log(
-        'NOTA: Esta función debe implementarse con Cloud Functions',
-      );
+      _logger.i('Estableciendo rol $role para usuario $userId');
+      _logger.w('setUserRole: NOTA: Esta función debe implementarse con Cloud Functions');
 
       return right(unit);
-    } catch (e) {
+    } catch (e, s) {
+      _logger.e('Error al establecer rol de usuario', error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -364,10 +370,7 @@ class FirebaseAuthRepository implements AuthRepository {
 
   /// Mapea una excepción de Firebase Auth a un objeto Failure.
   Failure _handleAuthError(firebase_auth.FirebaseAuthException e) {
-    developer.log(
-      'FirebaseAuthException: Code=${e.code}, Message=${e.message}',
-    );
-    // TODO(): Usar logger
+    _logger.w('FirebaseAuthException: Código=${e.code}, Mensaje=${e.message}');
     // Considera mapear códigos específicos a mensajes amigables si es necesario
     // ej. 'user-not-found', 'wrong-password', 'invalid-email'
     return Failure.authError(code: e.code, message: e.message ?? e.code);
@@ -388,14 +391,16 @@ class FirebaseAuthRepository implements AuthRepository {
         return left(
           const Failure.authError(
             code: 'unknown',
-            message: 'Failed to map authenticated user.',
+            message: 'Fallo al mapear usuario autenticado.',
           ),
         );
       }
       return right(user);
-    } on firebase_auth.FirebaseAuthException catch (e) {
+    } on firebase_auth.FirebaseAuthException catch (e, s) {
+      _logger.w('Error durante inicio de sesión (FirebaseAuthException)', error: e, stackTrace: s);
       return left(_handleAuthError(e));
-    } catch (e) {
+    } catch (e, s) {
+      _logger.e('Error durante inicio de sesión (Inesperado)', error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));
     }
   }
