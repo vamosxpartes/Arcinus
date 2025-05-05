@@ -213,3 +213,10 @@ Detalle de las features:
 1. **Agregar todas las rutas para owner al GoRouter**: Completar la implementación de todas las rutas necesarias para el rol de propietario en el sistema de navegación GoRouter.
 
 2. **Control de "completar perfil" para creación de academia**: Mejorar el flujo de usuario para que si un usuario completa su perfil pero experimenta un error al crear la academia, al volver a la aplicación no se le solicite completar el perfil nuevamente, sino que sea redirigido directamente a la pantalla de creación de academia.
+
+## Tareas Pendientes - Owner UX/UI
+1.  **Retirar el buscador del AppBar:** Eliminar el campo o icono de búsqueda de la barra de aplicación principal para el rol de Propietario.
+2.  **Conectar pantalla de perfil al icono del AppBar:** Hacer que el icono de perfil en el AppBar navegue a la pantalla de perfil del usuario Propietario.
+3.  **Dividir Drawer en secciones:** Reorganizar el menú lateral (Drawer) para el Propietario en dos secciones:
+    *   **Implementadas:** Incluirá las opciones principales actualmente en desarrollo o listas (Academia, Miembros, Pagos).
+    *   **Por Implementar:** Incluirá el resto de las opciones que aún no están desarrolladas o son futuras.

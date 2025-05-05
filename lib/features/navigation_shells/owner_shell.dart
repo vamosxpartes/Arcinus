@@ -30,15 +30,6 @@ class _OwnerShellState extends State<OwnerShell> {
         elevation: 0,
         scrolledUnderElevation: 2,
         actions: [
-          // Botón de búsqueda
-          IconButton(
-            icon: Icon(_isSearchActive ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearchActive = !_isSearchActive;
-              });
-            },
-          ),
           // Selector de academia (si el propietario tiene más de una)
           IconButton(
             icon: const Icon(Icons.school_rounded),
