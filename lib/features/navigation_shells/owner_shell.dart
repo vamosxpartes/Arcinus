@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
+import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
+import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 
 /// Widget Shell para el rol Propietario.
 ///
 /// Construye la estructura base de UI para las pantallas del propietario.
-class OwnerShell extends StatefulWidget {
+class OwnerShell extends ConsumerStatefulWidget {
   /// La pantalla hija actual que debe mostrarse dentro del Shell.
   final Widget child;
 
@@ -12,37 +16,160 @@ class OwnerShell extends StatefulWidget {
   const OwnerShell({super.key, required this.child});
 
   @override
-  State<OwnerShell> createState() => _OwnerShellState();
+  ConsumerState<OwnerShell> createState() => _OwnerShellState();
 }
 
-class _OwnerShellState extends State<OwnerShell> {
+class _OwnerShellState extends ConsumerState<OwnerShell> {
   int _selectedIndex = 0;
+  bool _isAppBarExpanded = false;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset > 0 && _isAppBarExpanded) {
+      setState(() {
+        _isAppBarExpanded = false;
+      });
+    } else if (_scrollController.offset <= 0 && !_isAppBarExpanded) {
+      setState(() {
+        _isAppBarExpanded = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Obtener el usuario actual
+    final authState = ref.watch(authStateNotifierProvider);
+    final userId = authState.user?.id;
+    
+    // Si no hay usuario, mostrar un indicador de carga
+    if (userId == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    // Obtener las academias del propietario
+    final academiesAsync = ref.watch(ownerAcademiesProvider(userId));
+    
+    // Obtener la academia actual seleccionada
+    final currentAcademyId = ref.watch(currentAcademyIdProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Arcinus'),
-        elevation: 0,
-        scrolledUnderElevation: 2,
-        actions: [
-          // Notificaciones
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              //Implementar notificaciones
-            },
-          ),
-          // Avatar o perfil
-    ],
-      ),
-      
-      // Drawer para navegación en pantallas grandes
       drawer: _buildDrawer(context),
-      
-      // En pantallas grandes, usamos un layout con el drawer permanente a la izquierda
-      body: widget.child,
+      body: NestedScrollView(
+        controller: _scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              title: const Text('Arcinus'),
+              pinned: true,
+              floating: true,
+              expandedHeight: _isAppBarExpanded ? 200.0 : kToolbarHeight,
+              forceElevated: innerBoxIsScrolled,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () {
+                    // Implementar notificaciones
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: () {
+                    context.go('/owner/profile');
+                  },
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                background: academiesAsync.when(
+                  data: (academies) {
+                    if (academies.isEmpty) {
+                      return const Center(
+                        child: Text('No tienes academias creadas'),
+                      );
+                    }
+                    
+                    // Encuentra el índice de la academia actual
+                    int initialPage = 0;
+                    if (currentAcademyId != null) {
+                      final index = academies.indexWhere(
+                        (academy) => academy.id == currentAcademyId
+                      );
+                      if (index >= 0) initialPage = index;
+                    }
+                    
+                    return PageView.builder(
+                      itemCount: academies.length,
+                      controller: PageController(initialPage: initialPage),
+                      onPageChanged: (index) {
+                        ref.read(currentAcademyIdProvider.notifier)
+                            .state = academies[index].id;
+                      },
+                      itemBuilder: (context, index) {
+                        final academy = academies[index];
+                        return Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                academy.name,
+                                style: const TextStyle(
+                                  fontSize: 24, 
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.white),
+                                    onPressed: () {
+                                      context.go('/owner/academy/${academy.id}/edit');
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.info, color: Colors.white),
+                                    onPressed: () {
+                                      context.go('/owner/academy/${academy.id}');
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => Center(
+                    child: Text('Error: $error'),
+                  ),
+                ),
+              ),
+            ),
+          ];
+        },
+        body: widget.child,
+      ),
     );
   }
 

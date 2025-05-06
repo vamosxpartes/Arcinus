@@ -95,7 +95,7 @@ class _MemberAccessScreenState extends ConsumerState<MemberAccessScreen> {
                         onPressed: _isLoading
                             ? null
                             : () {
-                                // TODO: Implementar validación de código de invitación
+                                // TODO(fase 2): Implementar validación de código de invitación
                                 // Para el MVP, simplemente navegamos a la pantalla de login
                                 context.push(AppRoutes.login);
                               },

@@ -102,10 +102,7 @@ class EditPermissionsNotifier extends StateNotifier<({
       //       status: EditPermissionsStatus.error,
       //       membership: state.membership,
       //       error: failure,
-      //       selectedPermissions: state.selectedPermissions,
-      //     );
-      //   },
-      //   (_) {
+      //       selectedPermissions: state.selecte
           state = (
             status: EditPermissionsStatus.success,
             membership: updatedMembership,

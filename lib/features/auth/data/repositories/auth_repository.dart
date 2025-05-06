@@ -248,7 +248,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<Either<Failure, void>> signOut() async {
     try {
       await _firebaseAuth.signOut();
-      return right(unit);
+      return right(null);
     } catch (e, s) {
       _logger.e('Error durante signOut', error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));
@@ -316,7 +316,7 @@ class FirebaseAuthRepository implements AuthRepository {
       // 4. En una implementación real, enviaríamos un email al usuario
       // con instrucciones para completar su registro o establecer contraseña
 
-      return right(unit);
+      return right(null);
     } on firebase_auth.FirebaseAuthException catch (e, s) {
       _logger.e('Error al crear usuario por invitación (FirebaseAuthException)', 
         error: e, stackTrace: s);
@@ -354,7 +354,7 @@ class FirebaseAuthRepository implements AuthRepository {
       _logger.i('Estableciendo rol $role para usuario $userId');
       _logger.w('setUserRole: NOTA: Esta función debe implementarse con Cloud Functions');
 
-      return right(unit);
+      return right(null);
     } catch (e, s) {
       _logger.e('Error al establecer rol de usuario', error: e, stackTrace: s);
       return left(Failure.unexpectedError(error: e));

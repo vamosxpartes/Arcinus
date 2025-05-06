@@ -209,14 +209,43 @@ Detalle de las features:
 - **Modelo de Datos:** Se definirá `AcademyModel` (con `ownerId`, `sportCode`, etc.).
 - **Características por Deporte:** Se usará un modelo `SportCharacteristics` (ubicado en `lib/core/sports/models/`) que define atributos específicos por deporte (posiciones, estadísticas, etc.). Un provider (`sportCharacteristicsProvider`) expondrá las características correspondientes a la academia *seleccionada actualmente*, basándose en su `sportCode`.
 
-## To Do
-1. **Agregar todas las rutas para owner al GoRouter**: Completar la implementación de todas las rutas necesarias para el rol de propietario en el sistema de navegación GoRouter.
+## Prioridades de Implementación MVP
 
-2. **Control de "completar perfil" para creación de academia**: Mejorar el flujo de usuario para que si un usuario completa su perfil pero experimenta un error al crear la academia, al volver a la aplicación no se le solicite completar el perfil nuevamente, sino que sea redirigido directamente a la pantalla de creación de academia.
+### UX del Propietario (Owner)
+1. **Gestión de Academias:**
+   [x] Implementar pantallas de listado, detalle y edición de academias
+   [] Añadir funcionalidad para gestionar configuración y preferencias de la academia
+   [] Desarrollar vista de estadísticas básicas de la academia
+   > **Próximamente:** Revisar y optimizar la carga de academias con índices adecuados en Firestore
 
-## Tareas Pendientes - Owner UX/UI
-1.  **Retirar el buscador del AppBar:** Eliminar el campo o icono de búsqueda de la barra de aplicación principal para el rol de Propietario.
-2.  **Conectar pantalla de perfil al icono del AppBar:** Hacer que el icono de perfil en el AppBar navegue a la pantalla de perfil del usuario Propietario.
-3.  **Dividir Drawer en secciones:** Reorganizar el menú lateral (Drawer) para el Propietario en dos secciones:
-    *   **Implementadas:** Incluirá las opciones principales actualmente en desarrollo o listas (Academia, Miembros, Pagos).
-    *   **Por Implementar:** Incluirá el resto de las opciones que aún no están desarrolladas o son futuras.
+2. **Gestión de Usuarios:**
+   [x] Crear interfaz para visualizar todos los miembros de la academia
+   [x] Implementar funcionalidad para añadir, editar y gestionar permisos de usuarios
+   [x] Añadir filtrado y búsqueda de miembros por categoría/rol
+   > **Próximamente:** Implementar la visualización de perfiles completos de usuarios y acciones específicas para cada rol
+
+3. **Gestión de Pagos:**
+   [] Desarrollar pantalla de registro de pagos de atletas
+   [] Implementar sistema de seguimiento de pagos pendientes y completados
+   [] Crear informes básicos de pagos recibidos por período
+
+4. **Gestión de Perfil:**
+   [] Implementar pantalla de visualización y edición de perfil propio
+   [] Añadir funcionalidad para cambiar contraseña y datos de contacto
+   [] Incluir sección de preferencias de notificaciones
+
+### UX del SuperAdmin
+1. **Control de Propietarios (Owners):**
+   [] Desarrollar dashboard para visualizar y gestionar todos los propietarios
+   [] Implementar funcionalidad para aprobar/rechazar nuevos propietarios
+   [] Crear herramientas para monitorear actividad de propietarios
+
+2. **Control de Suscripciones:**
+   [] Implementar panel de gestión de suscripciones activas
+   [] Añadir funcionalidad para modificar estados de suscripción
+   [] Desarrollar sistema de notificación para suscripciones a punto de vencer
+
+3. **Control de Base de Datos:**
+   [] Crear herramientas administrativas para monitorear integridad de datos
+   [] Implementar funcionalidad para respaldar y restaurar información crítica
+   [] Desarrollar panel para visualizar métricas de uso de la aplicación

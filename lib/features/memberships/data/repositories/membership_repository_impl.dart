@@ -3,6 +3,7 @@ import 'package:arcinus/core/providers/firebase_providers.dart'; // Para Firesto
 import 'package:arcinus/features/memberships/data/models/membership_model.dart';
 import 'package:arcinus/features/memberships/domain/repositories/membership_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -99,7 +100,7 @@ class MembershipRepositoryImpl implements MembershipRepository {
 
 /// Provider para la implementación del repositorio de membresías.
 @riverpod
-MembershipRepository membershipRepository(MembershipRepositoryRef ref) {
+MembershipRepository membershipRepository(Ref ref) {
   final firestore = ref.watch(firestoreProvider);
   return MembershipRepositoryImpl(firestore);
 } 

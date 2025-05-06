@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:arcinus/core/utils/timestamp_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'academy_model.freezed.dart';
@@ -16,9 +18,8 @@ class AcademyModel with _$AcademyModel {
     String? address,
     String? phone,
     String? email,
-    // json_serializable maneja Timestamp <-> DateTime automáticamente
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    @NullableTimestampConverter() DateTime? createdAt,
+    @NullableTimestampConverter() DateTime? updatedAt,
     required String location,
   }) = _AcademyModel;
 

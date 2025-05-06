@@ -20,16 +20,42 @@ class AcademyRepositoryImpl implements AcademyRepository {
   ) async {
     try {
       final now = DateTime.now();
-      // Aseguramos createdAt al crear
-      final academyToCreate = academy.copyWith(createdAt: now);
-      // Añadimos updatedAt manualmente al mapa JSON
-      final dataToAdd = academyToCreate.toJson()
-        ..['updatedAt'] = Timestamp.fromDate(now);
+      // Aseguramos que createdAt y updatedAt estén en el modelo como DateTime
+      final academyToProcess = academy.copyWith(
+        createdAt: academy.createdAt ?? now, // Usar existente o 'now'
+        updatedAt: now, // Siempre 'now' al crear/actualizar
+      );
+
+      final dataToAdd = academyToProcess.toJson();
+
+      // Forzar que los campos de fecha sean Timestamps para Firestore.
+      // toJson() por defecto convierte DateTime a String ISO8601.
+      if (academyToProcess.createdAt != null) {
+        dataToAdd['createdAt'] = Timestamp.fromDate(academyToProcess.createdAt!);
+      }
+      if (academyToProcess.updatedAt != null) {
+        dataToAdd['updatedAt'] = Timestamp.fromDate(academyToProcess.updatedAt!);
+      }
+
+      // Asegurar que 'phone' se guarde como String si está presente.
+      // Idealmente, academy.phone ya es String? en el modelo de entrada.
+      // Esto es una salvaguarda por si llegara como int desde una fuente no controlada.
+      if (dataToAdd.containsKey('phone') && dataToAdd['phone'] != null) {
+        if (dataToAdd['phone'] is int) {
+          dataToAdd['phone'] = (dataToAdd['phone'] as int).toString();
+        } else if (dataToAdd['phone'] is! String) {
+          // Si no es int ni String pero no es null, convertir a String
+          // Podría ser útil si viene como double, por ejemplo.
+          dataToAdd['phone'] = dataToAdd['phone'].toString();
+        }
+        // Si ya es String, no se hace nada. Si es null, se queda null.
+      }
 
       final docRef = await _academiesCollection.add(dataToAdd);
 
       // Devolvemos el modelo con el ID asignado por Firestore
-      final createdAcademy = academyToCreate.copyWith(id: docRef.id);
+      // y los timestamps del modelo que usamos para la data (que son DateTime).
+      final createdAcademy = academyToProcess.copyWith(id: docRef.id);
       return Right(createdAcademy);
     } on FirebaseException catch (e) {
       return Left(
