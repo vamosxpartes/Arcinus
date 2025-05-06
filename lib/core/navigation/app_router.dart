@@ -2,6 +2,7 @@ import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/navigation/app_routes.dart';
 import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/create_academy_screen.dart';
+import 'package:arcinus/features/academies/presentation/ui/screens/academy_screen.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/auth/presentation/providers/user_profile_provider.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/complete_profile_screen.dart';
@@ -293,7 +294,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'ownerAcademyBase',
                  builder: (context, state) {
                    final academyId = state.pathParameters['academyId']!;
-                   return ScreenUnderDevelopment(message: 'Academy Base: $academyId');
+                   // Mostrar la AcademyScreen en lugar de ScreenUnderDevelopment
+                   return AcademyScreen(academyId: academyId);
                  },
                 routes: [ // Rutas anidadas de academia (edit, members, etc.) sí van aquí
                    GoRoute(

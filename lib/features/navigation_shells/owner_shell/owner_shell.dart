@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
@@ -40,7 +39,6 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     final academiesAsync = ref.watch(ownerAcademiesProvider(userId));
 
     String appBarTitle = 'Arcinus'; // Título por defecto
-    AcademyModel? currentAcademy;
 
     if (currentAcademyId != null) {
       academiesAsync.whenData((academies) {
@@ -49,10 +47,8 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
           orElse: () => academies.isNotEmpty ? academies.first : const AcademyModel(ownerId: '', name: 'Arcinus', sportCode: '', location: ''), // Modelo vacío o por defecto si no se encuentra
         );
         if (foundAcademy.id != null) { // Asegurarse que la academia encontrada no sea el placeholder vacío
-          currentAcademy = foundAcademy;
           appBarTitle = foundAcademy.name;
         } else if (academies.isNotEmpty) {
-           currentAcademy = academies.first;
            appBarTitle = academies.first.name;
            // Actualizar el provider si currentAcademyId no correspondía a una academia válida pero hay otras.
            WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,7 +61,6 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     } else {
        academiesAsync.whenData((academies) {
          if (academies.isNotEmpty) {
-           currentAcademy = academies.first;
            appBarTitle = academies.first.name;
            // Si no hay currentAcademyId pero hay academias, seleccionar la primera.
            WidgetsBinding.instance.addPostFrameCallback((_) {

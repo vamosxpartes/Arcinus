@@ -3,6 +3,7 @@ import 'package:arcinus/features/academies/data/repositories/academy_repository_
 import 'package:arcinus/features/academies/domain/repositories/academy_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:arcinus/features/academies/data/models/academy_model.dart';
 
 part 'academy_providers.g.dart';
 
@@ -14,6 +15,16 @@ AcademyRepository academyRepository(Ref ref) {
   final firestore = ref.watch(firestoreProvider);
   return AcademyRepositoryImpl(firestore);
 }
+
+// Proveedor para obtener los detalles de una academia específica
+final academyDetailsProvider = FutureProvider.family<AcademyModel, String>((ref, academyId) async {
+  final academyRepo = ref.watch(academyRepositoryProvider);
+  final result = await academyRepo.getAcademyById(academyId);
+  return result.fold(
+    (failure) => throw Exception('Failed to load academy details: ${failure.message}'),
+    (academy) => academy,
+  );
+});
 
 // Aquí se podrían añadir otros providers relacionados con academias,
 // como un provider para obtener la lista de academias del usuario, etc. 
