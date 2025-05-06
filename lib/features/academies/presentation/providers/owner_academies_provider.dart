@@ -60,7 +60,7 @@ final ownerAcademiesProvider =
           _logger.w('Campo createdAt (ordenado) ${doc.id} no encontrado en los datos.');
         }
         try {
-          // Convertir a AcademyModel y asignar ID
+        // Convertir a AcademyModel y asignar ID
           final academy = AcademyModel.fromJson(data).copyWith(id: doc.id);
           _logger.d('Academia convertida (ordenado) ${doc.id}: ${academy.name}, CreatedAt: ${academy.createdAt}');
           return academy;

@@ -28,13 +28,15 @@ import 'package:arcinus/features/payments/presentation/screens/register_payment_
 import 'package:arcinus/features/memberships/presentation/providers/membership_providers.dart';
 
 // Importar los nuevos Shell Widgets
-import 'package:arcinus/features/navigation_shells/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:arcinus/features/navigation_shells/athlete_shell.dart';
 import 'package:arcinus/features/navigation_shells/collaborator_shell.dart';
 import 'package:arcinus/features/navigation_shells/super_admin_shell.dart';
 import 'package:arcinus/features/navigation_shells/parent_shell.dart';
 
 import 'package:logger/logger.dart'; // Importar logger
+
+import 'package:arcinus/features/users/presentation/ui/screens/profile_screen.dart';
 
 // Instancia de Logger
 final _logger = Logger();
@@ -268,9 +270,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             // Ruta raíz del Shell: /owner (puede mostrar el dashboard por defecto)
             GoRoute(
               path: AppRoutes.ownerRoot,
-              name: 'ownerRoot', // Darle un nombre único a la raíz
+              name: 'ownerRoot',
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Owner Dashboard'),
-              // Ya no anidamos las secciones principales aquí
+            ),
+            // Ruta de Perfil del Propietario
+            GoRoute(
+              path: AppRoutes.ownerProfileRoute, // Usar la nueva constante para el path completo
+              name: 'ownerProfile', // Nombre de la ruta, puede ser el mismo que antes o uno nuevo si se prefiere
+              builder: (context, state) {
+                _logger.d('Navigating to Owner Profile Screen');
+                return const ProfileScreen(); // Construir la nueva pantalla de perfil
+              },
             ),
             // --- Secciones Principales como hijas directas del ShellRoute ---
             GoRoute(
@@ -453,17 +463,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: AppRoutes.payments,
               name: AppRoutes.payments,
               builder: (context, state) => const PaymentsScreen(),
-            ),
-             GoRoute(
-              path: '/owner/profile',
-              name: 'ownerProfile',
-              builder: (context, state) {
-                _logger.d('Navigating to Owner Profile (Under Development)'); // Reemplazado
-                return const ScreenUnderDevelopment(
-                    title: 'Perfil de Propietario',
-                    message: 'La pantalla de perfil para propietarios está en desarrollo.',
-                );
-              },
             ),
           ],
         ),
