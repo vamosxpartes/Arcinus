@@ -2,18 +2,33 @@ import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/auth/data/models/user_model.dart';
 import 'package:arcinus/features/memberships/presentation/providers/invite_member_provider.dart';
 import 'package:arcinus/features/memberships/presentation/providers/state/invite_member_state.dart';
+import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class InviteMemberScreen extends ConsumerWidget {
+class InviteMemberScreen extends ConsumerStatefulWidget {
   final String academyId;
 
   const InviteMemberScreen({super.key, required this.academyId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notifier = ref.read(inviteMemberProvider(academyId).notifier);
-    final state = ref.watch(inviteMemberProvider(academyId));
+  ConsumerState<InviteMemberScreen> createState() => _InviteMemberScreenState();
+}
+
+class _InviteMemberScreenState extends ConsumerState<InviteMemberScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Actualizar el título en el OwnerShell
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentScreenTitleProvider.notifier).state = 'Invitar Miembro';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(inviteMemberProvider(widget.academyId).notifier);
+    final state = ref.watch(inviteMemberProvider(widget.academyId));
 
     // Lista de roles que se pueden asignar desde esta pantalla
     final assignableRoles = AppRole.values
@@ -24,7 +39,7 @@ class InviteMemberScreen extends ConsumerWidget {
         .toList();
 
     // Escuchar cambios para mostrar SnackBar de éxito/error
-    ref.listen<InviteMemberState>(inviteMemberProvider(academyId), (_, next) {
+    ref.listen<InviteMemberState>(inviteMemberProvider(widget.academyId), (_, next) {
        next.maybeWhen(
         success: () {
           ScaffoldMessenger.of(context)
@@ -42,75 +57,73 @@ class InviteMemberScreen extends ConsumerWidget {
       );
     });
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Invitar Miembro')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // --- Sección de Búsqueda ---
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: notifier.emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email del Usuario',
-                      hintText: 'Introduce el email a buscar...',
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    enabled: state.maybeWhen(
-                       searching: () => false,
-                       creatingMembership: () => false,
-                       orElse: () => true,
-                    ),
+    // Nota: No añadir AppBar aquí, ya viene del OwnerShell
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // --- Sección de Búsqueda ---
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: notifier.emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email del Usuario',
+                    hintText: 'Introduce el email a buscar...',
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  enabled: state.maybeWhen(
+                     searching: () => false,
+                     creatingMembership: () => false,
+                     orElse: () => true,
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: state.maybeWhen(
-                     searching: () => null,
-                     creatingMembership: () => null,
-                     orElse: () => notifier.searchUserByEmail,
-                  ),
-                   tooltip: 'Buscar Usuario',
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: state.maybeWhen(
+                   searching: () => null,
+                   creatingMembership: () => null,
+                   orElse: () => notifier.searchUserByEmail,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // --- Widgets condicionales usando maybeWhen ---
-            state.maybeWhen(
-              searching: () => const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())),
-              userNotFound: () => const Center(child: Padding(padding: EdgeInsets.all(8.0), child: Text('Usuario no encontrado.'))),
-              userFound: (user) => _buildUserFoundSection(context, user, notifier, assignableRoles),
-              // Para los demás estados (initial, creating, success, error), no mostrar nada aquí o mostrar espacio.
-              orElse: () => const SizedBox.shrink(), 
-            ),
-             
-             // Espaciador (podría ajustarse o eliminarse dependiendo del diseño)
-             const SizedBox(height: 100),
-
-            const SizedBox(height: 32),
-            // --- Botón de Invitar/Crear Membresía ---
-            ElevatedButton(
-              // Habilitar solo si se encontró usuario y se seleccionó rol
-              onPressed: state.maybeWhen(
-                 userFound: (_) => notifier.selectedRole != null 
-                    ? () => notifier.createMembershipForFoundUser() 
-                    : null, // Deshabilitado si no hay rol
-                 creatingMembership: () => null, // Deshabilitado mientras se crea
-                 orElse: () => null, // Deshabilitado en otros estados
+                 tooltip: 'Buscar Usuario',
               ),
-              child: state.maybeWhen(
-                creatingMembership: () => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-                orElse: () => const Text('Añadir Miembro'),
-              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // --- Widgets condicionales usando maybeWhen ---
+          state.maybeWhen(
+            searching: () => const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator())),
+            userNotFound: () => const Center(child: Padding(padding: EdgeInsets.all(8.0), child: Text('Usuario no encontrado.'))),
+            userFound: (user) => _buildUserFoundSection(context, user, notifier, assignableRoles),
+            // Para los demás estados (initial, creating, success, error), no mostrar nada aquí o mostrar espacio.
+            orElse: () => const SizedBox.shrink(), 
+          ),
+           
+           // Espaciador (podría ajustarse o eliminarse dependiendo del diseño)
+           const SizedBox(height: 100),
+
+          const SizedBox(height: 32),
+          // --- Botón de Invitar/Crear Membresía ---
+          ElevatedButton(
+            // Habilitar solo si se encontró usuario y se seleccionó rol
+            onPressed: state.maybeWhen(
+               userFound: (_) => notifier.selectedRole != null 
+                  ? () => notifier.createMembershipForFoundUser() 
+                  : null, // Deshabilitado si no hay rol
+               creatingMembership: () => null, // Deshabilitado mientras se crea
+               orElse: () => null, // Deshabilitado en otros estados
             ),
-          ],
-        ),
+            child: state.maybeWhen(
+              creatingMembership: () => const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+              orElse: () => const Text('Añadir Miembro'),
+            ),
+          ),
+        ],
       ),
     );
   }

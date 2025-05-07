@@ -141,7 +141,7 @@ class OwnerDrawer extends ConsumerWidget {
                       context.go('/owner/academy/create');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      backgroundColor: Colors.white.withAlpha(60),
                       foregroundColor: Colors.white,
                     ),
                   );
@@ -150,14 +150,14 @@ class OwnerDrawer extends ConsumerWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withAlpha(40),
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: currentAcademyId,
                       isExpanded: true,
-                      dropdownColor: Theme.of(context).colorScheme.primary.withOpacity(0.95),
+                      dropdownColor: Theme.of(context).colorScheme.primary.withAlpha(240),
                       icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                       style: const TextStyle(color: Colors.white, fontSize: 16),
                       hint: const Text('Seleccionar Academia', style: TextStyle(color: Colors.white70)),

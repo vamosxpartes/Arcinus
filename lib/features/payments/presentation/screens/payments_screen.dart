@@ -1,4 +1,5 @@
 import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:flutter/material.dart';
@@ -7,36 +8,64 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 /// Pantalla que muestra la lista de pagos de la academia
-class PaymentsScreen extends ConsumerWidget {
+class PaymentsScreen extends ConsumerStatefulWidget {
   /// Constructor
   const PaymentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PaymentsScreen> createState() => _PaymentsScreenState();
+}
+
+class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Actualizar el título en el OwnerShell
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentScreenTitleProvider.notifier).state = 'Pagos';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Ahora observamos el AsyncValue
     final paymentsAsyncValue = ref.watch(academyPaymentsNotifierProvider);
     
+    // Nota: No añadir AppBar aquí, ya viene del OwnerShell
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pagos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-            },
+      // Usamos acciones en vez de AppBar
+      body: Column(
+        children: [
+          // Botones de filtro y actualización
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  tooltip: 'Filtrar pagos',
+                  onPressed: () {
+                    // Implementar lógica de filtrado
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Actualizar pagos',
+                  onPressed: () => ref.invalidate(academyPaymentsNotifierProvider),
+                ),
+              ],
+            ),
           ),
-          // Añadir un botón para refrescar manualmente
-          IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => ref.invalidate(academyPaymentsNotifierProvider),
-           ),
+          // Lista de pagos
+          Expanded(
+            child: paymentsAsyncValue.when(
+              data: (payments) => _buildPaymentsList(context, payments, ref),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => _buildErrorWidget(context, error, ref),
+            ),
+          ),
         ],
-      ),
-      // Usamos .when para manejar los diferentes estados de AsyncValue
-      body: paymentsAsyncValue.when(
-        data: (payments) => _buildPaymentsList(context, payments, ref),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => _buildErrorWidget(context, error, ref),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -192,6 +221,20 @@ class PaymentsScreen extends ConsumerWidget {
     );
   }
 
+  // Función auxiliar para obtener el símbolo de moneda
+  String _getCurrencySymbol(String currencyCode) {
+    switch (currencyCode.toUpperCase()) {
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      case 'COP':
+        return 'COP';
+      default:
+        return currencyCode;
+    }
+  }
+
   void _showPaymentOptions(BuildContext context, PaymentModel payment, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
@@ -248,10 +291,16 @@ class PaymentsScreen extends ConsumerWidget {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                if (payment.id != null) {
-                  final notifier = ref.read(academyPaymentsNotifierProvider.notifier);
-                  notifier.deletePayment(payment.id!);
-                }
+                // TODO: Implementar eliminación de pago
+                ref.read(academyPaymentsNotifierProvider.notifier).deletePayment(payment.id!).then((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pago eliminado correctamente')),
+                  );
+                }).catchError((error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al eliminar el pago: $error')),
+                  );
+                });
               },
               child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
             ),
@@ -259,18 +308,5 @@ class PaymentsScreen extends ConsumerWidget {
         );
       },
     );
-  }
-
-  String _getCurrencySymbol(String currencyCode) {
-    switch (currencyCode) {
-      case 'MXN':
-        return '\$';
-      case 'USD':
-        return 'US\$';
-      case 'EUR':
-        return '€';
-      default:
-        return currencyCode;
-    }
   }
 } 

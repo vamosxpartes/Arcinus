@@ -1,11 +1,12 @@
 import 'package:arcinus/core/auth/app_permissions.dart';
 import 'package:arcinus/features/memberships/data/models/membership_model.dart';
 import 'package:arcinus/features/memberships/presentation/providers/edit_permissions_provider.dart';
+import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Pantalla para editar los permisos de un colaborador.
-class EditPermissionsScreen extends ConsumerWidget {
+class EditPermissionsScreen extends ConsumerStatefulWidget {
   final String academyId;
   final String membershipId;
   final MembershipModel membership;
@@ -18,30 +19,44 @@ class EditPermissionsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditPermissionsScreen> createState() => _EditPermissionsScreenState();
+}
+
+class _EditPermissionsScreenState extends ConsumerState<EditPermissionsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Actualizar el título en el OwnerShell
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentScreenTitleProvider.notifier).state = 'Editar Permisos';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Inicializar el provider con la membresía actual
     final editPermissionsState = ref.watch(
       editPermissionsProvider((
-        membershipId: membershipId,
-        academyId: academyId,
-        initialMembership: membership,
+        membershipId: widget.membershipId,
+        academyId: widget.academyId,
+        initialMembership: widget.membership,
       )),
     );
     
     final notifier = ref.read(
       editPermissionsProvider((
-        membershipId: membershipId,
-        academyId: academyId,
-        initialMembership: membership,
+        membershipId: widget.membershipId,
+        academyId: widget.academyId,
+        initialMembership: widget.membership,
       )).notifier,
     );
     
     // Escuchar cambios de estado para mostrar mensajes
     ref.listen(
       editPermissionsProvider((
-        membershipId: membershipId,
-        academyId: academyId,
-        initialMembership: membership,
+        membershipId: widget.membershipId,
+        academyId: widget.academyId,
+        initialMembership: widget.membership,
       )),
       (previous, current) {
         // Mostrar SnackBar según el estado
@@ -75,45 +90,57 @@ class EditPermissionsScreen extends ConsumerWidget {
     // Agrupar permisos por categoría para mejor visualización
     final groupedPermissions = AppPermissions.getGroupedPermissions();
     
+    // Nota: No añadir AppBar aquí, ya viene del OwnerShell
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Permisos'),
-        actions: [
-          // Botón de guardar
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: editPermissionsState.status == EditPermissionsStatus.loading
-                ? null // Deshabilitar mientras carga
-                : () => notifier.savePermissions(),
+      body: Column(
+        children: [
+          // Botón de guardar en la parte superior
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  tooltip: 'Guardar permisos',
+                  onPressed: editPermissionsState.status == EditPermissionsStatus.loading
+                    ? null // Deshabilitar mientras carga
+                    : () => notifier.savePermissions(),
+                ),
+              ],
+            ),
+          ),
+          // Contenido principal
+          Expanded(
+            child: editPermissionsState.status == EditPermissionsStatus.loading
+                ? const Center(child: CircularProgressIndicator())
+                : ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: [
+                      // Información del colaborador
+                      if (widget.membership.role.name == 'colaborador')
+                        _buildCollaboratorInfo(context, widget.membership),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Secciones de permisos agrupados por categoría
+                      ...groupedPermissions.entries.map((entry) {
+                        final category = entry.key;
+                        final permissions = entry.value;
+                        
+                        return _buildPermissionCategory(
+                          context, 
+                          category, 
+                          permissions, 
+                          editPermissionsState.selectedPermissions,
+                          notifier,
+                        );
+                      }),
+                    ],
+                  ),
           ),
         ],
       ),
-      body: editPermissionsState.status == EditPermissionsStatus.loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
-                // Información del colaborador
-                if (membership.role.name == 'colaborador')
-                  _buildCollaboratorInfo(context, membership),
-                
-                const SizedBox(height: 16),
-                
-                // Secciones de permisos agrupados por categoría
-                ...groupedPermissions.entries.map((entry) {
-                  final category = entry.key;
-                  final permissions = entry.value;
-                  
-                  return _buildPermissionCategory(
-                    context, 
-                    category, 
-                    permissions, 
-                    editPermissionsState.selectedPermissions,
-                    notifier,
-                  );
-                }),
-              ],
-            ),
     );
   }
   

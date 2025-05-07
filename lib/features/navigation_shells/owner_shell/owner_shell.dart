@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
-import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/navigation_shells/owner_shell/widgets/owner_drawer.dart';
-import 'package:arcinus/features/academies/data/models/academy_model.dart'; // Necesario para el tipo de dato
+
+// Provider para manejar el título de la pantalla actual
+final currentScreenTitleProvider = StateProvider<String>((ref) => 'Arcinus');
 
 /// Widget Shell para el rol Propietario.
 ///
@@ -12,15 +12,33 @@ import 'package:arcinus/features/academies/data/models/academy_model.dart'; // N
 class OwnerShell extends ConsumerStatefulWidget {
   /// La pantalla hija actual que debe mostrarse dentro del Shell.
   final Widget child;
+  
+  /// Título opcional para la pantalla
+  final String? screenTitle;
 
   /// Crea una instancia de [OwnerShell].
-  const OwnerShell({super.key, required this.child});
+  const OwnerShell({
+    super.key, 
+    required this.child, 
+    this.screenTitle,
+  });
 
   @override
   ConsumerState<OwnerShell> createState() => _OwnerShellState();
 }
 
 class _OwnerShellState extends ConsumerState<OwnerShell> {
+  @override
+  void didUpdateWidget(OwnerShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Actualizar el título cuando cambia el widget
+    if (widget.screenTitle != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(currentScreenTitleProvider.notifier).state = widget.screenTitle!;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Obtener el usuario actual
@@ -34,48 +52,12 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
       );
     }
 
-    // Obtener la academia actual seleccionada para el título
-    final currentAcademyId = ref.watch(currentAcademyIdProvider);
-    final academiesAsync = ref.watch(ownerAcademiesProvider(userId));
-
-    String appBarTitle = 'Arcinus'; // Título por defecto
-
-    if (currentAcademyId != null) {
-      academiesAsync.whenData((academies) {
-        final foundAcademy = academies.firstWhere(
-          (academy) => academy.id == currentAcademyId,
-          orElse: () => academies.isNotEmpty ? academies.first : const AcademyModel(ownerId: '', name: 'Arcinus', sportCode: '', location: ''), // Modelo vacío o por defecto si no se encuentra
-        );
-        if (foundAcademy.id != null) { // Asegurarse que la academia encontrada no sea el placeholder vacío
-          appBarTitle = foundAcademy.name;
-        } else if (academies.isNotEmpty) {
-           appBarTitle = academies.first.name;
-           // Actualizar el provider si currentAcademyId no correspondía a una academia válida pero hay otras.
-           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (ref.read(currentAcademyIdProvider) != academies.first.id) {
-              ref.read(currentAcademyIdProvider.notifier).state = academies.first.id;
-            }
-           });
-        }
-      });
-    } else {
-       academiesAsync.whenData((academies) {
-         if (academies.isNotEmpty) {
-           appBarTitle = academies.first.name;
-           // Si no hay currentAcademyId pero hay academias, seleccionar la primera.
-           WidgetsBinding.instance.addPostFrameCallback((_) {
-             if (ref.read(currentAcademyIdProvider) != academies.first.id) {
-              ref.read(currentAcademyIdProvider.notifier).state = academies.first.id;
-             }
-           });
-         }
-       });
-    }
-
+    // Obtener el título actual de la pantalla
+    final screenTitle = widget.screenTitle ?? ref.watch(currentScreenTitleProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(appBarTitle),
+        title: Text(screenTitle!),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_outlined),

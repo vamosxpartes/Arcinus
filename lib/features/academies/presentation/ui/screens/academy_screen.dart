@@ -1,45 +1,48 @@
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
+import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
 
-class AcademyScreen extends ConsumerWidget {
+class AcademyScreen extends ConsumerStatefulWidget {
   final String academyId;
   const AcademyScreen({super.key, required this.academyId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final academyDetailsAsync = ref.watch(academyDetailsProvider(academyId));
+  ConsumerState<AcademyScreen> createState() => _AcademyScreenState();
+}
 
-    return Scaffold(
-      appBar: AppBar(
-        title: academyDetailsAsync.when(
-          data: (academy) => Text(academy.name),
-          loading: () => const Text('Cargando Academia...'),
-          error: (_, __) => const Text('Detalles de Academia'),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-            // Consider navigating to a default/fallback route if cannot pop
-            // e.g., context.go('/owner/dashboard');
-          },
-        ),
-      ),
-      body: academyDetailsAsync.when(
-        data: (academy) => _buildAcademyDetails(context, academy),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Error al cargar los detalles de la academia: $error\\nPor favor, asegúrate de que la academia exista y tengas acceso.',
-              textAlign: TextAlign.center,
-            ),
+class _AcademyScreenState extends ConsumerState<AcademyScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Actualizar el título en el OwnerShell
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentScreenTitleProvider.notifier).state = 'Detalles de Academia';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final academyDetailsAsync = ref.watch(academyDetailsProvider(widget.academyId));
+
+    // Nota: No añadir AppBar aquí, ya viene del OwnerShell
+    return academyDetailsAsync.when(
+      data: (academy) {
+        // Actualizar título con el nombre de la academia cuando se carga
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(currentScreenTitleProvider.notifier).state = academy.name;
+        });
+        return _buildAcademyDetails(context, academy);
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error al cargar los detalles de la academia: $error\nPor favor, asegúrate de que la academia exista y tengas acceso.',
+            textAlign: TextAlign.center,
           ),
         ),
       ),
@@ -48,7 +51,6 @@ class AcademyScreen extends ConsumerWidget {
 
   Widget _buildAcademyDetails(BuildContext context, AcademyModel academy) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return ListView(
       padding: const EdgeInsets.all(16.0),
