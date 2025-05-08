@@ -2,6 +2,7 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
+import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -69,7 +70,15 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-           context.push('/owner/payments/register'); // Usar la ruta completa correcta
+           // Obtener el contexto para la navegación y el ID de la academia actual
+           final currentAcademyId = ref.read(currentAcademyIdProvider);
+           if (currentAcademyId != null && currentAcademyId.isNotEmpty) {
+             // Usar la nueva estructura de rutas dentro de academia
+             context.push('/owner/academy/$currentAcademyId/payments/register');
+           } else {
+             // Fallback a la ruta genérica si no hay academia seleccionada
+             context.push('/owner/payments/register');
+           }
         },
         icon: const Icon(Icons.add),
         label: const Text('Registrar Pago'), // Texto más descriptivo
@@ -175,9 +184,25 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                 const Text('Atleta:'),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Text(
-                    payment.athleteId, 
-                    overflow: TextOverflow.ellipsis,
+                  child: InkWell(
+                    onTap: () {
+                      // Navegar a la pantalla de pagos del atleta
+                      final currentAcademyId = ref.read(currentAcademyIdProvider);
+                      if (currentAcademyId != null) {
+                        context.push(
+                          '/owner/academy/$currentAcademyId/payments/athlete/${payment.athleteId}',
+                          extra: {'athleteName': 'Atleta ID: ${payment.athleteId}'},
+                        );
+                      }
+                    },
+                    child: Text(
+                      payment.athleteId, 
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        decoration: TextDecoration.underline,
+                        color: Colors.blue,
+                      ),
+                    ),
                   ),
                 ),
               ],

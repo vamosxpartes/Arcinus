@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arcinus/features/memberships/presentation/screens/invite_member_screen.dart';
+import 'package:arcinus/features/memberships/presentation/screens/add_athlete_screen.dart';
 import 'package:arcinus/features/academies/presentation/screens/edit_academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_members_screen.dart';
@@ -24,6 +25,8 @@ import 'package:arcinus/features/memberships/presentation/screens/edit_permissio
 import 'package:arcinus/features/theme/ui/feedback/error_display.dart';
 import 'package:arcinus/features/payments/presentation/screens/payments_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
+import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
+import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 
 // Importar providers necesarios
 import 'package:arcinus/features/memberships/presentation/providers/membership_providers.dart';
@@ -353,20 +356,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                              builder: (context, state) {
                                final academyId = state.pathParameters['academyId']!;
                                final membershipId = state.pathParameters['membershipId']!;
-
-                               // Usar Consumer para obtener la membresía real
                                return Consumer(
                                    builder: (context, ref, child) {
-                                       // Asume que membershipByIdProvider(membershipId) existe
                                        final membershipAsyncValue = ref.watch(membershipByIdProvider(membershipId));
-
                                        return membershipAsyncValue.when(
                                            data: (membership) {
-                                               // Pasar la membresía real a EditPermissionsScreen
                                                return EditPermissionsScreen(
                                                    academyId: academyId,
                                                    membershipId: membershipId,
-                                                   membership: membership, // <- Membresía real
+                                                   membership: membership,
                                                );
                                            },
                                            loading: () => const Scaffold(
@@ -381,7 +379,86 @@ final routerProvider = Provider<GoRouter>((ref) {
                                );
                              },
                          ),
+                         // Nueva ruta para añadir atletas
+                         GoRoute(
+                           path: 'add-athlete', // o la ruta que definiste en AcademyMembersListScreen
+                           name: 'addAthleteToAcademy', // Nombre único para la ruta
+                           builder: (context, state) {
+                             final academyId = state.pathParameters['academyId']!;
+                             return AddAthleteScreen(academyId: academyId);
+                           },
+                         ),
                       ]
+                   ),
+                   // Añadir la ruta de pagos para la academia específica
+                   GoRoute(
+                      path: 'payments',
+                      name: 'ownerAcademyPayments',
+                      builder: (context, state) {
+                        final academyId = state.pathParameters['academyId']!;
+                        // Actualizar currentAcademyId en el provider para asegurar que los pagos se carguen correctamente
+                        return Consumer(
+                          builder: (context, ref, child) {
+                            // Establecer el ID de la academia actual
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              ref.read(currentAcademyIdProvider.notifier).state = academyId;
+                            });
+                            return const PaymentsScreen();
+                          },
+                        );
+                      },
+                      routes: [
+                        GoRoute(
+                          path: 'register',
+                          name: 'ownerAcademyRegisterPayment',
+                          builder: (context, state) {
+                            return RegisterPaymentScreen();
+                          },
+                        ),
+                        GoRoute(
+                          path: ':paymentId',
+                          name: 'ownerAcademyPaymentDetails',
+                          builder: (context, state) {
+                            final academyId = state.pathParameters['academyId']!;
+                            final paymentId = state.pathParameters['paymentId']!;
+                            return ScreenUnderDevelopment(message: 'Detalles del pago $paymentId de academia $academyId');
+                          },
+                          routes: [
+                            GoRoute(
+                              path: 'edit',
+                              name: 'ownerAcademyEditPayment',
+                              builder: (context, state) {
+                                final academyId = state.pathParameters['academyId']!;
+                                final paymentId = state.pathParameters['paymentId']!;
+                                return ScreenUnderDevelopment(message: 'Editar pago $paymentId de academia $academyId');
+                              },
+                            ),
+                          ],
+                        ),
+                        // Ruta para ver pagos de un atleta específico
+                        GoRoute(
+                          path: 'athlete/:athleteId',
+                          name: 'ownerAcademyAthletePayments',
+                          builder: (context, state) {
+                            final academyId = state.pathParameters['academyId']!;
+                            final athleteId = state.pathParameters['athleteId']!;
+                            final athleteName = state.extra is Map ? (state.extra as Map)['athleteName'] as String? : null;
+                            
+                            return Consumer(
+                              builder: (context, ref, child) {
+                                // Establecer el ID de la academia actual
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  ref.read(currentAcademyIdProvider.notifier).state = academyId;
+                                });
+                                return AthletePaymentsScreen(
+                                  athleteId: athleteId,
+                                  athleteName: athleteName,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
                    ),
                    // Asegúrate de que las rutas dentro de academy/:academyId/ NO incluyan 'payments' aquí
                 ]

@@ -219,10 +219,21 @@ Detalle de las features:
    > **Próximamente:** Revisar y optimizar la carga de academias con índices adecuados en Firestore
 
 2. **Gestión de Usuarios:**
-   [x] Crear interfaz para visualizar todos los miembros de la academia
-   [x] Implementar funcionalidad para añadir, editar y gestionar permisos de usuarios
-   [x] Añadir filtrado y búsqueda de miembros por categoría/rol
-   > **Próximamente:** Implementar la visualización de perfiles completos de usuarios y acciones específicas para cada rol
+   [x] Crear interfaz para visualizar todos los miembros de la academia (con pestañas por rol).
+   [x] Implementar funcionalidad para añadir, editar y gestionar permisos de usuarios (en progreso para Colaboradores).
+   [] Añadir filtrado y búsqueda de miembros por categoría/rol (búsqueda básica añadida, filtrado por tabs).
+   > **Próximamente:** Implementar la visualización de perfiles completos de usuarios y acciones específicas para cada rol.
+
+   **Nuevo Enfoque para Creación de Miembros (Inicialmente Atletas):**
+   - **Creación como "Objetos/Perfiles":** Para la UX inicial del Propietario, los nuevos miembros (comenzando con atletas) se registrarán primero como "objetos" o "perfiles" dentro de la academia. Esto significa que el Propietario ingresará toda la información necesaria sin que el atleta necesite tener una cuenta de usuario (email/contraseña) en el sistema inmediatamente.
+   - **Información a Recopilar (Formulario Multi-paso para Atletas):**
+     - **Información Personal:** Nombres completos, apellidos completos, fecha de nacimiento, género (opcional), número de teléfono de contacto, dirección (opcional).
+     - **Información Física:** Altura, peso, mano/pie dominante, y otros datos relevantes según el deporte.
+     - **Información de Salud:** Alergias conocidas, condiciones médicas relevantes, contacto de emergencia (nombre y teléfono).
+     - **Información Deportiva Específica:** Posición(es) en el campo, ¿Tiene experiencia previa? (Sí/No + campo de texto para detalles), Nivel de habilidad (ej. Principiante, Intermedio, Avanzado - podría ser un Dropdown).
+   - **Interfaz de Creación:** La pantalla `AcademyMembersListScreen.dart` (específicamente la pestaña o sección de atletas) tendrá un botón "Añadir". Al presionarlo, se navegará a una nueva pantalla (`AddAthleteScreen.dart`) que presentará un formulario por fases (Stepper) para ingresar la información del nuevo atleta.
+   - **Futura Creación de Cuentas de Usuario:** Más adelante, se implementará un sistema de invitación (posiblemente mediante link, código QR o código numérico) para que estos "perfiles de atleta" puedan ser reclamados o vinculados a una cuenta de usuario real con email y contraseña, permitiendo al atleta (o su padre/responsable) interactuar con la aplicación.
+   - **Objetivo:** Este enfoque prioriza la capacidad del Propietario de administrar la información de sus atletas de forma rápida y completa, aplazando la complejidad de la creación de cuentas de usuario para todos los miembros en la fase inicial del MVP.
 
 3. **Gestión de Pagos:**
    [] Desarrollar pantalla de registro de pagos de atletas

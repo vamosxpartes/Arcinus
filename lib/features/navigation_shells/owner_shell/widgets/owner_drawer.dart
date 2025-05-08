@@ -128,6 +128,14 @@ class OwnerDrawer extends ConsumerWidget {
                   ),
                 );
 
+                // Establecer automáticamente la primera academia como valor predeterminado
+                if (currentAcademyId == null && academies.isNotEmpty) {
+                  // Usar Future.microtask para evitar actualizar el estado durante la construcción
+                  Future.microtask(() {
+                    ref.read(currentAcademyIdProvider.notifier).state = academies.first.id;
+                  });
+                }
+
                 if (academies.isEmpty) {
                   // Si no hay academias, solo mostrar el botón de crear (como antes)
                   // o podríamos directamente usar el dropdown con solo la opción de crear.
@@ -155,7 +163,7 @@ class OwnerDrawer extends ConsumerWidget {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: currentAcademyId,
+                      value: currentAcademyId ?? (academies.isNotEmpty ? academies.first.id : null),
                       isExpanded: true,
                       dropdownColor: Theme.of(context).colorScheme.primary.withAlpha(240),
                       icon: const Icon(Icons.arrow_drop_down, color: Colors.white),

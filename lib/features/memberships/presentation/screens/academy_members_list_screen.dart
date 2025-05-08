@@ -92,6 +92,47 @@ class _AcademyMembersListScreenState extends ConsumerState<AcademyMembersListScr
               Tab(text: 'Padres'),
             ],
           ),
+          // Barra de búsqueda y botón de añadir
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Buscar miembro...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
+                    ),
+                    onChanged: (value) {
+                      // TODO: Implementar lógica de búsqueda
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                SizedBox(
+                  width: 120, // Ancho fijo para evitar el error de BoxConstraints
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      // Navegar a la pantalla de añadir atleta
+                      // Esto se implementará en el siguiente paso, por ahora un placeholder
+                       context.push('/owner/academy/${widget.academyId}/members/add-athlete');
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('Añadir'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Lista de miembros
           Expanded(
             child: membersAsyncValue.when(
@@ -136,18 +177,6 @@ class _AcademyMembersListScreenState extends ConsumerState<AcademyMembersListScr
             ),
           ),
         ],
-      ),
-      // Botón para invitar miembros
-      floatingActionButton: PermissionGate(
-        academyId: widget.academyId,
-        requiredPermission: AppPermissions.inviteMembers,
-        child: FloatingActionButton(
-          onPressed: () {
-            context.push('/owner/academy/${widget.academyId}/members/invite');
-          },
-          tooltip: 'Invitar Miembro',
-          child: const Icon(Icons.person_add),
-        ),
       ),
     );
   }
