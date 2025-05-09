@@ -1,0 +1,131 @@
+---
+description: log
+globs: 
+alwaysApply: false
+---
+## Estrategia de Logging con `developer.log`
+
+### 1. Objetivo
+Implementar un sistema de logging enfocado en el desarrollador para facilitar la depuración y el rastreo de errores durante la fase de desarrollo. Se utilizará la función `log` del paquete `dart:developer`.
+
+### 2. Herramienta Principal: `dart:developer.log`
+La función `developer.log` es ideal para este propósito porque:
+*   Está integrada en el SDK de Dart.
+*   Permite registrar mensajes con diferentes niveles de severidad (aunque para errores nos centraremos en los niveles altos).
+*   Puede incluir el objeto de error y el `StackTrace`.
+*   Se integra bien con las herramientas de depuración de Flutter y Dart.
+
+### 3. Formato del Log
+Cada entrada de log de error debería intentar capturar la siguiente información:
+*   **Timestamp:** Fecha y hora en que ocurrió el error (proporcionado automáticamente por `developer.log` si se pasa el parámetro `time`).
+*   **Nivel:** `ERROR` (implícito al usarlo para errores, pero `developer.log` usa niveles numéricos, ej. `level: 1000` para `SEVERE`).
+*   **Nombre del Logger / Contexto:** Se puede usar el parámetro `name` de `developer.log` para indicar el módulo, clase o archivo donde se originó el log. Por ejemplo: `auth_service`, `user_repository`, `profile_screen.dart`.
+*   **Mensaje:** Descripción clara del error.
+*   **Objeto Error:** El objeto de excepción capturado.
+*   **StackTrace:** La traza de la pila para identificar la secuencia de llamadas que llevó al error.
+
+### 4. Implementación Sugerida
+Se recomienda crear una utilidad o wrapper para centralizar la lógica de logging.
+
+**Ejemplo de utilidad de Logging (`app_logger.dart`):**
+```dart
+import 'dart:developer' as developer;
+
+class AppLogger {
+  // Identificador base para los logs de esta app, puede ser el nombre de la app.
+  static const String _appIdentifier = 'MiApp';
+
+  static void logError({
+    required String message,
+    Object? error,
+    StackTrace? stackTrace,
+    String? className,
+    String? functionName,
+  }) {
+    // Construir un nombre contextual para el logger
+    // Esto ayuda a filtrar logs en la consola de desarrollo.
+    // Ejemplo: MiApp.AuthService.login
+    finalStringBuffer = StringBuffer();
+    stringBuffer.write(_appIdentifier);
+    if (className != null && className.isNotEmpty) {
+      stringBuffer.write('.$className');
+    }
+    if (functionName != null && functionName.isNotEmpty) {
+      stringBuffer.write('.$functionName');
+    }
+    final loggerName = stringBuffer.toString();
+
+    developer.log(
+      message,
+      name: loggerName, // Nombre del logger (ej: MiApp.AuthService.login)
+      error: error,       // El objeto de excepción
+      stackTrace: stackTrace, // La traza de la pila
+      level: 1000,        // Nivel SEVERE (indica un error grave)
+      time: DateTime.now(), // Timestamp actual
+    );
+  }
+
+  // Podrías añadir otros métodos para diferentes niveles (info, debug, warning)
+  // static void logInfo(String message, {String? className, String? functionName}) { ... }
+}
+
+// Ejemplo de uso:
+class AuthService {
+  Future<void> login(String email, String password) async {
+    try {
+      // ... lógica de login ...
+      if (email.isEmpty) {
+        throw ArgumentError('El email no puede estar vacío.');
+      }
+      // ... simulación de error ...
+      throw Exception('Error simulado en el login');
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Falló el intento de login para el usuario: $email',
+        error: e,
+        stackTrace: s,
+        className: 'AuthService',
+        functionName: 'login',
+      );
+      // Aquí podrías relanzar el error o manejarlo según la lógica de tu app
+      // rethrow;
+    }
+  }
+}
+```
+
+### 5. Obtención de Ubicación y Referencia
+*   **`StackTrace`:** Es la fuente principal para obtener la ubicación (archivo, línea) y la secuencia de funciones. `developer.log` lo maneja bien.
+*   **Parámetros `className` y `functionName`:** Pasar explícitamente el nombre de la clase y la función (como en el ejemplo `AppLogger`) puede mejorar la legibilidad y el filtrado de los logs, aunque requiere un poco más de disciplina al escribir el código.
+*   **Automático vs. Manual:** Obtener programáticamente el nombre exacto de la función llamante en Dart de forma robusta sin `dart:mirrors` (no recomendado en Flutter para producción) es complejo. La traza de la pila (`StackTrace.toString()`) contiene esta información, pero parsearla puede ser frágil. Por ello, pasarla manualmente como `className` y `functionName` es una solución pragmática.
+
+### 6. Uso en el Código
+Integrar las llamadas a `AppLogger.logError` dentro de los bloques `try-catch` en las partes críticas de la aplicación o donde se manejen operaciones propensas a fallos.
+
+```dart
+void fetchData() async {
+  try {
+    // ... código que puede lanzar una excepción ...
+  } catch (error, stackTrace) {
+    AppLogger.logError(
+      message: 'Error al obtener datos.',
+      error: error,
+      stackTrace: stackTrace,
+      className: 'MiClase', // O el nombre del archivo si no es una clase
+      functionName: 'fetchData',
+    );
+    // Manejar el error apropiadamente
+  }
+}
+```
+
+### 7. Visualización de Logs
+Los logs generados por `developer.log` son visibles en:
+*   La pestaña "Debug Console" de VS Code.
+*   La pestaña "Run" o "Logcat" (para Android) / "Console" (para iOS) en Android Studio.
+*   Usando `flutter logs` en la terminal.
+
+### 8. Consideraciones Adicionales
+*   **Logs de Producción:** Para logging en producción (guardar en archivo, enviar a un servidor, etc.), `developer.log` no es la herramienta adecuada. Se deberían considerar paquetes como `logging` o `logger`. Esta estrategia está enfocada en el desarrollo.
+*   **Niveles de Log:** Aunque nos centramos en errores, `developer.log` tiene niveles (ej. `INFO`, `WARNING`). La utilidad `AppLogger` podría expandirse para soportarlos.
+*   **Filtrado:** Usar prefijos o nombres consistentes en el parámetro `name` de `developer.log` (como se hizo con `loggerName` en `AppLogger`) permite filtrar más fácilmente los logs en las herramientas de desarrollo.

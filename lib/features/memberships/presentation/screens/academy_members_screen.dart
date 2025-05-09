@@ -18,7 +18,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
     super.initState();
     // Actualizar el título en el OwnerShell
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(currentScreenTitleProvider.notifier).state = 'Miembros de la Academia';
+      ref.read(currentScreenTitleProvider.notifier).state = 'Gestión de Miembros';
     });
   }
 

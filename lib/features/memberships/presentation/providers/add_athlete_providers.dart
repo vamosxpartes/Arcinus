@@ -5,9 +5,10 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as path;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 part 'add_athlete_providers.g.dart';
 
@@ -15,6 +16,7 @@ part 'add_athlete_providers.g.dart';
 @riverpod
 class AddAthleteNotifier extends _$AddAthleteNotifier {
   final _imagePicker = ImagePicker();
+  static const String _className = 'AddAthleteNotifier';
   
   @override
   AddAthleteState build() {
@@ -144,6 +146,47 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
     }
   }
   
+  // Método privado para subir imagen a Firebase Storage
+  Future<String?> _uploadImageToStorage(File imageFile, String academyId, String filename) async {
+    try {
+      // Crear una referencia a la ubicación donde se guardará la imagen
+      // Estructura: academies/{academyId}/users/images/{filename}
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('academies')
+          .child(academyId)
+          .child('users')
+          .child('images')
+          .child(filename);
+      
+      // Comenzar la subida de la imagen
+      final uploadTask = storageRef.putFile(imageFile);
+      
+      // Esperar a que termine la subida y obtener la referencia
+      final snapshot = await uploadTask.whenComplete(() => null);
+      
+      // Obtener la URL de descarga
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      AppLogger.logInfo(
+        'Imagen subida con éxito',
+        className: _className,
+        functionName: '_uploadImageToStorage',
+        params: {'downloadUrl': downloadUrl},
+      );
+      return downloadUrl;
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al subir imagen',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: '_uploadImageToStorage',
+      );
+      return null;
+    }
+  }
+  
   // Método para enviar el formulario completo
   Future<void> submitForm(String academyId, String userId) async {
     if (!state.canSubmit) return;
@@ -151,23 +194,90 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
     state = state.copyWith(isSubmitting: true, isError: false, errorMessage: null);
     
     try {
+      String? profileImageUrl;
       // 1. Subir la imagen si existe
       if (state.profileImage != null) {
+        // Generar un nombre de archivo único usando timestamp
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filename = 'profile_${userId}_$timestamp.jpg';
+        
+        // Subir la imagen y obtener la URL
+        profileImageUrl = await _uploadImageToStorage(state.profileImage!, academyId, filename);
+        
+        if (profileImageUrl == null) {
+          AppLogger.logWarning(
+            'No se pudo subir la imagen del perfil',
+            className: _className,
+            functionName: 'submitForm',
+            params: {'academyId': academyId, 'userId': userId, 'filename': filename},
+          );
+        }
       }
       
-      // TODO: Crear el documento del atleta en Firestore
-      // ...
+      // 2. Crear el documento del atleta/usuario en Firestore
+      final userData = {
+        'firstName': state.firstName,
+        'lastName': state.lastName,
+        'birthDate': state.birthDate != null ? Timestamp.fromDate(state.birthDate!) : null,
+        'phoneNumber': state.phoneNumber,
+        'heightCm': state.heightCm,
+        'weightKg': state.weightKg,
+        'profileImageUrl': profileImageUrl, // Se usará la URL obtenida de Firebase Storage
+        'allergies': state.allergies,
+        'medicalConditions': state.medicalConditions,
+        'emergencyContact': {
+          'name': state.emergencyContactName,
+          'phone': state.emergencyContactPhone,
+        },
+        'position': state.position,
+        'role': 'atleta', // Establecer explícitamente el rol como atleta (en minúsculas)
+        'createdBy': userId, // ID del usuario que crea este registro
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      AppLogger.logInfo(
+        'Guardando atleta con datos',
+        className: _className,
+        functionName: 'submitForm',
+        params: {
+          'academyId': academyId, 
+          'userId': userId,
+          'userData': userData
+        },
+      );
+      
+      DocumentReference docRef = await FirebaseFirestore.instance
+          .collection('academies')
+          .doc(academyId)
+          .collection('users') // Subcolección 'users'
+          .add(userData);
+
+      AppLogger.logInfo(
+        'Usuario/Atleta guardado en Firestore',
+        className: _className,
+        functionName: 'submitForm',
+        params: {'docId': docRef.id, 'academyId': academyId},
+      );
       
       // Éxito
       state = state.copyWith(
         isSubmitting: false,
         isSuccess: true,
       );
-    } catch (e) {
+    } catch (e, s) {
       state = state.copyWith(
         isSubmitting: false,
         isError: true,
-        errorMessage: 'Error al guardar atleta: $e',
+        errorMessage: 'Error al guardar atleta. Consulta los logs para más detalles.',
+      );
+      AppLogger.logError(
+        message: 'Error al guardar atleta',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'submitForm',
+        params: {'academyId': academyId, 'userId': userId},
       );
     }
   }

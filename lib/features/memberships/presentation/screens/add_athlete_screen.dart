@@ -64,7 +64,7 @@ class AddAthleteScreen extends ConsumerWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.science_outlined),
+            icon: const Icon(Icons.add_circle_outline),
             tooltip: 'Cargar datos de prueba',
           ),
         ],
