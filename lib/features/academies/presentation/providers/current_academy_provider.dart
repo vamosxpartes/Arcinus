@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/features/academies/data/models/academy_model.dart';
 
-/// Provider that holds the ID of the currently selected academy.
+/// Provider que mantiene la academia actualmente seleccionada.
 ///
-/// This is typically set after the user selects an academy to manage.
-/// It will be null initially or if no academy is selected.
-final currentAcademyIdProvider = StateProvider<String?>((ref) => null); 
+/// Contiene el objeto AcademyModel completo en lugar de solo el ID.
+/// Se establece típicamente después de que el usuario selecciona una academia para gestionar.
+/// Será null inicialmente o si no hay academia seleccionada.
+final currentAcademyProvider = StateProvider<AcademyModel?>((ref) => null); 

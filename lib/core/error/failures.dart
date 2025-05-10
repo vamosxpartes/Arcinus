@@ -32,6 +32,10 @@ sealed class Failure with _$Failure {
   /// Representa un error al interactuar con la caché local.
   const factory Failure.cacheError({@Default('') String message}) = CacheFailure;
 
+  /// Representa un error cuando un recurso no se encuentra.
+  /// [message] puede contener una descripción del recurso no encontrado.
+  const factory Failure.notFound({@Default('') String message}) = _NotFoundFailure;
+
   /// Representa un error inesperado o no clasificado.
   const factory Failure.unexpectedError({
     Object? error,
@@ -50,8 +54,17 @@ sealed class Failure with _$Failure {
       validationError: (message) =>
           message.isNotEmpty ? message : 'Error de validación',
       cacheError: (message) => message.isNotEmpty ? message : 'Error de caché',
+      notFound: (message) => message.isNotEmpty ? message : 'Recurso no encontrado',
       unexpectedError: (error, stackTrace) =>
           'Error inesperado: ${error?.toString() ?? 'Desconocido'}',
     );
   }
+}
+
+/// Implementación del fallo cuando un recurso no se encuentra.
+class _NotFoundFailure extends Failure {
+  const _NotFoundFailure({this.message = ''}) : super._();
+  
+  @override
+  final String message;
 }

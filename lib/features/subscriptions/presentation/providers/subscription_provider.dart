@@ -61,6 +61,8 @@ Exception _mapFailureToException(Failure failure) {
         Exception('Error de autenticación${message.isNotEmpty ? ": $message" : " ($code)"}'),
     validationError: (message) =>
         Exception('Error de validación${message.isNotEmpty ? ": $message" : ""}'),
+    notFound: (message) =>
+        Exception('No encontrado${message.isNotEmpty ? ": $message" : ""}'),
     cacheError: (message) => 
         Exception('Error de caché${message.isNotEmpty ? ": $message" : ""}'),
     unexpectedError: (error, stackTrace) => Exception(

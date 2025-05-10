@@ -1,6 +1,9 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart'; // Importa el provider del repo
+import 'package:arcinus/features/subscriptions/data/models/app_subscription_model.dart';
+import 'package:arcinus/features/subscriptions/data/repositories/app_subscription_repository_impl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'academy_provider.g.dart';
@@ -19,6 +22,9 @@ Exception _mapFailureToException(Failure failure) {
     validationError:
         (message) =>
             Exception('Error de validación: $message'),
+    notFound:
+        (message) =>
+            Exception('No encontrado: $message'),
     cacheError:
         (message) => Exception(
           'Error de caché: $message',
@@ -47,11 +53,50 @@ class Academy extends _$Academy {
 
     return result.fold(
       (failure) => throw _mapFailureToException(failure),
-      (academy) => academy, // Puede ser null si no se encontró
+      (academy) async {
+        // Si la academia existe, obtenemos la suscripción del propietario
+        final appSubscriptionRepository = ref.watch(appSubscriptionRepositoryProvider);
+        final subscriptionResult = await appSubscriptionRepository.getOwnerSubscription(academy.ownerId);
+        
+        // Actualizamos la academia con la información de suscripción
+        return subscriptionResult.fold(
+          (failure) {
+            // Si hay un error, simplemente devolvemos la academia sin modificar
+            return academy;
+          }, 
+          (subscription) {
+            if (subscription == null) return academy;
+            
+            // Actualizar la academia con los datos de suscripción
+            return academy.copyWith(
+              ownerSubscriptionId: subscription.id,
+              inheritedFeatures: subscription.plan?.features ?? [],
+            );
+          }
+        );
+      },
     );
   }
 
   // Métodos para actualizar la academia podrían ir aquí
   // Future<void> updateAcademyDetails(AcademyModel updatedAcademy)
   //async { ... }
+}
+
+/// Provider para verificar si una característica está disponible para una academia.
+@riverpod
+bool isFeatureAvailableForAcademy(
+  Ref ref,
+  String academyId, 
+  AppFeature feature,
+) {
+  final academyValue = ref.watch(academyProvider(academyId));
+  return academyValue.when(
+    data: (academy) {
+      if (academy == null) return false;
+      return academy.inheritedFeatures.contains(feature);
+    },
+    loading: () => false,
+    error: (_, __) => false,
+  );
 }

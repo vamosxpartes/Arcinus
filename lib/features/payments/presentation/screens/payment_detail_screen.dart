@@ -1,3 +1,4 @@
+import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
@@ -9,47 +10,58 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-/// Pantalla que muestra y gestiona los pagos de un atleta específico
-class AthletePaymentsScreen extends ConsumerStatefulWidget {
-  /// ID del atleta cuyos pagos se mostrarán
-  final String athleteId;
+/// Pantalla que muestra los detalles de pagos con adaptación según el rol del usuario
+class PaymentDetailScreen extends ConsumerStatefulWidget {
+  /// ID del usuario cuyos pagos se mostrarán (atleta o padre)
+  final String userId;
   
-  /// Nombre del atleta (opcional)
-  final String? athleteName;
+  /// Nombre del usuario (opcional)
+  final String? userName;
+  
+  /// Rol del usuario que visualiza la pantalla (para adaptar la UI)
+  final AppRole viewerRole;
 
   /// Constructor
-  const AthletePaymentsScreen({
+  const PaymentDetailScreen({
     super.key, 
-    required this.athleteId,
-    this.athleteName,
+    required this.userId,
+    this.userName,
+    required this.viewerRole,
   });
 
   @override
-  ConsumerState<AthletePaymentsScreen> createState() => _AthletePaymentsScreenState();
+  ConsumerState<PaymentDetailScreen> createState() => _PaymentDetailScreenState();
 }
 
-class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
+class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // Actualizar el título en el OwnerShell
+    // Actualizar el título en el Shell (según corresponda al rol)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final title = widget.athleteName != null 
-          ? 'Pagos de ${widget.athleteName}'
-          : 'Pagos del atleta';
-      ref.read(currentScreenTitleProvider.notifier).state = title;
+      final title = widget.userName != null 
+          ? 'Pagos de ${widget.userName}'
+          : 'Detalle de pagos';
+          
+      // Solo actualizar el título si estamos en el OwnerShell
+      if (widget.viewerRole == AppRole.propietario || 
+          widget.viewerRole == AppRole.colaborador) {
+        ref.read(currentScreenTitleProvider.notifier).state = title;
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.athleteId));
+    final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.userId));
+    final bool isManagerView = widget.viewerRole == AppRole.propietario || 
+                             widget.viewerRole == AppRole.colaborador;
 
     return Scaffold(
       body: Column(
         children: [
-          // Información del atleta
-          _buildAthleteInfo(),
+          // Información del usuario (atleta/padre)
+          _buildUserInfo(isManagerView),
           
           // Botones de filtro y actualización
           Padding(
@@ -63,17 +75,18 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                 ),
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.filter_list),
-                      tooltip: 'Filtrar pagos',
-                      onPressed: () {
-                        // Implementar lógica de filtrado
-                      },
-                    ),
+                    if (isManagerView) // Solo mostrar filtro para managers
+                      IconButton(
+                        icon: const Icon(Icons.filter_list),
+                        tooltip: 'Filtrar pagos',
+                        onPressed: () {
+                          // Implementar lógica de filtrado
+                        },
+                      ),
                     IconButton(
                       icon: const Icon(Icons.refresh),
                       tooltip: 'Actualizar pagos',
-                      onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.athleteId)),
+                      onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
                     ),
                   ],
                 ),
@@ -84,21 +97,21 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
           // Lista de pagos
           Expanded(
             child: paymentsAsyncValue.when(
-              data: (payments) => _buildPaymentsList(context, payments),
+              data: (payments) => _buildPaymentsList(context, payments, isManagerView),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stackTrace) => _buildErrorWidget(context, error),
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: isManagerView ? FloatingActionButton.extended(
         onPressed: () {
-          // Navegar a registrar pago con el ID del atleta pre-seleccionado
+          // Solo los managers pueden registrar nuevos pagos
           final currentAcademy = ref.read(currentAcademyProvider);
           if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
             context.push(
               '/owner/academy/${currentAcademy.id}/payments/register',
-              extra: {'preselectedAthleteId': widget.athleteId},
+              extra: {'preselectedAthleteId': widget.userId},
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -108,11 +121,11 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
         },
         icon: const Icon(Icons.add),
         label: const Text('Registrar Pago'),
-      ),
+      ) : null, // No mostrar FAB para roles que no son manager
     );
   }
 
-  Widget _buildAthleteInfo() {
+  Widget _buildUserInfo(bool isManagerView) {
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Padding(
@@ -131,21 +144,116 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.athleteName ?? 'Atleta',
+                      widget.userName ?? 'Usuario',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    Text(
-                      'ID: ${widget.athleteId}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                    if (isManagerView) // Solo mostrar ID para managers
+                      Text(
+                        'ID: ${widget.userId}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
                   ],
                 ),
+                const Spacer(),
+                // Opcional: Indicador de estado de pago
+                _buildPaymentStatusIndicator(),
               ],
             ),
             const Divider(height: 32),
             _buildPaymentSummary(),
+            
+            // Información de plan de suscripción (a implementar)
+            if (isManagerView) 
+              _buildSubscriptionInfo(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentStatusIndicator() {
+    // TODO: Obtener estado real del usuario desde un provider
+    const status = 'active'; // Simulación: Cambiar por datos reales
+    
+    Color statusColor;
+    String statusText;
+    
+    switch (status) {
+      case 'active':
+        statusColor = Colors.green;
+        statusText = 'Activo';
+        break;
+      case 'overdue':
+        statusColor = Colors.orange;
+        statusText = 'En mora';
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusText = 'Inactivo';
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor, width: 1),
+      ),
+      child: Text(
+        statusText,
+        style: TextStyle(
+          color: statusColor,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionInfo() {
+    // TODO: Obtener información del plan desde un provider
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Plan de Suscripción',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Plan Mensual'),
+              Text('\$50.000 / mes'),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Próximo pago:'),
+              Text(
+                DateFormat('dd/MM/yyyy').format(DateTime.now().add(const Duration(days: 15))),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          if (widget.viewerRole == AppRole.propietario) // Solo para propietarios
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  // Implementar navegación a cambio de plan
+                },
+                child: const Text('Cambiar Plan'),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -153,7 +261,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
   Widget _buildPaymentSummary() {
     return Consumer(
       builder: (context, ref, child) {
-        final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.athleteId));
+        final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.userId));
         
         return paymentsAsyncValue.when(
           data: (payments) {
@@ -217,11 +325,11 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
     );
   }
 
-  Widget _buildPaymentsList(BuildContext context, List<PaymentModel> payments) {
+  Widget _buildPaymentsList(BuildContext context, List<PaymentModel> payments, bool isManagerView) {
     if (payments.isEmpty) {
       return const Center(
         child: Text(
-          'No hay pagos registrados para este atleta',
+          'No hay pagos registrados',
           style: TextStyle(fontSize: 16),
         ),
       );
@@ -231,12 +339,12 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
       itemCount: payments.length,
       itemBuilder: (context, index) {
         final payment = payments[index];
-        return _buildPaymentCard(context, payment);
+        return _buildPaymentCard(context, payment, isManagerView);
       },
     );
   }
 
-  Widget _buildPaymentCard(BuildContext context, PaymentModel payment) {
+  Widget _buildPaymentCard(BuildContext context, PaymentModel payment, bool isManagerView) {
     final formattedDate = DateFormat('dd/MM/yyyy').format(payment.paymentDate);
     final formattedAmount = NumberFormat.currency(
       symbol: _getCurrencySymbol(payment.currency),
@@ -294,17 +402,21 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
             ],
           ],
         ),
-        trailing: IconButton(
+        trailing: isManagerView ? IconButton(
           icon: const Icon(Icons.more_vert),
           onPressed: () {
             _showPaymentOptions(context, payment);
           },
-        ),
+        ) : null, // Solo mostrar opciones para managers
         onTap: () {
-          // Navegar a detalles del pago
+          // Para usuario cliente: solo ver detalle
+          // Para managers: ver detalle con opciones
           final currentAcademy = ref.read(currentAcademyProvider);
           if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-            context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}');
+            final route = isManagerView
+                ? '/owner/academy/${currentAcademy.id}/payments/${payment.id}'
+                : '/client/payments/${payment.id}'; // Ruta para cliente
+            context.push(route);
           }
         },
       ),
@@ -325,6 +437,12 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
   }
 
   void _showPaymentOptions(BuildContext context, PaymentModel payment) {
+    // Solo los managers pueden ver estas opciones
+    if (widget.viewerRole != AppRole.propietario && 
+        widget.viewerRole != AppRole.colaborador) {
+      return;
+    }
+    
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -344,26 +462,30 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                   }
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Editar'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // Navegar a editar pago
-                  final currentAcademy = ref.read(currentAcademyProvider);
-                  if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-                    context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}/edit');
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeletePayment(context, payment);
-                },
-              ),
+              // Solo propietarios pueden editar
+              if (widget.viewerRole == AppRole.propietario)
+                ListTile(
+                  leading: const Icon(Icons.edit),
+                  title: const Text('Editar'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    // Navegar a editar pago
+                    final currentAcademy = ref.read(currentAcademyProvider);
+                    if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
+                      context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}/edit');
+                    }
+                  },
+                ),
+              // Solo propietarios pueden eliminar
+              if (widget.viewerRole == AppRole.propietario)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDeletePayment(context, payment);
+                  },
+                ),
             ],
           ),
         );
@@ -372,6 +494,11 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
   }
 
   void _confirmDeletePayment(BuildContext context, PaymentModel payment) {
+    // Verificación adicional de permisos
+    if (widget.viewerRole != AppRole.propietario) {
+      return;
+    }
+    
     final currentAcademy = ref.read(currentAcademyProvider);
     final academyId = currentAcademy?.id;
 
@@ -395,7 +522,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                 if (payment.id != null && academyId != null) {
                   ref.read(paymentRepositoryProvider).deletePayment(academyId, payment.id!).then((_) {
                     // Invalidar el provider para refrescar la lista
-                    ref.invalidate(athletePaymentsNotifierProvider(widget.athleteId));
+                    ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Pago eliminado correctamente')),
                     );
@@ -442,7 +569,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.athleteId)),
+            onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
             child: const Text('Intentar de nuevo'),
           ),
         ],

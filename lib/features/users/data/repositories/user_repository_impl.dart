@@ -2,6 +2,9 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart'; // Para Firestore
 import 'package:arcinus/features/auth/data/models/user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/user_repository.dart';
+import 'package:arcinus/core/auth/roles.dart';
+import 'package:arcinus/features/payments/data/models/manager_user_model.dart';
+import 'package:arcinus/features/payments/data/models/client_user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -38,9 +41,9 @@ class UserRepositoryImpl implements UserRepository {
           .copyWith(id: doc.id); // Asegurar que el ID esté presente
       return Right(user);
     } on FirebaseException catch (e) {
-      return Left(ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'));
+      return Left(Failure.serverError(message: e.message ?? 'Error Firestore [${e.code}]'));
     } catch (e) {
-      return Left(ServerFailure(message: 'Error inesperado buscando usuario: $e'));
+      return Left(Failure.serverError(message: 'Error inesperado buscando usuario: $e'));
     }
   }
 
@@ -53,17 +56,16 @@ class UserRepositoryImpl implements UserRepository {
       final docSnapshot = await _usersCollection.doc(userId).get();
 
       if (!docSnapshot.exists) {
-        // Podríamos tener un Failure.notFound específico
-        return const Left(Failure.unexpectedError(error: 'Usuario no encontrado')); 
+        return Left(Failure.notFound(message: 'Usuario no encontrado')); 
       }
 
       final user = UserModel.fromJson(docSnapshot.data()! as Map<String, dynamic>)
           .copyWith(id: docSnapshot.id);
       return Right(user);
     } on FirebaseException catch (e) {
-      return Left(ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'));
+      return Left(Failure.serverError(message: e.message ?? 'Error Firestore [${e.code}]'));
     } catch (e) {
-      return Left(ServerFailure(message: 'Error inesperado obteniendo usuario: $e'));
+      return Left(Failure.serverError(message: 'Error inesperado obteniendo usuario: $e'));
     }
   }
 
@@ -80,9 +82,132 @@ class UserRepositoryImpl implements UserRepository {
       );
       return const Right(null);
     } on FirebaseException catch (e) {
-      return Left(ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'));
+      return Left(Failure.serverError(message: e.message ?? 'Error Firestore [${e.code}]'));
     } catch (e) {
-      return Left(ServerFailure(message: 'Error inesperado guardando usuario: $e'));
+      return Left(Failure.serverError(message: 'Error inesperado guardando usuario: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ManagerUserModel>> createOrUpdateManagerUser(
+    String userId, 
+    String academyId, 
+    AppRole managerType,
+    {List<ManagerPermission>? permissions}
+  ) async {
+    try {
+      // 1. Primero verificamos si el usuario existe
+      final userResult = await getUserById(userId);
+      
+      return userResult.fold(
+        (failure) => Left(failure),
+        (user) async {
+          // 2. Verificar que el tipo de usuario es correcto (propietario o colaborador)
+          if (managerType != AppRole.propietario && managerType != AppRole.colaborador) {
+            return Left(Failure.validationError(
+              message: 'Tipo de manager inválido. Debe ser PROPIETARIO o COLABORADOR'
+            ));
+          }
+          
+          // 3. Asignar permisos según el tipo
+          final defaultPermissions = managerType == AppRole.propietario
+              ? [ManagerPermission.fullAccess]
+              : permissions ?? [
+                  ManagerPermission.manageUsers,
+                  ManagerPermission.managePayments
+                ];
+          
+          // 4. Crear modelo de manager
+          final managerUser = ManagerUserModel(
+            userId: userId,
+            academyId: academyId,
+            managerType: managerType,
+            permissions: defaultPermissions,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          
+          // 5. Guardar en Firestore
+          final managerData = managerUser.toJson();
+          
+          await _firestore
+              .collection('academies')
+              .doc(academyId)
+              .collection('managers')
+              .doc(userId)
+              .set(managerData, SetOptions(merge: true));
+          
+          // 6. Si es propietario, actualizar el campo role en users
+          if (managerType == AppRole.propietario && user.appRole != AppRole.propietario) {
+            await _usersCollection.doc(userId).update({
+              'appRole': managerType.name,
+            });
+          }
+          
+          return Right(managerUser.copyWith(id: userId));
+        },
+      );
+    } on FirebaseException catch (e) {
+      return Left(Failure.serverError(message: e.message ?? 'Error Firestore [${e.code}]'));
+    } catch (e) {
+      return Left(Failure.serverError(message: 'Error inesperado creando manager: $e'));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ClientUserModel>> createOrUpdateClientUser(
+    String userId, 
+    String academyId, 
+    AppRole clientType,
+    {Map<String, dynamic>? additionalData}
+  ) async {
+    try {
+      // 1. Primero verificamos si el usuario existe
+      final userResult = await getUserById(userId);
+      
+      return userResult.fold(
+        (failure) => Left(failure),
+        (user) async {
+          // 2. Verificar que el tipo de usuario es correcto (atleta o padre)
+          if (clientType != AppRole.atleta && clientType != AppRole.padre) {
+            return Left(Failure.validationError(
+              message: 'Tipo de cliente inválido. Debe ser ATLETA o PADRE'
+            ));
+          }
+          
+          // 3. Crear modelo de cliente
+          final clientUser = ClientUserModel(
+            userId: userId,
+            academyId: academyId,
+            clientType: clientType,
+            // Añadimos datos adicionales si existen
+            metadata: additionalData ?? {},
+          );
+          
+          // 4. Guardar en Firestore
+          final clientData = clientUser.toJson();
+          
+          await _firestore
+              .collection('academies')
+              .doc(academyId)
+              .collection('clients')
+              .doc(userId)
+              .set(clientData, SetOptions(merge: true));
+          
+          // 5. Actualizar el campo role en users si es necesario
+          if (user.appRole != clientType) {
+            await _usersCollection.doc(userId).update({
+              'appRole': clientType.name,
+            });
+          }
+          
+          return Right(clientUser.copyWith(id: userId));
+        },
+      );
+    } on FirebaseException catch (e) {
+      return Left(Failure.serverError(message: e.message ?? 'Error Firestore [${e.code}]'));
+    } catch (e) {
+      return Left(Failure.serverError(message: 'Error inesperado creando cliente: $e'));
     }
   }
 }

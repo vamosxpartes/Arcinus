@@ -173,19 +173,22 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                         _logger.e('Error creando membresía del propietario: $memFailure. Continuando...', error: memFailure);
                         // Decidir: ¿fallar todo? Por ahora, solo log y éxito parcial.
                         state = CreateAcademyState.success(createdAcademy.id!);
-                        _ref.read(currentAcademyIdProvider.notifier).state = createdAcademy.id;
+                        // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
+                        _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
                      },
                      (_) {
                         _logger.i('Membresía del propietario creada con éxito.');
                         // Todas las operaciones (Academia, Suscripción, Membresía) exitosas
                         state = CreateAcademyState.success(createdAcademy.id!); 
-                        _ref.read(currentAcademyIdProvider.notifier).state = createdAcademy.id;
+                        // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
+                        _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
                      }
                    );
                  } catch (memError, memStackTrace) {
                     _logger.e('Excepción inesperada creando membresía: $memError', error: memError, stackTrace: memStackTrace);
                     state = CreateAcademyState.success(createdAcademy.id!); 
-                    _ref.read(currentAcademyIdProvider.notifier).state = createdAcademy.id;
+                    // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
+                    _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
                  }
               },
             );

@@ -32,7 +32,9 @@ class OwnerDrawer extends ConsumerWidget {
     final userId = authState.user?.id;
     final userProfileAsyncValue = userId != null ? ref.watch(userProfileProvider(userId)) : null;
     final academiesAsync = userId != null ? ref.watch(ownerAcademiesProvider(userId)) : null;
-    final currentAcademyId = ref.watch(currentAcademyIdProvider);
+    
+    // Usar el provider que contiene el objeto completo
+    final currentAcademy = ref.watch(currentAcademyProvider);
 
     return DrawerHeader(
       decoration: BoxDecoration(
@@ -129,10 +131,11 @@ class OwnerDrawer extends ConsumerWidget {
                 );
 
                 // Establecer automáticamente la primera academia como valor predeterminado
-                if (currentAcademyId == null && academies.isNotEmpty) {
+                if (currentAcademy == null && academies.isNotEmpty) {
                   // Usar Future.microtask para evitar actualizar el estado durante la construcción
                   Future.microtask(() {
-                    ref.read(currentAcademyIdProvider.notifier).state = academies.first.id;
+                    // Establecer la academia completa
+                    ref.read(currentAcademyProvider.notifier).state = academies.first;
                   });
                 }
 
@@ -163,7 +166,7 @@ class OwnerDrawer extends ConsumerWidget {
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: currentAcademyId ?? (academies.isNotEmpty ? academies.first.id : null),
+                      value: currentAcademy?.id ?? (academies.isNotEmpty ? academies.first.id : null),
                       isExpanded: true,
                       dropdownColor: Theme.of(context).colorScheme.primary.withAlpha(240),
                       icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
@@ -175,7 +178,13 @@ class OwnerDrawer extends ConsumerWidget {
                             Navigator.pop(context); // Cerrar el drawer
                             context.go('/owner/academy/create');
                           } else {
-                            ref.read(currentAcademyIdProvider.notifier).state = newValue;
+                            // Buscar la academia completa por ID
+                            final selectedAcademy = academies.firstWhere(
+                              (academy) => academy.id == newValue,
+                              orElse: () => throw Exception('Academia no encontrada: $newValue'),
+                            );
+                            // Establecer el objeto completo
+                            ref.read(currentAcademyProvider.notifier).state = selectedAcademy;
                           }
                         }
                       },
@@ -208,9 +217,9 @@ class OwnerDrawer extends ConsumerWidget {
           title: const Text('Academia'),
           onTap: () {
             Navigator.pop(context);
-            final currentAcademyId = ref.read(currentAcademyIdProvider);
-            if (currentAcademyId != null && currentAcademyId.isNotEmpty) {
-               context.go('/owner/academy/$currentAcademyId');
+            final currentAcademy = ref.read(currentAcademyProvider);
+            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
+               context.go('/owner/academy/${currentAcademy.id}');
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                  const SnackBar(content: Text('Por favor, selecciona o crea una academia primero.')),
@@ -224,9 +233,9 @@ class OwnerDrawer extends ConsumerWidget {
           selected: selectedIndex == 1,
           onTap: () {
             Navigator.pop(context);
-            final currentAcademyId = ref.read(currentAcademyIdProvider);
-            if (currentAcademyId != null && currentAcademyId.isNotEmpty) {
-              _navigateToPage(context, 1, '/owner/academy/$currentAcademyId/members');
+            final currentAcademy = ref.read(currentAcademyProvider);
+            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
+              _navigateToPage(context, 1, '/owner/academy/${currentAcademy.id}/members');
             } else {
                ScaffoldMessenger.of(context).showSnackBar(
                  const SnackBar(content: Text('Por favor, selecciona una academia para ver sus miembros.')),
@@ -240,9 +249,9 @@ class OwnerDrawer extends ConsumerWidget {
           selected: selectedIndex == 3,
           onTap: () {
             Navigator.pop(context);
-             final currentAcademyId = ref.read(currentAcademyIdProvider);
-            if (currentAcademyId != null && currentAcademyId.isNotEmpty) {
-              _navigateToPage(context, 3, '/owner/academy/$currentAcademyId/payments');
+            final currentAcademy = ref.read(currentAcademyProvider);
+            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
+              _navigateToPage(context, 3, '/owner/academy/${currentAcademy.id}/payments');
             } else {
                ScaffoldMessenger.of(context).showSnackBar(
                  const SnackBar(content: Text('Por favor, selecciona una academia para gestionar sus pagos.')),

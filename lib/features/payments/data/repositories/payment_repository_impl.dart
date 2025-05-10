@@ -24,15 +24,15 @@ class PaymentRepositoryImpl implements PaymentRepository {
     required FirebaseFirestore firestore,
   }) : _firestore = firestore;
   
-  // Colección de pagos en Firestore
-  CollectionReference<Map<String, dynamic>> get _paymentsCollection =>
-      _firestore.collection('payments');
+  // Referencia a la subcolección de pagos de una academia
+  CollectionReference<Map<String, dynamic>> _getPaymentsCollection(String academyId) {
+    return _firestore.collection('academies').doc(academyId).collection('payments');
+  }
 
   @override
   Future<Either<Failure, List<PaymentModel>>> getPaymentsByAcademy(String academyId) async {
     try {
-      final snapshot = await _paymentsCollection
-          .where('academyId', isEqualTo: academyId)
+      final snapshot = await _getPaymentsCollection(academyId)
           .where('isDeleted', isEqualTo: false)
           .orderBy('paymentDate', descending: true)
           .get();
@@ -52,8 +52,7 @@ class PaymentRepositoryImpl implements PaymentRepository {
   Future<Either<Failure, List<PaymentModel>>> getPaymentsByAthlete(
       String academyId, String athleteId) async {
     try {
-      final snapshot = await _paymentsCollection
-          .where('academyId', isEqualTo: academyId)
+      final snapshot = await _getPaymentsCollection(academyId)
           .where('athleteId', isEqualTo: athleteId)
           .where('isDeleted', isEqualTo: false)
           .orderBy('paymentDate', descending: true)
@@ -74,7 +73,11 @@ class PaymentRepositoryImpl implements PaymentRepository {
   @override
   Future<Either<Failure, PaymentModel>> registerPayment(PaymentModel payment) async {
     try {
-      final docRef = await _paymentsCollection.add(payment.toJson());
+      final academyId = payment.academyId;
+      // No necesitamos incluir academyId en el documento cuando está en una subcolección
+      final paymentData = payment.toJson();
+      
+      final docRef = await _getPaymentsCollection(academyId).add(paymentData);
       
       // Crear un nuevo modelo con el ID asignado
       final registeredPayment = payment.copyWith(id: docRef.id);
@@ -93,7 +96,7 @@ class PaymentRepositoryImpl implements PaymentRepository {
             message: 'El pago no tiene un ID válido'));
       }
       
-      await _paymentsCollection.doc(payment.id).update(payment.toJson());
+      await _getPaymentsCollection(payment.academyId).doc(payment.id).update(payment.toJson());
       
       return right(payment);
     } catch (e) {
@@ -102,10 +105,10 @@ class PaymentRepositoryImpl implements PaymentRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> deletePayment(String paymentId) async {
+  Future<Either<Failure, Unit>> deletePayment(String academyId, String paymentId) async {
     try {
       // Soft delete - marcar como eliminado en lugar de eliminar físicamente
-      await _paymentsCollection.doc(paymentId).update({'isDeleted': true});
+      await _getPaymentsCollection(academyId).doc(paymentId).update({'isDeleted': true});
       
       return right(unit);
     } catch (e) {
@@ -117,8 +120,7 @@ class PaymentRepositoryImpl implements PaymentRepository {
   Future<Either<Failure, List<PaymentModel>>> searchPaymentsByDateRange(
       String academyId, DateTime startDate, DateTime endDate) async {
     try {
-      final snapshot = await _paymentsCollection
-          .where('academyId', isEqualTo: academyId)
+      final snapshot = await _getPaymentsCollection(academyId)
           .where('isDeleted', isEqualTo: false)
           .where('paymentDate', isGreaterThanOrEqualTo: startDate)
           .where('paymentDate', isLessThanOrEqualTo: endDate)

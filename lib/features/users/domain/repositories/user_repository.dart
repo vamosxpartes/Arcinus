@@ -1,5 +1,8 @@
+import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/auth/data/models/user_model.dart'; // Importar UserModel
+import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/payments/data/models/manager_user_model.dart';
 import 'package:fpdart/fpdart.dart';
 
 /// Interfaz abstracta para operaciones relacionadas con datos de usuarios
@@ -25,6 +28,22 @@ abstract class UserRepository {
   /// Útil después del registro o al completar/actualizar el perfil.
   /// Devuelve [void] en caso de éxito, o un [Failure] en caso de error.
   Future<Either<Failure, void>> upsertUser(UserModel user);
+
+  /// Crea o actualiza un usuario manager (propietario o colaborador)
+  Future<Either<Failure, ManagerUserModel>> createOrUpdateManagerUser(
+    String userId, 
+    String academyId, 
+    AppRole managerType,
+    {List<ManagerPermission>? permissions}
+  );
+  
+  /// Crea o actualiza un usuario cliente (atleta o padre)
+  Future<Either<Failure, ClientUserModel>> createOrUpdateClientUser(
+    String userId, 
+    String academyId, 
+    AppRole clientType,
+    {Map<String, dynamic>? additionalData}
+  );
 
   // Otros métodos podrían incluir: updateUser, deleteUser, etc.
 } 

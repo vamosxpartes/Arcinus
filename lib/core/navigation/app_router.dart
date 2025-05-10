@@ -27,6 +27,8 @@ import 'package:arcinus/features/payments/presentation/screens/payments_screen.d
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
+import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 // Importar providers necesarios
 import 'package:arcinus/features/memberships/presentation/providers/membership_providers.dart';
@@ -34,35 +36,39 @@ import 'package:arcinus/features/memberships/presentation/providers/membership_p
 // Importar los nuevos Shell Widgets
 import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
 import 'package:arcinus/features/navigation_shells/athlete_shell.dart';
-import 'package:arcinus/features/navigation_shells/collaborator_shell.dart';
 import 'package:arcinus/features/navigation_shells/super_admin_shell.dart';
-import 'package:arcinus/features/navigation_shells/parent_shell.dart';
-
-import 'package:logger/logger.dart'; // Importar logger
 
 import 'package:arcinus/features/users/presentation/ui/screens/profile_screen.dart';
 
-// Instancia de Logger
-final _logger = Logger();
-
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
-  _logger.d('routerProvider: Creating GoRouter instance...'); // Reemplazado
+  AppLogger.logInfo(
+    'Creando instancia de GoRouter',
+    className: 'AppRouter',
+    functionName: 'routerProvider',
+  );
+  
   try {
     // Observar el estado de autenticación para el refreshListenable
     final authStateListenable = GoRouterRefreshStream(ref, authStateNotifierProvider);
-    _logger.d('routerProvider: GoRouterRefreshStream created'); // Reemplazado
+    AppLogger.logInfo(
+      'GoRouterRefreshStream creado',
+      className: 'AppRouter',
+      functionName: 'routerProvider',
+    );
 
     // Clave global para el Navigator principal
     final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
     // Claves separadas para los Navigators de cada Shell
     final ownerShellNavigatorKey        = GlobalKey<NavigatorState>(debugLabel: 'ownerShell');
     final athleteShellNavigatorKey      = GlobalKey<NavigatorState>(debugLabel: 'athleteShell');
-    final collaboratorShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'collaboratorShell');
     final superAdminShellNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'superAdminShell');
-    final parentShellNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'parentShell');
 
-    _logger.d('routerProvider: Navigator keys created'); // Reemplazado
+    AppLogger.logInfo(
+      'Claves de navegación creadas',
+      className: 'AppRouter',
+      functionName: 'routerProvider',
+    );
 
     final router = GoRouter(
       navigatorKey: rootNavigatorKey,
@@ -70,13 +76,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       debugLogDiagnostics: true,
       refreshListenable: authStateListenable, // Escuchar solo cambios de AuthState
       redirect: (BuildContext context, GoRouterState state) async {
-        _logger.d('AppRouter.Redirect - Redirect triggered: current=${state.matchedLocation}, target=${state.uri}'); // Reemplazado
+        AppLogger.logInfo(
+          'Redirección iniciada',
+          className: 'AppRouter',
+          functionName: 'redirect',
+          params: {
+            'rutaActual': state.matchedLocation,
+            'rutaDestino': state.uri.toString(),
+          },
+        );
+        
         // --- Leer el estado de autenticación y perfil ---
         final authState = ref.read(authStateNotifierProvider);
         final isLoggedIn = authState.isAuthenticated;
         final currentUserId = authState.user?.id;
         final userRole = authState.user?.role;
-        _logger.d('AppRouter.Redirect - Auth state: isLoggedIn=$isLoggedIn, userId=$currentUserId, role=$userRole'); // Reemplazado
+        
+        AppLogger.logInfo(
+          'Estado de autenticación',
+          className: 'AppRouter',
+          functionName: 'redirect',
+          params: {
+            'isLoggedIn': isLoggedIn.toString(),
+            'userId': currentUserId ?? 'null',
+            'role': userRole?.name ?? 'null',
+          },
+        );
 
         // --- Definir rutas públicas/de autenticación ---
         final publicRoutes = [
@@ -94,15 +119,29 @@ final routerProvider = Provider<GoRouter>((ref) {
           AppRoutes.createAcademy,
         ];
 
-        final currentLocation         = state.matchedLocation;
-        final isGoingToPublic       = publicRoutes.contains(currentLocation);
+        final currentLocation = state.matchedLocation;
+        final isGoingToPublic = publicRoutes.contains(currentLocation);
         final isGoingToIntermediate = intermediateRoutes.contains(currentLocation);
-        final isGoingToSplash       = currentLocation == AppRoutes.splash;
-        _logger.d('AppRouter.Redirect - Route categories: isPublic=$isGoingToPublic, isIntermediate=$isGoingToIntermediate, isSplash=$isGoingToSplash'); // Reemplazado
+        final isGoingToSplash = currentLocation == AppRoutes.splash;
+        
+        AppLogger.logInfo(
+          'Categorías de ruta',
+          className: 'AppRouter',
+          functionName: 'redirect',
+          params: {
+            'isPublic': isGoingToPublic.toString(),
+            'isIntermediate': isGoingToIntermediate.toString(),
+            'isSplash': isGoingToSplash.toString(),
+          },
+        );
 
         // --- Lógica de Splash ---
         if (authState == const AuthState.initial() || (authState.isLoading && isGoingToSplash)) {
-           _logger.d('AppRouter.Redirect - Redirect decision: Keep on Splash (initial/loading)'); // Reemplazado
+           AppLogger.logInfo(
+             'Decisión: Mantener en Splash (inicial/cargando)',
+             className: 'AppRouter',
+             functionName: 'redirect',
+           );
            return isGoingToSplash ? null : AppRoutes.splash;
         }
         if (isGoingToSplash && !(authState == const AuthState.initial()) && !authState.isLoading) {
@@ -118,7 +157,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                );
 
                if (needsProfileCompletion) {
-                 _logger.d('AppRouter.Redirect - Redirect decision: From Splash - needs profile completion'); // Reemplazado
+                 AppLogger.logInfo(
+                   'Decisión: Desde Splash - necesita completar perfil',
+                   className: 'AppRouter',
+                   functionName: 'redirect',
+                 );
                  return AppRoutes.completeProfile;
                }
 
@@ -132,18 +175,31 @@ final routerProvider = Provider<GoRouter>((ref) {
                  );
 
                  if (needsToCreateAcademy) {
-                   _logger.d('AppRouter.Redirect - Redirect decision: From Splash - owner needs academy'); // Reemplazado
+                   AppLogger.logInfo(
+                     'Decisión: Desde Splash - propietario necesita crear academia',
+                     className: 'AppRouter',
+                     functionName: 'redirect',
+                   );
                    return AppRoutes.createAcademy;
                  }
                }
 
                // Si no necesita completar perfil ni crear academia, redirigir a la ruta del rol
                final targetRoute = _getRoleRootRoute(userRole);
-               _logger.d('AppRouter.Redirect - Redirect decision: From Splash to $targetRoute'); // Reemplazado
+               AppLogger.logInfo(
+                 'Decisión: Desde Splash a ruta de rol',
+                 className: 'AppRouter',
+                 functionName: 'redirect',
+                 params: {'rutaDestino': targetRoute},
+               );
                return targetRoute;
              }
            } else {
-             _logger.d('AppRouter.Redirect - Redirect decision: From Splash to Welcome'); // Reemplazado
+             AppLogger.logInfo(
+               'Decisión: Desde Splash a Welcome',
+               className: 'AppRouter',
+               functionName: 'redirect',
+             );
              return AppRoutes.welcome;
            }
         }
@@ -151,16 +207,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         // --- Lógica Principal de Redirección ---
         if (!isLoggedIn) {
           if (!isGoingToPublic) {
-            _logger.d('AppRouter.Redirect - Redirect decision: Not logged in, redirecting to Welcome'); // Reemplazado
+            AppLogger.logInfo(
+              'Decisión: No autenticado, redirigiendo a Welcome',
+              className: 'AppRouter',
+              functionName: 'redirect',
+            );
             return AppRoutes.welcome;
           }
-          _logger.d('AppRouter.Redirect - Redirect decision: Not logged in, staying on public route'); // Reemplazado
+          AppLogger.logInfo(
+            'Decisión: No autenticado, permaneciendo en ruta pública',
+            className: 'AppRouter',
+            functionName: 'redirect',
+          );
           return null; // Stay on public route
         }
 
         // --- Usuario Logueado ---
         if (currentUserId == null) {
-          _logger.d('AppRouter.Redirect - Redirect decision: Logged in but no userId, redirecting to Welcome'); // Reemplazado
+          AppLogger.logInfo(
+            'Decisión: Autenticado pero sin userId, redirigiendo a Welcome',
+            className: 'AppRouter',
+            functionName: 'redirect',
+          );
           return AppRoutes.welcome;
         }
 
@@ -171,19 +239,37 @@ final routerProvider = Provider<GoRouter>((ref) {
            loading: () => false,
            orElse: () => false,
         );
-        _logger.d('AppRouter.Redirect - Profile state: needsCompletion=$needsProfileCompletion'); // Reemplazado
+        AppLogger.logInfo(
+          'Estado de perfil',
+          className: 'AppRouter',
+          functionName: 'redirect',
+          params: {'needsCompletion': needsProfileCompletion.toString()},
+        );
 
         if (needsProfileCompletion) {
             if (currentLocation != AppRoutes.completeProfile) {
-              _logger.d('AppRouter.Redirect - Redirect decision: Needs profile completion, redirecting to CompleteProfile'); // Reemplazado
+              AppLogger.logInfo(
+                'Decisión: Necesita completar perfil, redirigiendo a CompleteProfile',
+                className: 'AppRouter',
+                functionName: 'redirect',
+              );
               return AppRoutes.completeProfile;
             }
-            _logger.d('AppRouter.Redirect - Redirect decision: Needs profile completion, staying on CompleteProfile'); // Reemplazado
+            AppLogger.logInfo(
+              'Decisión: Necesita completar perfil, permaneciendo en CompleteProfile',
+              className: 'AppRouter',
+              functionName: 'redirect',
+            );
             return null; // Stay on complete profile
         }
         if (currentLocation == AppRoutes.completeProfile && !needsProfileCompletion) {
             final targetRoute = _getRoleRootRoute(userRole);
-            _logger.d('AppRouter.Redirect - Redirect decision: Profile complete, redirecting FROM CompleteProfile to $targetRoute'); // Reemplazado
+            AppLogger.logInfo(
+              'Decisión: Perfil completo, redirigiendo DESDE CompleteProfile',
+              className: 'AppRouter',
+              functionName: 'redirect',
+              params: {'rutaDestino': targetRoute},
+            );
             return targetRoute;
         }
 
@@ -195,18 +281,35 @@ final routerProvider = Provider<GoRouter>((ref) {
                 loading: () => false,
                 orElse: () => false,
             );
-            _logger.d('AppRouter.Redirect - Academy state (owner): needsToCreate=$needsToCreateAcademy'); // Reemplazado
+            AppLogger.logInfo(
+              'Estado de academia (propietario)',
+              className: 'AppRouter',
+              functionName: 'redirect',
+              params: {'needsToCreate': needsToCreateAcademy.toString()},
+            );
 
             if (needsToCreateAcademy) {
                 if (currentLocation != AppRoutes.createAcademy) {
-                  _logger.d('AppRouter.Redirect - Redirect decision: Owner needs academy, redirecting to CreateAcademy'); // Reemplazado
+                  AppLogger.logInfo(
+                    'Decisión: Propietario necesita academia, redirigiendo a CreateAcademy',
+                    className: 'AppRouter',
+                    functionName: 'redirect',
+                  );
                   return AppRoutes.createAcademy;
                 }
-                _logger.d('AppRouter.Redirect - Redirect decision: Owner needs academy, staying on CreateAcademy'); // Reemplazado
+                AppLogger.logInfo(
+                  'Decisión: Propietario necesita academia, permaneciendo en CreateAcademy',
+                  className: 'AppRouter',
+                  functionName: 'redirect',
+                );
                 return null; // Stay on create academy
             }
              if (currentLocation == AppRoutes.createAcademy && !needsToCreateAcademy) {
-                 _logger.d('AppRouter.Redirect - Redirect decision: Owner has academy, redirecting FROM CreateAcademy to Owner root'); // Reemplazado
+                 AppLogger.logInfo(
+                   'Decisión: Propietario ya tiene academia, redirigiendo DESDE CreateAcademy',
+                   className: 'AppRouter',
+                   functionName: 'redirect',
+                 );
                  return AppRoutes.ownerRoot;
              }
         }
@@ -214,12 +317,22 @@ final routerProvider = Provider<GoRouter>((ref) {
         // 3. Usuario logueado, perfil completo, (propietario con academia):
         if (!isGoingToSplash && (isGoingToPublic || isGoingToIntermediate)) {
             final targetRoute = _getRoleRootRoute(userRole);
-            _logger.d('AppRouter.Redirect - Redirect decision: Logged in, redirecting FROM public/intermediate to $targetRoute'); // Reemplazado
+            AppLogger.logInfo(
+              'Decisión: Autenticado, redirigiendo DESDE pública/intermedia',
+              className: 'AppRouter',
+              functionName: 'redirect',
+              params: {'rutaDestino': targetRoute},
+            );
             return targetRoute;
         }
 
         // 4. Si no aplica ninguna redirección
-        _logger.d('AppRouter.Redirect - Redirect decision: No redirection needed, allowing access to ${state.matchedLocation}'); // Reemplazado
+        AppLogger.logInfo(
+          'Decisión: No se necesita redirección, permitiendo acceso a la ruta actual',
+          className: 'AppRouter',
+          functionName: 'redirect',
+          params: {'rutaActual': state.matchedLocation},
+        );
         return null;
       },
       routes: <RouteBase>[
@@ -282,7 +395,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: AppRoutes.ownerProfileRoute, // Usar la nueva constante para el path completo
               name: 'ownerProfile', // Nombre de la ruta, puede ser el mismo que antes o uno nuevo si se prefiere
               builder: (context, state) {
-                _logger.d('Navigating to Owner Profile Screen');
+                AppLogger.logInfo(
+                  'Navegando a la pantalla de perfil del propietario',
+                  className: 'AppRouter',
+                  functionName: 'ownerProfile',
+                );
                 return const ProfileScreen(); // Construir la nueva pantalla de perfil
               },
             ),
@@ -399,9 +516,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                         // Actualizar currentAcademyId en el provider para asegurar que los pagos se carguen correctamente
                         return Consumer(
                           builder: (context, ref, child) {
-                            // Establecer el ID de la academia actual
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              ref.read(currentAcademyIdProvider.notifier).state = academyId;
+                            // Establecer la academia actual usando el academyId
+                            WidgetsBinding.instance.addPostFrameCallback((_) async {
+                              // Cargar el objeto AcademyModel completo usando el repositorio
+                              final academyRepository = ref.read(academyRepositoryProvider);
+                              final academyResult = await academyRepository.getAcademyById(academyId);
+                              academyResult.fold(
+                                (failure) => print('Error al cargar academia: $failure'),
+                                (academy) {
+                                  // Establecer la academia completa
+                                  ref.read(currentAcademyProvider.notifier).state = academy;
+                                },
+                              );
                             });
                             return const PaymentsScreen();
                           },
@@ -446,9 +572,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                             
                             return Consumer(
                               builder: (context, ref, child) {
-                                // Establecer el ID de la academia actual
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  ref.read(currentAcademyIdProvider.notifier).state = academyId;
+                                // Establecer la academia actual usando el academyId
+                                WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                  // Cargar el objeto AcademyModel completo usando el repositorio
+                                  final academyRepository = ref.read(academyRepositoryProvider);
+                                  final academyResult = await academyRepository.getAcademyById(academyId);
+                                  academyResult.fold(
+                                    (failure) => print('Error al cargar academia: $failure'),
+                                    (academy) {
+                                      // Establecer la academia completa
+                                      ref.read(currentAcademyProvider.notifier).state = academy;
+                                    },
+                                  );
                                 });
                                 return AthletePaymentsScreen(
                                   athleteId: athleteId,
@@ -566,26 +701,7 @@ final routerProvider = Provider<GoRouter>((ref) {
              ),
           ],
         ),
-
-        // --- Shell para Colaborador ---
-        ShellRoute(
-          navigatorKey: collaboratorShellNavigatorKey,
-          builder: (context, state, child) => CollaboratorShell(child: child),
-          routes: <RouteBase>[
-            GoRoute(
-              path: AppRoutes.collaboratorRoot, // Ruta raíz del Shell: /collaborator
-              builder: (context, state) => const ScreenUnderDevelopment(message: 'Collaborator Dashboard'), // Placeholder
-              routes: [
-                 GoRoute(
-                    path: AppRoutes.collaboratorDashboard, // -> /collaborator/dashboard
-                    name: AppRoutes.collaboratorDashboard, // Nombre único
-                    builder: (context, state) => const ScreenUnderDevelopment(message: 'Collaborator Dashboard'), // <- Builder añadido
-                 ),
-                 // Otras rutas específicas para colaboradores...
-              ]
-            ),
-          ],
-        ),
+        
 
          // --- Shell para SuperAdmin ---
         ShellRoute(
@@ -607,39 +723,37 @@ final routerProvider = Provider<GoRouter>((ref) {
           ],
         ),
 
-        // --- Shell para Padre/Responsable ---
-        ShellRoute(
-          navigatorKey: parentShellNavigatorKey,
-          builder: (context, state, child) => ParentShell(child: child),
-          routes: <RouteBase>[
-            GoRoute(
-              path: AppRoutes.parentRoot, // Ruta raíz del Shell: /parent
-              builder: (context, state) => const ScreenUnderDevelopment(message: 'Parent Dashboard'), // Placeholder
-              routes: [
-                GoRoute(
-                  path: AppRoutes.parentDashboard, // -> /parent/dashboard
-                  name: AppRoutes.parentDashboard, // Nombre único
-                  builder: (context, state) => const ScreenUnderDevelopment(message: 'Parent Dashboard'), // <- Builder añadido
-                ),
-                // Otras rutas específicas para padres...
-              ],
-            ),
-          ],
-        ),
-
       ],
       errorBuilder: (context, state) {
-         _logger.e('AppRouter.Error - GoRouter ErrorBuilder triggered', error: state.error); // Reemplazado
+         AppLogger.logError(
+           message: 'Error de GoRouter',
+           error: state.error,
+           className: 'AppRouter',
+           functionName: 'errorBuilder',
+           params: {'error': state.error?.toString() ?? 'desconocido'},
+         );
          return Scaffold(
             appBar: AppBar(title: const Text('Error de Navegación')),
             body: ErrorDisplay(error: state.error?.toString() ?? 'Error desconocido'),
          );
       }
     );
-    _logger.d('routerProvider: GoRouter instance created successfully'); // Reemplazado
+    
+    AppLogger.logInfo(
+      'Instancia de GoRouter creada exitosamente',
+      className: 'AppRouter',
+      functionName: 'routerProvider',
+    );
+    
     return router;
   } catch (e, stackTrace) {
-    _logger.e('routerProvider: CRITICAL ERROR during GoRouter creation', error: e, stackTrace: stackTrace); // Reemplazado
+    AppLogger.logError(
+      message: 'ERROR CRÍTICO durante la creación de GoRouter',
+      error: e,
+      stackTrace: stackTrace,
+      className: 'AppRouter',
+      functionName: 'routerProvider',
+    );
     // Rethrow para que Riverpod lo maneje o propague
     rethrow;
   }

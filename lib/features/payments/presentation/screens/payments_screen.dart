@@ -70,11 +70,11 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-           // Obtener el contexto para la navegación y el ID de la academia actual
-           final currentAcademyId = ref.read(currentAcademyIdProvider);
-           if (currentAcademyId != null && currentAcademyId.isNotEmpty) {
+           // Obtener el contexto para la navegación y la academia actual
+           final currentAcademy = ref.read(currentAcademyProvider);
+           if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
              // Usar la nueva estructura de rutas dentro de academia
-             context.push('/owner/academy/$currentAcademyId/payments/register');
+             context.push('/owner/academy/${currentAcademy.id}/payments/register');
            } else {
              // Fallback a la ruta genérica si no hay academia seleccionada
              context.push('/owner/payments/register');
@@ -187,10 +187,10 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                   child: InkWell(
                     onTap: () {
                       // Navegar a la pantalla de pagos del atleta
-                      final currentAcademyId = ref.read(currentAcademyIdProvider);
-                      if (currentAcademyId != null) {
+                      final currentAcademy = ref.read(currentAcademyProvider);
+                      if (currentAcademy != null && currentAcademy.id != null) {
                         context.push(
-                          '/owner/academy/$currentAcademyId/payments/athlete/${payment.athleteId}',
+                          '/owner/academy/${currentAcademy.id}/payments/athlete/${payment.athleteId}',
                           extra: {'athleteName': 'Atleta ID: ${payment.athleteId}'},
                         );
                       }

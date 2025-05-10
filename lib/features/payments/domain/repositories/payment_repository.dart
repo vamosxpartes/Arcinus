@@ -17,7 +17,7 @@ abstract class PaymentRepository {
   Future<Either<Failure, PaymentModel>> updatePayment(PaymentModel payment);
   
   /// Elimina un pago (soft delete)
-  Future<Either<Failure, Unit>> deletePayment(String paymentId);
+  Future<Either<Failure, Unit>> deletePayment(String academyId, String paymentId);
   
   /// Busca pagos por período de fecha
   Future<Either<Failure, List<PaymentModel>>> searchPaymentsByDateRange(

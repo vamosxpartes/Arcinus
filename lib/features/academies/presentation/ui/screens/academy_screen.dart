@@ -71,18 +71,18 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> {
     return ListView(
       padding: const EdgeInsets.all(16.0),
       children: <Widget>[
-        if (academy.logoUrl != null && academy.logoUrl!.isNotEmpty)
+        if (academy.logoUrl.isNotEmpty)
           Center(
             child: CircleAvatar(
               radius: 50,
-              backgroundImage: NetworkImage(academy.logoUrl!),
+              backgroundImage: NetworkImage(academy.logoUrl),
               backgroundColor: Colors.grey[200],
               onBackgroundImageError: (_, __) {
                 // Optionally handle image loading error, e.g., show placeholder
               },
             ),
           ),
-        if (academy.logoUrl != null && academy.logoUrl!.isNotEmpty)
+        if (academy.logoUrl.isNotEmpty)
           const SizedBox(height: 16),
         Center(
           child: Text(
@@ -91,23 +91,23 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> {
             textAlign: TextAlign.center,
           ),
         ),
-        if (academy.description != null && academy.description!.isNotEmpty)
+        if (academy.description.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
-              academy.description!,
+              academy.description,
               style: textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
           ),
         const SizedBox(height: 24),
         _buildDetailItem(context, Icons.sports_soccer, 'Deporte Principal', academy.sportCode), // Assuming sportCode is human-readable or needs mapping
-        if (academy.email != null && academy.email!.isNotEmpty)
-          _buildDetailItem(context, Icons.email_outlined, 'Email de Contacto', academy.email!),
-        if (academy.phone != null && academy.phone!.isNotEmpty)
-          _buildDetailItem(context, Icons.phone_outlined, 'Teléfono', academy.phone!),
-        if (academy.address != null && academy.address!.isNotEmpty)
-          _buildDetailItem(context, Icons.location_on_outlined, 'Dirección', academy.address!),
+        if (academy.email.isNotEmpty)
+          _buildDetailItem(context, Icons.email_outlined, 'Email de Contacto', academy.email),
+        if (academy.phone.isNotEmpty)
+          _buildDetailItem(context, Icons.phone_outlined, 'Teléfono', academy.phone),
+        if (academy.address.isNotEmpty)
+          _buildDetailItem(context, Icons.location_on_outlined, 'Dirección', academy.address),
         if (academy.location.isNotEmpty) // location is required
            _buildDetailItem(context, Icons.map_outlined, 'Ubicación (Coord.)', academy.location),
         if (academy.createdAt != null)
