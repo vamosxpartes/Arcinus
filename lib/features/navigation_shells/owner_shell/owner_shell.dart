@@ -68,7 +68,7 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(screenTitle!),
+        title: Text(screenTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_none_outlined),
