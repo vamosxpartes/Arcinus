@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/navigation_shells/owner_shell/widgets/owner_drawer.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 // Provider para manejar el título de la pantalla actual
 final currentScreenTitleProvider = StateProvider<String>((ref) => 'Arcinus');
@@ -53,7 +54,17 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     }
 
     // Obtener el título actual de la pantalla
-    final screenTitle = widget.screenTitle ?? ref.watch(currentScreenTitleProvider);
+    final currentTitleFromProvider = ref.watch(currentScreenTitleProvider);
+    AppLogger.logInfo(
+      'OwnerShell building...',
+      className: 'OwnerShell',
+      functionName: 'build',
+      params: {
+        'widget.screenTitle': widget.screenTitle,
+        'currentScreenTitleProvider': currentTitleFromProvider,
+      },
+    );
+    final screenTitle = widget.screenTitle ?? currentTitleFromProvider;
 
     return Scaffold(
       appBar: AppBar(

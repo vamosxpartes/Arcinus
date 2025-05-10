@@ -4,6 +4,7 @@ import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:go_router/go_router.dart'; // Import GoRouter
 
 class AcademyScreen extends ConsumerStatefulWidget {
   final String academyId;
@@ -17,22 +18,37 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> {
   @override
   void initState() {
     super.initState();
-    // Actualizar el título en el OwnerShell
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(currentScreenTitleProvider.notifier).state = 'Detalles de Academia';
+      // No establecer el título aquí si queremos que la pantalla de miembros tenga prioridad inicial
+      // O, establecer un título genérico que las sub-pantallas puedan sobrescribir.
+      // Por ahora, lo comentaremos para que el título de la sub-pantalla (si se navega directamente)
+      // no sea sobrescrito inmediatamente.
+      // ref.read(currentScreenTitleProvider.notifier).state = 'Detalles de Academia';
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final academyDetailsAsync = ref.watch(academyDetailsProvider(widget.academyId));
+    final goRouter = GoRouter.of(context);
 
-    // Nota: No añadir AppBar aquí, ya viene del OwnerShell
     return academyDetailsAsync.when(
       data: (academy) {
-        // Actualizar título con el nombre de la academia cuando se carga
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(currentScreenTitleProvider.notifier).state = academy.name;
+          final currentRoutePath = goRouter.routerDelegate.currentConfiguration.uri.toString();
+          final membersRoutePath = '/owner/academy/${widget.academyId}/members';
+          
+          // Solo actualizar el título si no estamos en la pantalla de miembros o sus sub-rutas
+          if (!currentRoutePath.startsWith(membersRoutePath)) {
+            ref.read(currentScreenTitleProvider.notifier).state = academy.name;
+          } else {
+            // Si estamos en la pantalla de miembros, asegurarnos de que su título persista
+            // Esto puede ser redundante si AcademyMembersScreen lo hace en su initState,
+            // pero es una salvaguarda.
+            if (ref.read(currentScreenTitleProvider) != 'Miembros de la Academia') {
+               ref.read(currentScreenTitleProvider.notifier).state = 'Miembros de la Academia';
+            }
+          }
         });
         return _buildAcademyDetails(context, academy);
       },
