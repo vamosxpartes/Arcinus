@@ -84,7 +84,7 @@ final ownerAcademiesProvider =
       // Si hay un error (posiblemente falta de índice), lanzamos una excepción para que pase al catch
       throw Exception('Error en consulta ordenada: $error');
     });
-  } catch (e, s) {
+  } catch (e) {
     AppLogger.logWarning(
       'Usando consulta alternativa sin ordenamiento debido a: $e',
       error: e

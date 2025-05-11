@@ -9,9 +9,11 @@ El módulo de autenticación gestiona todos los procesos relacionados con la ide
 El módulo sigue la arquitectura de capas, separando claramente:
 - **Data**: Modelos y repositorios
 - **Presentation**: Providers, estado y UI
+- **Domain**: Lógica de negocio y entidades
 
 ### Modelo Principal
 - `UserModel`: Representa la información básica de cualquier usuario en el sistema, independientemente de su rol.
+- `AuthState`: Define el estado de autenticación (autenticado, no autenticado, error, etc.)
 
 ### Repositorio de Autenticación
 - `AuthRepository`: Define las operaciones de autenticación
@@ -19,11 +21,14 @@ El módulo sigue la arquitectura de capas, separando claramente:
 
 ## Flujos Principales
 
-### 1. Registro de Usuario
-1. Usuario completa formulario de registro básico (email/contraseña)
+### 1. Registro de Usuario Mejorado
+1. Usuario accede al formulario de registro por pasos:
+   - **Paso 1**: Credenciales (email/contraseña) con validación en tiempo real
+   - **Paso 2**: Información de perfil (nombre, apellido, foto)
+   - **Paso 3**: Confirmación y términos de servicio
 2. Se crea cuenta en Firebase Authentication
 3. Se crea documento inicial en colección `users` de Firestore
-4. Usuario es redirigido a la pantalla de completar perfil
+4. Usuario completa su perfil con foto de perfil opcional
 5. Al completar perfil, se actualiza el documento en Firestore
 6. Se redirecciona al usuario según su rol
 
@@ -51,14 +56,29 @@ El módulo sigue la arquitectura de capas, separando claramente:
 - `authStateNotifierProvider`: Maneja el estado global de autenticación
 - `completeProfileProvider`: Gestiona el estado del formulario de perfil
 - `userProfileProvider`: Proporciona información del perfil del usuario actual
+- `registrationFormProvider`: Gestiona el estado y persistencia del formulario de registro
+
+### Persistencia de Datos
+- Utiliza Hive para almacenamiento local de datos de registro
+- Implementa persistencia para permitir completar el registro en sesiones múltiples
+- Protege datos sensibles evitando almacenar contraseñas
 
 ## Pantallas Principales
 
 - **WelcomeScreen**: Pantalla inicial de la aplicación
 - **LoginScreen**: Formulario de inicio de sesión
-- **RegisterScreen**: Formulario de registro de cuenta
+- **RegisterScreen**: Formulario de registro por pasos con UX mejorada
 - **CompleteProfileScreen**: Formulario para completar perfil de usuario
 - **MemberAccessScreen**: Acceso para miembros invitados
+
+## Características de UX Mejoradas
+
+- **Indicador de fortaleza de contraseña**: Retroalimentación visual en tiempo real
+- **Validación instantánea**: Mensajes de error contextuales y específicos
+- **Persistencia de progreso**: Recuperación automática del avance en el registro
+- **Gestión de imágenes de perfil**: Selección desde galería o cámara con previsualización
+- **Detección de conectividad**: Soporte para modo offline durante el registro
+- **Diseño adaptativo**: Optimizado para diferentes tamaños de pantalla
 
 ## Integración con Navigation Shell
 
@@ -92,6 +112,7 @@ El módulo define comportamientos de redirección en función del estado de aute
 3. **Manejo de errores**: Mostrar mensajes amigables para problemas de autenticación
 4. **Persistencia**: Manejar adecuadamente la persistencia de sesión
 5. **Desacoplamiento**: Separar lógica de UI y mantener repositorios independientes
+6. **Almacenamiento local**: Utilizar Hive para persistencia segura y eficiente
 
 ## Casos de Error Comunes
 
@@ -105,4 +126,11 @@ El módulo define comportamientos de redirección en función del estado de aute
 
 - **Módulo de Usuarios**: Utiliza la información básica de auth para extender con datos específicos
 - **Módulo de Academias**: Verifica permisos y roles para operaciones administrativas
-- **Módulo de Pagos**: Consulta identificación de usuarios para asociar pagos 
+- **Módulo de Pagos**: Consulta identificación de usuarios para asociar pagos
+
+## Mejoras Futuras
+
+- Implementar autenticación con redes sociales (Google, Apple)
+- Añadir autenticación por número de teléfono
+- Implementar recuperación de cuenta con validación adicional
+- Añadir autenticación de dos factores para mayor seguridad 

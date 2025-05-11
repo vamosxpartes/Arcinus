@@ -21,9 +21,6 @@ class AppRoutes {
   /// Rutas de acceso para miembros/invitados
   static const memberAccess = '/auth/member-access';
 
-  /// Rutas de completar perfil
-  static const completeProfile = '/auth/complete-profile';
-
   /// Rutas de recuperar contraseña
   static const forgotPassword = '/auth/forgot-password';
 
@@ -33,6 +30,9 @@ class AppRoutes {
   static const collaboratorRoot = '/collaborator';
   static const superAdminRoot = '/superadmin';
   static const parentRoot = '/parent';
+  
+  // --- Ruta para shell compartido de Manager (owner y colaborador) ---
+  static const managerRoot = '/manager';
 
   /// Rutas principales (Obsoleto/Reemplazado por rutas dentro de shells)
   // static const home = '/home';
@@ -53,6 +53,14 @@ class AppRoutes {
   /// Route name for creating a new academy.
   static const String createAcademy = '/create-academy';
 
+  // --- Rutas unificadas para Manager (Propietario y Colaborador) ---
+  static const String managerDashboard = '/manager/dashboard';
+  static const String managerAcademy = '/manager/academy/:academyId';
+  static const String managerAcademyMembers = '/manager/academy/:academyId/members';
+  static const String managerAcademyPayments = '/manager/academy/:academyId/payments';
+  static const String managerProfile = '/manager/profile';
+  static const String managerSettings = '/manager/settings';
+  
   // --- Rutas Relativas dentro del Shell del Propietario (`ownerRoot`) ---
   static const String ownerDashboard = 'owner_dashboard'; // Relativa a /owner
   static const String ownerAcademy = 'academy/:academyId'; // Relativa a /owner

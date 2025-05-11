@@ -8,6 +8,8 @@ import 'package:arcinus/features/auth/presentation/providers/user_profile_provid
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/navigation/app_routes.dart';
 
 const String _createNewAcademyValue = '__CREATE_NEW_ACADEMY__';
 
@@ -62,8 +64,8 @@ class ManagerDrawer extends ConsumerWidget {
     return DrawerHeader(
       decoration: BoxDecoration(
         color: userRole == AppRole.propietario 
-              ? Theme.of(context).colorScheme.primary
-              : Colors.blue, // Diferente color para colaboradores
+              ? AppTheme.bonfireRed
+              : AppTheme.embers, // Diferente color para colaboradores
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,11 +78,12 @@ class ManagerDrawer extends ConsumerWidget {
             },
             child: Row(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 25,
-                  child: Icon(Icons.person, size: 25),
+                  backgroundColor: AppTheme.darkGray,
+                  child: Icon(Icons.person, size: 25, color: AppTheme.magnoliaWhite),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: AppTheme.spacingSm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,37 +93,37 @@ class ManagerDrawer extends ConsumerWidget {
                         userProfileAsyncValue.when(
                           data: (userProfile) => Text(
                             userProfile?.name?.isNotEmpty == true ? userProfile!.name! : (authState.user?.email ?? 'Usuario'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
+                            style: TextStyle(
+                              color: AppTheme.magnoliaWhite,
+                              fontSize: AppTheme.bodySize,
                               fontWeight: FontWeight.bold,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
-                          loading: () => const Text(
+                          loading: () => Text(
                             'Cargando...',
-                            style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppTheme.lightGray, fontSize: AppTheme.secondarySize, fontWeight: FontWeight.bold),
                           ),
                           error: (e, s) => Text(
                             authState.user?.email ?? 'Error al cargar nombre',
-                            style: const TextStyle(color: Colors.orangeAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppTheme.goldTrophy, fontSize: AppTheme.secondarySize, fontWeight: FontWeight.bold),
                           ),
                         )
                       else
                         Text(
                           authState.user?.email ?? 'Usuario',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
+                          style: TextStyle(
+                            color: AppTheme.magnoliaWhite,
+                            fontSize: AppTheme.bodySize,
                             fontWeight: FontWeight.bold,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       Text(
                         userRole == AppRole.propietario ? 'Propietario' : 'Colaborador',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
+                        style: TextStyle(
+                          color: AppTheme.lightGray,
+                          fontSize: AppTheme.secondarySize,
                         ),
                       ),
                     ],
@@ -129,7 +132,7 @@ class ManagerDrawer extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: AppTheme.spacingSm),
           if (userId != null && academiesAsync != null)
             academiesAsync.when(
               data: (academies) {
@@ -144,12 +147,12 @@ class ManagerDrawer extends ConsumerWidget {
                 // Añadir opción para crear nueva academia solo para propietarios
                 if (userRole == AppRole.propietario) {
                   dropdownItems.add(
-                    const DropdownMenuItem<String>(
+                    DropdownMenuItem<String>(
                       value: _createNewAcademyValue,
                       child: Row(
                         children: [
-                          Icon(Icons.add_circle_outline, size: 20),
-                          SizedBox(width: 8),
+                          Icon(Icons.add_circle_outline, size: 20, color: AppTheme.bonfireRed),
+                          SizedBox(width: AppTheme.spacingSm),
                           Text('Crear Nueva Academia'),
                         ],
                       ),
@@ -170,44 +173,44 @@ class ManagerDrawer extends ConsumerWidget {
                   // Si no hay academias y es propietario, mostrar botón de crear
                   if (userRole == AppRole.propietario) {
                     return ElevatedButton.icon(
-                      icon: const Icon(Icons.add_circle_outline),
-                      label: const Text('Crear Academia'),
+                      icon: Icon(Icons.add_circle_outline, color: AppTheme.magnoliaWhite),
+                      label: Text('Crear Academia'),
                       onPressed: () {
                         Navigator.pop(context);
                         context.go('/manager/academy/create');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withAlpha(60),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppTheme.magnoliaWhite.withAlpha(60),
+                        foregroundColor: AppTheme.magnoliaWhite,
                       ),
                     );
                   } else {
                     // Para colaboradores sin academias
-                    return const Center(
+                    return Center(
                       child: Text(
                         'No tienes academias asignadas',
-                        style: TextStyle(color: Colors.white70),
+                        style: TextStyle(color: AppTheme.lightGray),
                       ),
                     );
                   }
                 }
 
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                  padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(40),
-                    borderRadius: BorderRadius.circular(8.0),
+                    color: AppTheme.magnoliaWhite.withAlpha(40),
+                    borderRadius: BorderRadius.circular(AppTheme.inputRadius),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: currentAcademy?.id ?? (academies.isNotEmpty ? academies.first.id : null),
                       isExpanded: true,
                       dropdownColor: userRole == AppRole.propietario
-                          ? Theme.of(context).colorScheme.primary.withAlpha(240)
-                          : Colors.blue.withAlpha(240),
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      hint: const Text('Seleccionar Academia', style: TextStyle(color: Colors.white70)),
+                          ? AppTheme.bonfireRed.withAlpha(240)
+                          : AppTheme.embers.withAlpha(240),
+                      icon: Icon(Icons.arrow_drop_down, color: AppTheme.magnoliaWhite),
+                      style: TextStyle(color: AppTheme.magnoliaWhite, fontSize: AppTheme.secondarySize),
+                      hint: Text('Seleccionar Academia', style: TextStyle(color: AppTheme.lightGray)),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
                           if (newValue == _createNewAcademyValue) {
@@ -229,8 +232,15 @@ class ManagerDrawer extends ConsumerWidget {
                   ),
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))),
-              error: (error, stack) => Text('Error: $error', style: const TextStyle(color: Colors.white)),
+              loading: () => Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppTheme.magnoliaWhite),
+                ),
+              ),
+              error: (error, stack) => Text(
+                'Error: $error', 
+                style: TextStyle(color: AppTheme.magnoliaWhite),
+              ),
             )
           else
             const SizedBox.shrink(),
@@ -241,51 +251,46 @@ class ManagerDrawer extends ConsumerWidget {
 
   // Elementos de navegación
   Widget _buildDrawerNavItems(BuildContext context, WidgetRef ref) {
-    // Mapeamos las rutas principales para la selección
-    final currentRoute = GoRouterState.of(context).uri.toString();
-    
+      
     return Column(
       children: [
-        // --- Dashboard ---
-        ListTile(
-          leading: const Icon(Icons.dashboard),
-          title: const Text('Dashboard'),
-          onTap: () {
-            _navigateTo(context, '/manager/dashboard');
-          },
+        // --- SECCIÓN 1: FUNCIONALIDADES ACTIVAS ---
+        Padding(
+          padding: EdgeInsets.only(left: AppTheme.spacingSm, top: AppTheme.spacingSm),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'FUNCIONES PRINCIPALES',
+              style: TextStyle(
+                color: AppTheme.bonfireRed,
+                fontSize: AppTheme.captionSize,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
         
-        const Divider(),
-        
-        // --- Academia ---
+        // --- Dashboard ---
         ListTile(
-          leading: const Icon(Icons.school),
-          title: const Text('Academia'),
+          leading: Icon(Icons.dashboard, color: AppTheme.bonfireRed),
+          title: Text('Dashboard'),
           onTap: () {
-            Navigator.pop(context);
-            final currentAcademy = ref.read(currentAcademyProvider);
-            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-               context.go('/manager/academy/${currentAcademy.id}');
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Por favor, selecciona o crea una academia primero.')),
-              );
-            }
+            _navigateTo(context, AppRoutes.managerDashboard);
           },
         ),
         
         // --- Miembros ---
         ListTile(
-          leading: const Icon(Icons.groups),
-          title: const Text('Miembros'),
+          leading: Icon(Icons.groups, color: AppTheme.bonfireRed),
+          title: Text('Miembros'),
           onTap: () {
             Navigator.pop(context);
             final currentAcademy = ref.read(currentAcademyProvider);
             if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              context.go('/manager/academy/${currentAcademy.id}/members');
+              context.go('${AppRoutes.managerAcademyMembers.replaceAll(':academyId', currentAcademy.id!)}');
             } else {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Por favor, selecciona una academia para ver sus miembros.')),
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, selecciona una academia para ver sus miembros.')),
               );
             }
           },
@@ -293,80 +298,114 @@ class ManagerDrawer extends ConsumerWidget {
         
         // --- Pagos ---
         ListTile(
-          leading: const Icon(Icons.payments),
-          title: const Text('Pagos'),
+          leading: Icon(Icons.payments, color: AppTheme.bonfireRed),
+          title: Text('Pagos'),
           onTap: () {
             Navigator.pop(context);
             final currentAcademy = ref.read(currentAcademyProvider);
             if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              context.go('/manager/academy/${currentAcademy.id}/payments');
+              context.go('${AppRoutes.managerAcademyPayments.replaceAll(':academyId', currentAcademy.id!)}');
             } else {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Por favor, selecciona una academia para gestionar pagos.')),
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, selecciona una academia para gestionar pagos.')),
               );
             }
           },
         ),
         
+        // --- SECCIÓN 2: FUNCIONALIDADES EN DESARROLLO ---
+        Divider(color: AppTheme.darkGray),
+        
+        Padding(
+          padding: EdgeInsets.all(AppTheme.spacingSm),
+          child: Text(
+            'PRÓXIMAMENTE',
+            style: TextStyle(
+              color: AppTheme.lightGray,
+              fontSize: AppTheme.captionSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        
+        // --- Academia ---
+        ListTile(
+          leading: Icon(Icons.school, color: AppTheme.lightGray),
+          title: Text('Academia'),
+          enabled: false,
+          onTap: null,
+        ),
+        
         // --- Horarios ---
         ListTile(
-          leading: const Icon(Icons.calendar_today),
-          title: const Text('Horarios'),
-          onTap: () {
-            Navigator.pop(context);
-            final currentAcademy = ref.read(currentAcademyProvider);
-            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              context.go('/manager/academy/${currentAcademy.id}/schedule');
-            } else {
-               ScaffoldMessenger.of(context).showSnackBar(
-                 const SnackBar(content: Text('Por favor, selecciona una academia para ver horarios.')),
-              );
-            }
-          },
+          leading: Icon(Icons.calendar_today, color: AppTheme.lightGray),
+          title: Text('Horarios'),
+          enabled: false,
+          onTap: null,
         ),
         
         // --- Estadísticas (solo propietarios) ---
         if (userRole == AppRole.propietario)
           ListTile(
-            leading: const Icon(Icons.bar_chart),
-            title: const Text('Estadísticas'),
-            onTap: () {
-              Navigator.pop(context);
-              final currentAcademy = ref.read(currentAcademyProvider);
-              if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-                context.go('/manager/academy/${currentAcademy.id}/stats');
-              } else {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                   const SnackBar(content: Text('Por favor, selecciona una academia para ver estadísticas.')),
-                );
-              }
-            },
+            leading: Icon(Icons.bar_chart, color: AppTheme.lightGray),
+            title: Text('Estadísticas'),
+            enabled: false,
+            onTap: null,
           ),
+          
+        // --- Grupos ---
+        ListTile(
+          leading: Icon(Icons.groups_2, color: AppTheme.lightGray),
+          title: Text('Grupos'),
+          enabled: false,
+          onTap: null,
+        ),
         
-        const Divider(),
+        // --- Entrenamientos ---
+        ListTile(
+          leading: Icon(Icons.fitness_center, color: AppTheme.lightGray),
+          title: Text('Entrenamientos'),
+          enabled: false,
+          onTap: null,
+        ),
+        
+        // --- SECCIÓN 3: CUENTA Y CONFIGURACIÓN ---
+        Divider(color: AppTheme.darkGray),
+        
+        Padding(
+          padding: EdgeInsets.all(AppTheme.spacingSm),
+          child: Text(
+            'MI CUENTA',
+            style: TextStyle(
+              color: AppTheme.bonfireRed,
+              fontSize: AppTheme.captionSize,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
         
         // --- Perfil ---
         ListTile(
-          leading: const Icon(Icons.person),
-          title: const Text('Mi Perfil'),
+          leading: Icon(Icons.person, color: AppTheme.bonfireRed),
+          title: Text('Mi Perfil'),
           onTap: () {
-            _navigateTo(context, '/manager/profile');
+            _navigateTo(context, AppRoutes.managerProfile);
           },
         ),
         
         // --- Ajustes ---
         ListTile(
-          leading: const Icon(Icons.settings),
-          title: const Text('Configuración'),
+          leading: Icon(Icons.settings, color: AppTheme.bonfireRed),
+          title: Text('Configuración'),
           onTap: () {
-            _navigateTo(context, '/manager/settings');
+            _navigateTo(context, AppRoutes.managerSettings);
           },
         ),
         
         // --- Cerrar Sesión ---
         ListTile(
-          leading: const Icon(Icons.logout),
-          title: const Text('Cerrar Sesión'),
+          leading: Icon(Icons.logout, color: AppTheme.bonfireRed),
+          title: Text('Cerrar Sesión'),
           onTap: () {
             _confirmSignOut(context, ref);
           },
@@ -374,11 +413,11 @@ class ManagerDrawer extends ConsumerWidget {
         
         // --- Pie del Drawer ---
         Container(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(AppTheme.spacingMd),
           alignment: Alignment.center,
-          child: const Text(
+          child: Text(
             'Arcinus v1.0.0',
-            style: TextStyle(color: Colors.grey, fontSize: 12.0),
+            style: TextStyle(color: AppTheme.lightGray, fontSize: AppTheme.captionSize),
           ),
         ),
       ],
@@ -405,12 +444,12 @@ class ManagerDrawer extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cerrar Sesión'),
-        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        title: Text('Cerrar Sesión'),
+        content: Text('¿Estás seguro de que deseas cerrar sesión?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar'),
           ),
           TextButton(
             onPressed: () {
@@ -419,7 +458,7 @@ class ManagerDrawer extends ConsumerWidget {
               // Cerrar sesión
               ref.read(authStateNotifierProvider.notifier).signOut();
             },
-            child: const Text('Cerrar Sesión'),
+            child: Text('Cerrar Sesión'),
           ),
         ],
       ),

@@ -22,20 +22,6 @@ class ProfileScreen extends ConsumerWidget {
     final userProfileAsync = ref.watch(userProfileProvider(userId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            }
-            // Alternativamente, si siempre quieres volver al dashboard del owner:
-            // import 'package:go_router/go_router.dart';
-            // context.go('/owner/dashboard');
-          },
-        ),
-      ),
       body: userProfileAsync.when(
         data: (userProfile) {
           if (userProfile == null) {

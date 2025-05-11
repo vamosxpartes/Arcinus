@@ -344,9 +344,7 @@ class AddAthleteScreen extends ConsumerWidget {
               decoration: const InputDecoration(labelText: 'Experiencia (años)'),
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                if (addAthleteNotifier is AddAthleteNotifier) {
-                  (addAthleteNotifier as dynamic).updateExperience(value);
-                }
+                (addAthleteNotifier as dynamic).updateExperience(value);
               },
             ),
             
@@ -373,9 +371,7 @@ class AddAthleteScreen extends ConsumerWidget {
                       ).toList(),
                       onChanged: (value) {
                         if (value != null) {
-                          if (addAthleteNotifier is AddAthleteNotifier) {
-                            (addAthleteNotifier as dynamic).updateSpecialization(value);
-                          }
+                          (addAthleteNotifier as dynamic).updateSpecialization(value);
                         }
                       },
                     );

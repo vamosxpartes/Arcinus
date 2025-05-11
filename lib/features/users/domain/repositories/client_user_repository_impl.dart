@@ -79,7 +79,7 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
           'Usuario no es un cliente (atleta o padre)',
           className: _className,
           functionName: 'getClientUser',
-          params: {'academyId': academyId, 'userId': userId, 'role': role?.name ?? 'null'},
+          params: {'academyId': academyId, 'userId': userId, 'role': role.name},
         );
         return left(const Failure.validationError(
           message: 'El usuario no es un cliente (atleta o padre)'
@@ -137,7 +137,7 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
         'Usuario cliente obtenido exitosamente',
         className: _className,
         functionName: 'getClientUser',
-        params: {'academyId': academyId, 'userId': userId, 'clientType': role?.name ?? 'unknown'},
+        params: {'academyId': academyId, 'userId': userId, 'clientType': role.name},
       );
       
       return right(clientUser);

@@ -5,7 +5,6 @@ import 'package:arcinus/features/academies/presentation/ui/screens/create_academ
 import 'package:arcinus/features/academies/presentation/ui/screens/academy_screen.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/auth/presentation/providers/user_profile_provider.dart';
-import 'package:arcinus/features/auth/presentation/ui/screens/complete_profile_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/login_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/member_access_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/register_screen.dart';
@@ -113,7 +112,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         // --- Definir rutas intermedias post-login ---
         final intermediateRoutes = [
-          AppRoutes.completeProfile,
           AppRoutes.createAcademy,
         ];
 
@@ -145,53 +143,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         if (isGoingToSplash && !(authState == const AuthState.initial()) && !authState.isLoading) {
            // Si el usuario está autenticado, redirigir a la ruta apropiada según la lógica subsiguiente
            if (isLoggedIn) {
-             // Si necesita completar perfil, redirigir a completar perfil
-             if (currentUserId != null) {
-               final profileState = ref.read(userProfileProvider(currentUserId));
-               final needsProfileCompletion = profileState.maybeWhen(
-                 data: (profile) => profile == null || (profile.name?.isEmpty ?? true),
+             // Si es propietario, verificar si necesita crear academia
+             if (userRole == AppRole.propietario && currentUserId != null) {
+               final academiesState = ref.read(ownerHasAcademiesProvider(currentUserId));
+               final needsToCreateAcademy = academiesState.maybeWhen(
+                 data: (hasAcademies) => !hasAcademies,
                  loading: () => false,
                  orElse: () => false,
                );
 
-               if (needsProfileCompletion) {
+               if (needsToCreateAcademy) {
                  AppLogger.logInfo(
-                   'Decisión: Desde Splash - necesita completar perfil',
+                   'Decisión: Desde Splash - propietario necesita crear academia',
                    className: 'AppRouter',
                    functionName: 'redirect',
                  );
-                 return AppRoutes.completeProfile;
+                 return AppRoutes.createAcademy;
                }
-
-               // Si es propietario, verificar si necesita crear academia
-               if (userRole == AppRole.propietario) {
-                 final academiesState = ref.read(ownerHasAcademiesProvider(currentUserId));
-                 final needsToCreateAcademy = academiesState.maybeWhen(
-                   data: (hasAcademies) => !hasAcademies,
-                   loading: () => false,
-                   orElse: () => false,
-                 );
-
-                 if (needsToCreateAcademy) {
-                   AppLogger.logInfo(
-                     'Decisión: Desde Splash - propietario necesita crear academia',
-                     className: 'AppRouter',
-                     functionName: 'redirect',
-                   );
-                   return AppRoutes.createAcademy;
-                 }
-               }
-
-               // Si no necesita completar perfil ni crear academia, redirigir a la ruta del rol
-               final targetRoute = _getRoleRootRoute(userRole);
-               AppLogger.logInfo(
-                 'Decisión: Desde Splash a ruta de rol',
-                 className: 'AppRouter',
-                 functionName: 'redirect',
-                 params: {'rutaDestino': targetRoute},
-               );
-               return targetRoute;
              }
+
+             // Si no necesita crear academia, redirigir a la ruta del rol
+             String targetRoute;
+             if (userRole != null) {
+               targetRoute = _getRoleRootRoute(userRole);
+             } else {
+               targetRoute = AppRoutes.welcome;
+             }
+             AppLogger.logInfo(
+               'Decisión: Desde Splash a ruta de rol',
+               className: 'AppRouter',
+               functionName: 'redirect',
+               params: {'rutaDestino': targetRoute},
+             );
+             return targetRoute;
            } else {
              AppLogger.logInfo(
                'Decisión: Desde Splash a Welcome',
@@ -228,89 +212,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             functionName: 'redirect',
           );
           return AppRoutes.welcome;
-        }
-
-        // 1. ¿Necesita completar perfil?
-        AsyncValue<dynamic> profileState;
-        
-        // Caso especial: Si estamos en la pantalla de completar perfil,
-        // asumimos que el usuario ha completado o está completando su perfil
-        if (currentLocation == AppRoutes.completeProfile) {
-          // Esto es crítico: si el usuario ya ha completado su perfil,
-          // debemos permitirle continuar y no quedarnos en un bucle
-          final needsProfileCompletion = false;
-          
-          AppLogger.logInfo(
-            'Estado de perfil (en pantalla de completar perfil)',
-            className: 'AppRouter',
-            functionName: 'redirect',
-            params: {'needsCompletion': needsProfileCompletion.toString()},
-          );
-          
-          // No necesita redirección mientras está en completar perfil
-          if (needsProfileCompletion == false) {
-            AppLogger.logInfo(
-              'Decisión: En pantalla de completar perfil, sin redirección',
-              className: 'AppRouter',
-              functionName: 'redirect',
-            );
-            return null;
-          }
-        }
-        
-        // Para otras rutas, verificar normalmente
-        profileState = ref.read(userProfileProvider(currentUserId));
-        final needsProfileCompletion = profileState.maybeWhen(
-          data: (profile) {
-            // Verificar si hay un perfil y tiene nombre (verificación simple)
-            final hasProfile = profile != null;
-            final hasName = hasProfile && 
-                ((profile.toString().contains('displayName') && 
-                  profile.toString().contains('displayName: ') && 
-                  !profile.toString().contains('displayName: null')) ||
-                 (profile.toString().contains('name') && 
-                  profile.toString().contains('name: ') && 
-                  !profile.toString().contains('name: null')));
-            
-            return !hasProfile || !hasName;
-          },
-          loading: () => false, // Durante la carga permitimos continuar
-          error: (_, __) => true, // En caso de error, asumir que necesita completar
-          orElse: () => true, // Por defecto, asumir que necesita completar
-        );
-        
-        AppLogger.logInfo(
-          'Estado de perfil',
-          className: 'AppRouter',
-          functionName: 'redirect',
-          params: {'needsCompletion': needsProfileCompletion.toString()},
-        );
-
-        if (needsProfileCompletion) {
-            if (currentLocation != AppRoutes.completeProfile) {
-              AppLogger.logInfo(
-                'Decisión: Necesita completar perfil, redirigiendo a CompleteProfile',
-                className: 'AppRouter',
-                functionName: 'redirect',
-              );
-              return AppRoutes.completeProfile;
-            }
-            AppLogger.logInfo(
-              'Decisión: Necesita completar perfil, permaneciendo en CompleteProfile',
-              className: 'AppRouter',
-              functionName: 'redirect',
-            );
-            return null; // Stay on complete profile
-        }
-        if (currentLocation == AppRoutes.completeProfile && !needsProfileCompletion) {
-            final targetRoute = _getRoleRootRoute(userRole);
-            AppLogger.logInfo(
-              'Decisión: Perfil completo, redirigiendo DESDE CompleteProfile',
-              className: 'AppRouter',
-              functionName: 'redirect',
-              params: {'rutaDestino': targetRoute},
-            );
-            return targetRoute;
         }
 
         // 2. ¿Es Propietario y necesita crear academia?
@@ -362,7 +263,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         // 3. Usuario logueado, perfil completo, (propietario con academia):
         if (!isGoingToSplash && (isGoingToPublic || isGoingToIntermediate)) {
-            final targetRoute = _getRoleRootRoute(userRole);
+            String targetRoute;
+            if (userRole != null) {
+              targetRoute = _getRoleRootRoute(userRole);
+            } else {
+              targetRoute = AppRoutes.welcome;
+            }
             AppLogger.logInfo(
               'Decisión: Autenticado, redirigiendo DESDE pública/intermedia',
               className: 'AppRouter',
@@ -406,11 +312,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: AppRoutes.memberAccess, // Usar path completo /auth/member-access
           name: AppRoutes.memberAccess,
           builder: (context, state) => const MemberAccessScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.completeProfile, // Usar path completo /auth/complete-profile
-          name: AppRoutes.completeProfile,
-          builder: (context, state) => const CompleteProfileScreen(),
         ),
         // --- Rutas Intermedias ---
          GoRoute(
@@ -727,6 +628,72 @@ final routerProvider = Provider<GoRouter>((ref) {
           ],
         ),        
         
+        // --- Shell para Manager unificado (propietario y colaborador) ---
+        ShellRoute(
+          navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'managerShell'),
+          builder: (context, state, child) => ManagerShell(child: child),
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/manager',
+              builder: (_, __) => const ScreenUnderDevelopment(message: 'Manager Home'),
+            ),
+            GoRoute(
+              path: '/manager/dashboard',
+              name: 'managerDashboard',
+              builder: (_, __) => const ScreenUnderDevelopment(message: 'Dashboard'),
+            ),
+            GoRoute(
+              path: '/manager/profile',
+              name: 'managerProfile',
+              builder: (_, __) => const ProfileScreen(),
+            ),
+            GoRoute(
+              path: '/manager/settings',
+              name: 'managerSettings',
+              builder: (_, __) => const ScreenUnderDevelopment(message: 'Configuración'),
+            ),
+            GoRoute(
+              path: '/manager/academy/:academyId',
+              name: 'managerAcademy',
+              builder: (context, state) {
+                final academyId = state.pathParameters['academyId']!;
+                return AcademyScreen(academyId: academyId);
+              },
+              routes: [
+                GoRoute(
+                  path: 'members',
+                  name: 'managerAcademyMembers',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return AcademyMembersScreen(academyId: academyId);
+                  },
+                ),
+                GoRoute(
+                  path: 'payments',
+                  name: 'managerAcademyPayments',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return Consumer(
+                      builder: (context, ref, child) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                          final academyRepository = ref.read(academyRepositoryProvider);
+                          final academyResult = await academyRepository.getAcademyById(academyId);
+                          academyResult.fold(
+                            (failure) => print('Error al cargar academia: $failure'),
+                            (academy) {
+                              ref.read(currentAcademyProvider.notifier).state = academy;
+                            },
+                          );
+                        });
+                        return const PaymentsScreen();
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
 
          // --- Shell para SuperAdmin ---
         ShellRoute(
@@ -811,13 +778,20 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
 // Función helper para obtener la ruta raíz según el rol
 String _getRoleRootRoute(AppRole? role) {
+  if (role == null) return AppRoutes.welcome;
+  
   switch (role) {
-    // Asegurarse que devuelva la ruta RAÍZ del shell, no una sub-ruta
-    case AppRole.propietario: return AppRoutes.ownerRoot; // Sigue siendo /owner
-    case AppRole.atleta: return AppRoutes.athleteRoot;
-    case AppRole.colaborador: return AppRoutes.collaboratorRoot;
-    case AppRole.superAdmin: return AppRoutes.superAdminRoot;
-    case AppRole.padre: return AppRoutes.parentRoot;
-    default: return AppRoutes.welcome;
+    // Redirigir roles de gestión al shell unificado de Manager
+    case AppRole.propietario: 
+    case AppRole.colaborador:
+      return AppRoutes.managerRoot; 
+    case AppRole.atleta: 
+      return AppRoutes.athleteRoot;
+    case AppRole.superAdmin: 
+      return AppRoutes.superAdminRoot;
+    case AppRole.padre: 
+      return AppRoutes.parentRoot;
+    default: 
+      return AppRoutes.welcome;
   }
 }

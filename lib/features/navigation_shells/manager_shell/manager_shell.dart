@@ -4,6 +4,7 @@ import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart
 import 'package:arcinus/features/navigation_shells/manager_shell/widgets/manager_drawer.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/auth/roles.dart';
+import 'package:arcinus/features/theme/ux/app_theme.dart';
 
 // Provider para manejar el título de la pantalla actual
 final currentScreenTitleProvider = StateProvider<String>((ref) => 'Arcinus');
@@ -95,8 +96,8 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
 
     // Color del appBar según el rol (visualmente distinguible)
     final Color appBarColor = userRole == AppRole.propietario
-        ? Colors.indigo
-        : Colors.blue; // Propietario: indigo, Colaborador: azul
+        ? AppTheme.bonfireRed
+        : AppTheme.embers; // Propietario: bonfireRed, Colaborador: embers
 
     return Scaffold(
       appBar: AppBar(
@@ -123,11 +124,11 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
           ),
           // Badge para mostrar el rol actual
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
             child: Chip(
               label: Text(
                 userRole == AppRole.propietario ? 'Propietario' : 'Colaborador',
-                style: const TextStyle(fontSize: 12, color: Colors.white),
+                style: TextStyle(fontSize: AppTheme.captionSize, color: AppTheme.magnoliaWhite),
               ),
               backgroundColor: appBarColor.withAlpha(178),
               visualDensity: VisualDensity.compact,

@@ -231,7 +231,7 @@ class FirebaseAuthRepository implements AuthRepository {
         role: role,
         // El UserProfileProvider se encargará de obtener estos detalles.
       );
-    } catch (e, s) {
+    } catch (e) {
       // Si hay error al obtener token/claims, devolver usuario básico
       AppLogger.logWarning(
         'Error al obtener claims de usuario o datos de Firestore: $e',
@@ -418,7 +418,7 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
       return right(user);
-    } on firebase_auth.FirebaseAuthException catch (e, s) {
+    } on firebase_auth.FirebaseAuthException catch (e) {
       AppLogger.logWarning(
         'Error durante inicio de sesión (FirebaseAuthException)',
         error: e

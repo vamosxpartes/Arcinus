@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/sports/scripts/initialize_sports_collection.dart';
+import 'package:arcinus/features/auth/presentation/providers/registration_form_provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -28,9 +29,17 @@ void main() async {
 
     // Verificar e inicializar la colección de deportes si es necesario
     await SportsInitializer.initializeIfNeeded();
+    
+    // Crear contenedor de ProviderScope para inicializar Hive boxes
+    final container = ProviderContainer();
+    await initRegistrationBox(container);
+    AppLogger.logInfo('main: Registration box initialized');
 
     AppLogger.logInfo('main: Running ProviderScope...');
-    runApp(const ProviderScope(child: ArcinusApp()));
+    runApp(UncontrolledProviderScope(
+      container: container, 
+      child: const ArcinusApp()
+    ));
     AppLogger.logInfo('main: runApp finished (or backgrounded)');
   } catch (e, stackTrace) {
     AppLogger.logError(
