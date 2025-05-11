@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/memberships/domain/state/add_athlete_state.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,19 +10,18 @@ import 'package:path/path.dart' as path;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart';
 
 part 'add_athlete_providers.g.dart';
 
-// Provider para el estado del formulario de atleta
-@riverpod
-class AddAthleteNotifier extends _$AddAthleteNotifier {
+// Definición manual de StateNotifier
+class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
   final _imagePicker = ImagePicker();
   static const String _className = 'AddAthleteNotifier';
+  final Ref ref;
   
-  @override
-  AddAthleteState build() {
-    return const AddAthleteState();
-  }
+  AddAthleteStateNotifier(this.ref) : super(const AddAthleteState());
   
   // Métodos para actualizar campos individuales
   void updateFirstName(String firstName) {
@@ -62,20 +62,32 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
     state = state.copyWith(emergencyContactName: name);
   }
   
-  void updateEmergencyContactPhone(String phone) {
-    state = state.copyWith(emergencyContactPhone: phone);
+  void updateEmergencyContactPhone(String? emergencyContactPhone) {
+    state = state.copyWith(emergencyContactPhone: emergencyContactPhone);
   }
   
-  void updatePosition(String position) {
+  void updatePosition(String? position) {
     state = state.copyWith(position: position);
   }
   
-  void updateExperience(String experience) {
+  void updateExperience(String? experience) {
     state = state.copyWith(experience: experience);
   }
   
-  void updateSpecialization(String specialization) {
+  void updateSpecialization(String? specialization) {
     state = state.copyWith(specialization: specialization);
+  }
+  
+  void updateProfileImage(File? profileImage) {
+    state = state.copyWith(profileImage: profileImage);
+  }
+  
+  void updateSubscriptionPlan(String? subscriptionPlanId) {
+    state = state.copyWith(subscriptionPlanId: subscriptionPlanId);
+  }
+  
+  void updateSubscriptionStartDate(DateTime? startDate) {
+    state = state.copyWith(subscriptionStartDate: startDate);
   }
   
   // Métodos para manejar pasos del formulario
@@ -271,6 +283,21 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
         'emergencyPhone': state.emergencyContactPhone,
       };
       
+      // Información de cliente para pagos/suscripciones
+      if (state.subscriptionPlanId != null) {
+        // Fecha de inicio de suscripción (hoy si no se especificó otra)
+        final startDate = state.subscriptionStartDate ?? DateTime.now();
+        
+        // Obtenemos una referencia al repositorio de suscripciones
+        final subscriptionRepository = ref.read(subscriptionRepositoryProvider);
+        
+        // Datos de cliente base (se actualizarán completos al asignar plan)
+        userData['clientData'] = {
+          'subscriptionPlanId': state.subscriptionPlanId,
+          'paymentStatus': 'active', // Marcamos como activo inicialmente
+        };
+      }
+      
       AppLogger.logInfo(
         'Guardando atleta con datos',
         className: _className,
@@ -287,6 +314,59 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
           .doc(academyId)
           .collection('users') // Subcolección 'users'
           .add(userData);
+
+      // Si se ha especificado un plan, asignarlo ahora
+      if (state.subscriptionPlanId != null) {
+        try {
+          final subscriptionRepository = ref.read(subscriptionRepositoryProvider);
+          final startDate = state.subscriptionStartDate ?? DateTime.now();
+          
+          final result = await subscriptionRepository.assignPlanToUser(
+            academyId, 
+            docRef.id, 
+            state.subscriptionPlanId!, 
+            startDate
+          );
+          
+          result.fold(
+            (failure) => AppLogger.logError(
+              message: 'Error al asignar plan de suscripción',
+              error: failure,
+              className: _className,
+              functionName: 'submitForm',
+              params: {
+                'academyId': academyId,
+                'userId': docRef.id,
+                'planId': state.subscriptionPlanId,
+              },
+            ),
+            (_) => AppLogger.logInfo(
+              'Plan de suscripción asignado correctamente',
+              className: _className,
+              functionName: 'submitForm',
+              params: {
+                'academyId': academyId,
+                'userId': docRef.id,
+                'planId': state.subscriptionPlanId,
+              },
+            ),
+          );
+        } catch (e, s) {
+          // Capturar errores de asignación de plan pero no fallar el registro completo
+          AppLogger.logError(
+            message: 'Error durante asignación de plan',
+            error: e,
+            stackTrace: s,
+            className: _className,
+            functionName: 'submitForm',
+            params: {
+              'academyId': academyId,
+              'userId': docRef.id,
+              'planId': state.subscriptionPlanId,
+            },
+          );
+        }
+      }
 
       AppLogger.logInfo(
         'Usuario/Atleta guardado en Firestore',
@@ -360,24 +440,24 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
       position: 'Defensa central'
     );
     
-    // Actualizar los controladores para reflejar los datos
-    if (ref.exists(addAthleteControllersProvider)) {
-      final controllers = ref.read(addAthleteControllersProvider);
-      controllers['firstName']?.text = state.firstName ?? '';
-      controllers['lastName']?.text = state.lastName ?? '';
-      controllers['birthDate']?.text = state.birthDate != null 
-          ? DateFormat('dd/MM/yyyy').format(state.birthDate!) 
-          : '';
-      controllers['phoneNumber']?.text = state.phoneNumber ?? '';
-      controllers['heightCm']?.text = state.heightCm?.toString() ?? '';
-      controllers['weightKg']?.text = state.weightKg?.toString() ?? '';
-      controllers['allergies']?.text = state.allergies ?? '';
-      controllers['medicalConditions']?.text = state.medicalConditions ?? '';
-      controllers['emergencyContactName']?.text = state.emergencyContactName ?? '';
-      controllers['emergencyContactPhone']?.text = state.emergencyContactPhone ?? '';
-      controllers['position']?.text = state.position ?? '';
-    }
+    // El resto de la lógica para actualizar controladores es manejada por el widget
   }
+}
+
+// Provider para el notifier manual
+final addAthleteProvider = StateNotifierProvider<AddAthleteStateNotifier, AddAthleteState>((ref) {
+  return AddAthleteStateNotifier(ref);
+});
+
+// Provider generado por riverpod (mantener para compatibilidad)
+@riverpod
+class AddAthleteNotifier extends _$AddAthleteNotifier {
+  @override
+  AddAthleteState build() {
+    return const AddAthleteState();
+  }
+  
+  // Dejar los métodos vacíos porque usaremos el StateNotifier manual
 }
 
 // Provider para los controladores del formulario

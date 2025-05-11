@@ -2,11 +2,13 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_model.dart';
 import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart';
 
 // Importar provider de Firestore
 import 'package:arcinus/core/providers/firebase_providers.dart';
@@ -14,6 +16,9 @@ import 'package:arcinus/core/providers/firebase_providers.dart';
 part 'subscription_repository_impl.g.dart';
 
 /// Implementación de [SubscriptionRepository] usando Firestore.
+/// NOTA: Esta implementación está deprecated y será reemplazada por la ubicada en domain/repositories/subscription_repository_impl.dart
+/// Mantiene solo los métodos originales por compatibilidad
+@Deprecated('Use la implementación ubicada en domain/repositories/subscription_repository_impl.dart')
 class SubscriptionRepositoryImpl implements SubscriptionRepository {
   static const String _className = 'SubscriptionRepositoryImpl';
   
@@ -155,6 +160,81 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       );
     }
   }
+  
+  // Implementación de los métodos restantes delegando al repositorio principal
+  
+  @override
+  Future<Either<Failure, List<SubscriptionPlanModel>>> getSubscriptionPlans(
+    String academyId, {
+    bool activeOnly = false,
+  }) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.getSubscriptionPlans(academyId, activeOnly: activeOnly);
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionPlanModel>> getSubscriptionPlan(
+    String academyId,
+    String planId,
+  ) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.getSubscriptionPlan(academyId, planId);
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionPlanModel>> createSubscriptionPlan(
+    String academyId,
+    SubscriptionPlanModel plan,
+  ) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.createSubscriptionPlan(academyId, plan);
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionPlanModel>> updateSubscriptionPlan(
+    String academyId,
+    String planId,
+    SubscriptionPlanModel plan,
+  ) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.updateSubscriptionPlan(academyId, planId, plan);
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteSubscriptionPlan(
+    String academyId,
+    String planId,
+  ) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.deleteSubscriptionPlan(academyId, planId);
+  }
+
+  @override
+  Future<Either<Failure, void>> assignPlanToUser(
+    String academyId,
+    String userId,
+    String planId,
+    DateTime startDate,
+  ) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.assignPlanToUser(academyId, userId, planId, startDate);
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionPlanModel?>> getUserPlan(
+    String academyId,
+    String userId,
+  ) async {
+    // Delegamos al repositorio principal
+    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
+    return mainRepository.getUserPlan(academyId, userId);
+  }
 }
 
 /// Provider para la implementación del repositorio de suscripciones.
@@ -166,5 +246,7 @@ SubscriptionRepository subscriptionRepository(Ref ref) {
     className: 'subscription_repository',
     functionName: 'subscriptionRepository',
   );
-  return SubscriptionRepositoryImpl(firestore);
+  // IMPORTANTE: Devolvemos la implementación del dominio, no esta clase
+  // Para mantener compatibilidad, redirigimos a través del provider principal
+  return ref.watch(subscriptionRepositoryProvider);
 }

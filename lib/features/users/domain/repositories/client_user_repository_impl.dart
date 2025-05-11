@@ -498,9 +498,9 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
         params: {'academyId': academyId, 'userId': userId},
       );
       
-      // Actualizar solo el campo clientData
+      // Actualizar el campo clientData como un mapa, no como un array
       await _getUsersCollection(academyId).doc(userId).update({
-        'clientData': FieldValue.arrayUnion([clientData]),
+        'clientData': clientData,
       });
       
       AppLogger.logInfo(

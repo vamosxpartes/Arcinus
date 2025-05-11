@@ -296,18 +296,19 @@ class ManagerDrawer extends ConsumerWidget {
           },
         ),
         
-        // --- Pagos ---
+        // --- Planes de Suscripción ---
         ListTile(
-          leading: Icon(Icons.payments, color: AppTheme.bonfireRed),
-          title: Text('Pagos'),
+          leading: Icon(Icons.subscriptions, color: AppTheme.bonfireRed),
+          title: Text('Planes de Suscripción'),
           onTap: () {
             Navigator.pop(context);
             final currentAcademy = ref.read(currentAcademyProvider);
             if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              context.go('${AppRoutes.managerAcademyPayments.replaceAll(':academyId', currentAcademy.id!)}');
+              // Utilizamos una ruta temporal ya que la definitiva deberá agregarse en el router
+              context.go('/manager/academy/${currentAcademy.id}/subscription-plans');
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Por favor, selecciona una academia para gestionar pagos.')),
+                SnackBar(content: Text('Por favor, selecciona una academia primero')),
               );
             }
           },

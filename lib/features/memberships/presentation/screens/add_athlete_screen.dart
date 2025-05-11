@@ -5,6 +5,12 @@ import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.d
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
+import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 
 class AddAthleteScreen extends ConsumerWidget {
   final String academyId;
@@ -12,15 +18,57 @@ class AddAthleteScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Obtener la notificación y estado del formulario
-    final addAthleteState = ref.watch(addAthleteNotifierProvider);
-    final addAthleteNotifier = ref.read(addAthleteNotifierProvider.notifier);
+    final activeAcademyState = ref.watch(currentAcademyProvider);
+    final academyId = activeAcademyState?.id ?? this.academyId;
     
-    // Obtener los controladores de formulario
-    final controllers = ref.watch(addAthleteControllersProvider);
+    final addAthleteState = ref.watch(addAthleteProvider);
+    final addAthleteNotifier = ref.read(addAthleteProvider.notifier);
+    final controllers = ref.read(addAthleteControllersProvider);
+    final userId = ref.read(authStateNotifierProvider).user?.id ?? '';
+    
+    if (addAthleteState.isSuccess) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Atleta Registrado'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 100,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Atleta registrado correctamente',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  // Resetear el formulario y volver a la lista de atletas
+                  addAthleteNotifier.resetForm();
+                  context.go('/manager/academy/$academyId/members');
+                },
+                child: const Text('Volver a la lista'),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Resetear el formulario para registrar otro atleta
+                  addAthleteNotifier.resetForm();
+                },
+                child: const Text('Registrar otro atleta'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     // Configurar título en la navegación
-    ref.listen(addAthleteNotifierProvider, (previous, next) {
+    ref.listen(addAthleteProvider, (previous, next) {
       if (next.isSuccess) {
         // Mostrar snackbar de éxito y volver a la lista de atletas
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,8 +149,6 @@ class AddAthleteScreen extends ConsumerWidget {
                   addAthleteNotifier.updateEmergencyContactPhone(emergencyContactPhone);
                   addAthleteNotifier.updatePosition(position);
                   
-                  final userId = 'usuario_actual'; // Este debería venir de un provider de autenticación
-                  
                   // Enviar formulario
                   addAthleteNotifier.submitForm(academyId, userId);
                 } else if (addAthleteState.isStepValid) {
@@ -164,7 +210,7 @@ class AddAthleteScreen extends ConsumerWidget {
     AddAthleteState state,
     Map<String, TextEditingController> controllers,
   ) {
-    final addAthleteNotifier = ref.read(addAthleteNotifierProvider.notifier);
+    final addAthleteNotifier = ref.read(addAthleteProvider.notifier);
     final addAthleteControllers = ref.read(addAthleteControllersProvider.notifier);
     
     return <Step>[
@@ -514,6 +560,132 @@ class AddAthleteScreen extends ConsumerWidget {
           ],
         ),
       ),
+      Step(
+        state: state.currentStep >= 5 ? StepState.complete : StepState.indexed,
+        isActive: state.currentStep >= 5,
+        title: const Text('Plan de Suscripción'),
+        content: _buildSubscriptionPlanStep(academyId, addAthleteNotifier),
+      ),
     ];
+  }
+
+  // Widget para el paso de selección de plan de suscripción
+  Widget _buildSubscriptionPlanStep(String academyId, dynamic addAthleteNotifier) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final plansAsyncValue = ref.watch(activeSubscriptionPlansProvider(academyId));
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Asignar plan de suscripción',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Este paso es opcional. Puedes asignar un plan de suscripción ahora o hacerlo más tarde.',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            
+            // Lista de planes disponibles
+            plansAsyncValue.when(
+              data: (plans) {
+                if (plans.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No hay planes disponibles. Puedes crearlos en la sección de Planes de Suscripción.',
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                
+                return Column(
+                  children: [
+                    // Selector de planes
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Seleccionar plan',
+                        border: OutlineInputBorder(),
+                      ),
+                      hint: const Text('Seleccionar un plan (opcional)'),
+                      value: null,
+                      onChanged: (planId) {
+                        if (planId != null) {
+                          // Usar método dinámico para actualizar
+                          addAthleteNotifier.updateSubscriptionPlan(planId);
+                        }
+                      },
+                      items: [
+                        // Opción para no seleccionar plan
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('No asignar plan'),
+                        ),
+                        // Opciones de planes disponibles
+                        ...plans.map((plan) => DropdownMenuItem<String>(
+                          value: plan.id,
+                          child: Text('${plan.name} - ${plan.amount} ${plan.currency} / ${plan.billingCycle.displayName}'),
+                        )),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Selector de fecha de inicio
+                    InkWell(
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: now,
+                          firstDate: now.subtract(const Duration(days: 7)), // Permitir seleccionar hasta 7 días atrás
+                          lastDate: now.add(const Duration(days: 30)), // Permitir seleccionar hasta 30 días adelante
+                        );
+                        
+                        if (date != null) {
+                          // Usar método dinámico para actualizar
+                          addAthleteNotifier.updateSubscriptionStartDate(date);
+                        }
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'Fecha de inicio',
+                          border: OutlineInputBorder(),
+                          suffixIcon: Icon(Icons.calendar_today),
+                        ),
+                        isEmpty: false,
+                        child: Text(
+                          // Obtener fecha de manera segura
+                          _getSubscriptionDateText(addAthleteNotifier),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(
+                child: Text('Error al cargar planes: $error'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  // Función auxiliar para obtener el texto de la fecha de manera segura
+  String _getSubscriptionDateText(dynamic notifier) {
+    try {
+      final startDate = notifier.state.subscriptionStartDate;
+      if (startDate != null && startDate is DateTime) {
+        return DateFormat('dd/MM/yyyy').format(startDate);
+      }
+    } catch (e) {
+      // Ignorar errores de acceso
+    }
+    return 'Seleccionar fecha (hoy por defecto)';
   }
 } 

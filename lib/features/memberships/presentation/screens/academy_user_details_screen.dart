@@ -2,7 +2,12 @@ import 'package:arcinus/core/auth/app_permissions.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
+import 'package:arcinus/features/memberships/presentation/screens/edit_athlete_screen.dart';
 import 'package:arcinus/features/memberships/presentation/widgets/permission_widget.dart';
+import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
+import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -40,9 +45,33 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
               icon: const Icon(Icons.edit),
               tooltip: 'Editar usuario',
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Función en desarrollo: Editar usuario')),
-                );
+                if (userAsyncValue.value == null) return;
+                
+                final user = userAsyncValue.value!;
+                final userRole = user.role != null
+                    ? AppRole.values.firstWhere(
+                        (r) => r.name == user.role,
+                        orElse: () => AppRole.atleta,
+                      )
+                    : AppRole.atleta;
+                    
+                if (userRole == AppRole.atleta) {
+                  // Si es atleta, navegamos a la pantalla de edición específica para atletas
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => EditAthleteScreen(
+                        academyId: academyId,
+                        userId: userId,
+                        initialUserData: user,
+                      ),
+                    ),
+                  );
+                } else {
+                  // Para otros roles, mostramos mensaje que está en desarrollo
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Función en desarrollo: Editar usuario no atleta')),
+                  );
+                }
               },
             ),
           ),
@@ -53,7 +82,15 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
           if (user == null) {
             return const Center(child: Text('Usuario no encontrado'));
           }
-          return _buildUserDetails(context, user);
+          
+          final userRole = user.role != null
+              ? AppRole.values.firstWhere(
+                  (r) => r.name == user.role,
+                  orElse: () => AppRole.atleta,
+                )
+              : AppRole.atleta;
+              
+          return _buildUserDetails(context, ref, user, userRole);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Center(
@@ -63,7 +100,14 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildUserDetails(BuildContext context, AcademyUserModel user) {
+  Widget _buildUserDetails(BuildContext context, WidgetRef ref, AcademyUserModel user, AppRole userRole) {
+    final isAthlete = userRole == AppRole.atleta;
+    
+    // Si es atleta, también cargamos la información de suscripción
+    final clientUserAsync = isAthlete 
+        ? ref.watch(clientUserProvider(user.id))
+        : null;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -128,6 +172,311 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          
+          const SizedBox(height: 16),
+          
+          // Tarjeta de suscripción para atletas
+          if (isAthlete && clientUserAsync != null)
+            clientUserAsync.when(
+              data: (clientUser) {
+                if (clientUser == null) {
+                  return const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No hay información de suscripción disponible'),
+                    ),
+                  );
+                }
+                
+                // Colores según estado de pago
+                final Color statusColor;
+                switch (clientUser.paymentStatus) {
+                  case PaymentStatus.active:
+                    statusColor = Colors.green;
+                    break;
+                  case PaymentStatus.overdue:
+                    statusColor = Colors.orange;
+                    break;
+                  case PaymentStatus.inactive:
+                  // ignore: unreachable_switch_default
+                  default:
+                    statusColor = Colors.grey;
+                    break;
+                }
+
+                return Card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Encabezado
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: SizedBox(
+                          height: 100,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.payments, color: Theme.of(context).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Suscripción Actual',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const Spacer(),
+                              SizedBox(
+                                width: 150,
+                                height: 50,
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.receipt_long),
+                                  label: const Text('Ver pagos'),
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => AthletePaymentsScreen(
+                                          athleteId: user.id,
+                                          athleteName: user.fullName,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
+                      const Divider(height: 1),
+                      
+                      // Estado de pago
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              clientUser.paymentStatus == PaymentStatus.active
+                                  ? Icons.check_circle
+                                  : (clientUser.paymentStatus == PaymentStatus.overdue
+                                      ? Icons.warning
+                                      : Icons.cancel),
+                              color: statusColor,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Estado: ${clientUser.paymentStatus.displayName}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: statusColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Detalles del plan
+                      if (clientUser.subscriptionPlan != null)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Plan: ${clientUser.subscriptionPlan!.name}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Monto: ${clientUser.subscriptionPlan!.amount} ${clientUser.subscriptionPlan!.currency}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              Text(
+                                'Ciclo: ${clientUser.subscriptionPlan!.billingCycle.displayName}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              if (clientUser.subscriptionPlan!.benefits.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Beneficios:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                ...clientUser.subscriptionPlan!.benefits.map((benefit) => 
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 8, top: 4),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.check, size: 14, color: Colors.green),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          benefit,
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      
+                      // Información de fechas y progreso
+                      if (clientUser.nextPaymentDate != null && clientUser.lastPaymentDate != null)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Información de Pago:',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Último pago: ${DateFormat('dd/MM/yyyy').format(clientUser.lastPaymentDate!)}',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              Text(
+                                'Próximo pago: ${DateFormat('dd/MM/yyyy').format(clientUser.nextPaymentDate!)}',
+                                style: TextStyle(
+                                  fontSize: 14, 
+                                  fontWeight: FontWeight.bold,
+                                  color: clientUser.remainingDays != null && clientUser.remainingDays! < 5
+                                    ? Colors.red
+                                    : AppTheme.darkGray,
+                                ),
+                              ),
+                              
+                              // Barra de progreso
+                              if (clientUser.remainingDays != null) ...[
+                                const SizedBox(height: 12),
+                                
+                                // Cálculo para la barra de progreso
+                                Builder(
+                                  builder: (context) {
+                                    final now = DateTime.now();
+                                    final lastPayment = clientUser.lastPaymentDate!;
+                                    final nextPayment = clientUser.nextPaymentDate!;
+                                    
+                                    // Solo mostrar si las fechas son lógicas
+                                    if (nextPayment.isAfter(now) && nextPayment.isAfter(lastPayment)) {
+                                      // Cálculo de días totales y restantes
+                                      final totalDays = nextPayment.difference(lastPayment).inDays;
+                                      final daysElapsed = now.difference(lastPayment).inDays;
+                                      
+                                      // Evitar división por cero
+                                      final double progressPercent = totalDays > 0 
+                                          ? daysElapsed / totalDays 
+                                          : 0.0;
+                                      
+                                      // Límites para asegurar que está entre 0 y 1
+                                      final double clampedProgress = progressPercent.clamp(0.0, 1.0);
+                                      
+                                      // Color según días restantes
+                                      final Color progressColor;
+                                      if (clientUser.remainingDays! < 5) {
+                                        progressColor = Colors.red;
+                                      } else if (clientUser.remainingDays! < 15) {
+                                        progressColor = Colors.orange;
+                                      } else {
+                                        progressColor = Colors.green;
+                                      }
+                                      
+                                      return Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Información sobre días restantes
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Período actual:',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppTheme.darkGray,
+                                                ),
+                                              ),
+                                              Text(
+                                                '${clientUser.remainingDays} días restantes',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: clientUser.remainingDays! < 5 ? Colors.red : AppTheme.darkGray,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          
+                                          // Barra de progreso
+                                          const SizedBox(height: 4),
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(2),
+                                            child: LinearProgressIndicator(
+                                              value: clampedProgress,
+                                              backgroundColor: Colors.grey.withOpacity(0.2),
+                                              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                                              minHeight: 5,
+                                            ),
+                                          ),
+                                          
+                                          // Fechas de inicio y fin
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                DateFormat('dd/MM/yyyy').format(lastPayment),
+                                                style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
+                                              ),
+                                              Text(
+                                                DateFormat('dd/MM/yyyy').format(nextPayment),
+                                                style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      );
+                                    }
+                                    
+                                    return const SizedBox.shrink();
+                                  }
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+              ),
+              error: (error, _) => Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('Error al cargar información de suscripción: $error'),
+                ),
+              ),
+            ),
           
           const SizedBox(height: 16),
           

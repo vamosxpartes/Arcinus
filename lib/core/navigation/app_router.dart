@@ -4,7 +4,6 @@ import 'package:arcinus/features/academies/presentation/providers/owner_academie
 import 'package:arcinus/features/academies/presentation/ui/screens/create_academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/academy_screen.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
-import 'package:arcinus/features/auth/presentation/providers/user_profile_provider.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/login_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/member_access_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/register_screen.dart';
@@ -35,8 +34,8 @@ import 'package:arcinus/features/memberships/presentation/providers/membership_p
 // Importar los nuevos Shell Widgets
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/navigation_shells/super_admin_shell/super_admin_shell.dart';
-
 import 'package:arcinus/features/users/presentation/ui/screens/profile_screen.dart';
+import 'package:arcinus/features/subscriptions/presentation/screens/subscription_plans_screen.dart';
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -688,6 +687,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                         return const PaymentsScreen();
                       },
                     );
+                  },
+                ),
+                GoRoute(
+                  path: 'subscription-plans',
+                  name: 'managerAcademySubscriptionPlans',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return SubscriptionPlansScreen(academyId: academyId);
                   },
                 ),
               ],

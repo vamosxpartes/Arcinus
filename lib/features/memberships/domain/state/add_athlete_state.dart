@@ -30,6 +30,10 @@ class AddAthleteState with _$AddAthleteState {
     // Paso 5: Imagen de perfil
     File? profileImage,
     
+    // Paso 6: Plan de suscripción
+    String? subscriptionPlanId,
+    DateTime? subscriptionStartDate,
+    
     // Estado general del formulario
     @Default(0) int currentStep,
     @Default(false) bool isSubmitting,
@@ -56,6 +60,8 @@ class AddAthleteState with _$AddAthleteState {
   
   bool get isImageValid => true; // Opcional, siempre válido
   
+  bool get isSubscriptionValid => true; // Opcional, siempre válido
+  
   bool get canSubmit => 
       isPersonalInfoValid && 
       !isSubmitting &&
@@ -73,6 +79,8 @@ class AddAthleteState with _$AddAthleteState {
         return isSportsInfoValid;
       case 4:
         return isImageValid;
+      case 5:
+        return isSubscriptionValid;
       default:
         return false;
     }
