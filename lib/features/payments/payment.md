@@ -7,27 +7,22 @@ El módulo de pagos permite a los propietarios de academias gestionar todos los 
 
 ### Modelos
 - **PaymentModel**: Representa un pago individual con propiedades como monto, moneda, fecha, concepto y más.
-- **ClientUserModel**: Representa un usuario cliente (atleta o padre) con información relacionada con pagos y suscripciones.
-- **ManagerUserModel**: Representa un usuario gestor (propietario o colaborador) con sus permisos y atributos de gestión.
 - **SubscriptionPlanModel**: Representa un plan de suscripción disponible en la academia.
 
+> **NOTA:** Los modelos `ClientUserModel` y `ManagerUserModel` han sido trasladados al módulo de usuarios y se importan desde allí.
+
 ### Enumeraciones
-- **PaymentStatus**: Define los posibles estados de pago de un usuario cliente (active, overdue, inactive).
-- **ManagerStatus**: Define los posibles estados de un usuario gestor (active, restricted, inactive).
-- **ManagerPermission**: Define los permisos disponibles para un usuario gestor.
+- **PaymentStatus**: Define los posibles estados de pago de un usuario cliente (active, overdue, inactive). Se encuentra ahora en el módulo de usuarios.
 - **BillingCycle**: Define los ciclos de facturación disponibles (monthly, quarterly, biannual, annual).
 
 ### Repositorios
 - **PaymentRepository**: Interfaz para definir las operaciones relacionadas con pagos.
 - **PaymentRepositoryImpl**: Implementación que utiliza Firestore para almacenar y recuperar pagos.
-- **ClientUserRepository**: Interfaz para definir las operaciones relacionadas con usuarios cliente.
-- **ClientUserRepositoryImpl**: Implementación que gestiona los datos de usuarios cliente en Firestore.
 
 ### Providers (Riverpod)
 - **PaymentsNotifier**: Gestiona los pagos a nivel de academia.
 - **AthletePaymentsNotifier**: Gestiona los pagos específicos de un atleta.
 - **PaymentFormNotifier**: Gestiona el estado del formulario de registro de pagos.
-- **ClientUserProvider**: Gestiona información de los usuarios cliente.
 - **FilteredPaymentsProvider**: Proporciona pagos filtrados según diversos criterios.
 
 ### Pantallas

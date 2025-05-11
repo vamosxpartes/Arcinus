@@ -4,10 +4,7 @@ import 'package:arcinus/features/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
-
-// Instancia de Logger
-final _logger = Logger();
+import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Configura el tema, la localización y el enrutador principal.
 class ArcinusApp extends ConsumerWidget {
@@ -16,12 +13,12 @@ class ArcinusApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    _logger.d('ArcinusApp: Build started');
+    AppLogger.logInfo('ArcinusApp: Build started');
     try {
       // Obtenemos el router desde el provider
-      _logger.d('ArcinusApp: Watching routerProvider...');
+      AppLogger.logInfo('ArcinusApp: Watching routerProvider...');
       final router = ref.watch(routerProvider);
-      _logger.d('ArcinusApp: routerProvider obtained');
+      AppLogger.logInfo('ArcinusApp: routerProvider obtained');
       
       final appWidget = MaterialApp.router(
         title: 'Arcinus',
@@ -42,10 +39,14 @@ class ArcinusApp extends ConsumerWidget {
         // Configuración de GoRouter
         routerConfig: router,
       );
-      _logger.d('ArcinusApp: Build finished successfully');
+      AppLogger.logInfo('ArcinusApp: Build finished successfully');
       return appWidget;
     } catch (e, stackTrace) {
-      _logger.e('ArcinusApp: CRITICAL ERROR during build', error: e, stackTrace: stackTrace);
+      AppLogger.logError(
+        message: 'ArcinusApp: CRITICAL ERROR during build',
+        error: e,
+        stackTrace: stackTrace
+      );
       // Fallback UI
       return MaterialApp(home: Scaffold(body: Center(child: Text("Error en ArcinusApp build: $e"))));
     }

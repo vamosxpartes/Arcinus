@@ -24,6 +24,8 @@ class AddAthleteState with _$AddAthleteState {
     
     // Paso 4: Información deportiva
     String? position,
+    String? experience,
+    String? specialization,
     
     // Paso 5: Imagen de perfil
     File? profileImage,

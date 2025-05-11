@@ -1,7 +1,7 @@
 import 'package:arcinus/core/auth/app_permissions.dart';
 import 'package:arcinus/features/memberships/data/models/membership_model.dart';
 import 'package:arcinus/features/memberships/presentation/providers/edit_permissions_provider.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

@@ -2,7 +2,7 @@ import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/auth/data/models/user_model.dart';
 import 'package:arcinus/features/memberships/presentation/providers/invite_member_provider.dart';
 import 'package:arcinus/features/memberships/presentation/providers/state/invite_member_state.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

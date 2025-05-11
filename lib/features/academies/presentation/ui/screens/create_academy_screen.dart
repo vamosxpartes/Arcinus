@@ -5,10 +5,7 @@ import 'package:arcinus/features/theme/ui/loading/loading_indicator.dart'; // Us
 import 'package:arcinus/features/theme/ui/feedback/error_display.dart'; // Usar el mismo ErrorDisplay
 import 'package:go_router/go_router.dart'; // Importar GoRouter
 import 'package:arcinus/core/navigation/app_routes.dart'; // Importar rutas de la app
-import 'package:logger/logger.dart'; // Importar logger
-
-// Instancia de Logger
-final _logger = Logger();
+import 'package:arcinus/core/utils/app_logger.dart';
 
 class CreateAcademyScreen extends ConsumerWidget {
   const CreateAcademyScreen({super.key});
@@ -49,10 +46,10 @@ class CreateAcademyScreen extends ConsumerWidget {
         },
         success: (academyId) {
           // La navegación debería ocurrir automáticamente por GoRouter.redirect
-          _logger.i('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
+          AppLogger.logInfo('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
           
           // Redirección manual al dashboard del propietario
-          _logger.d('Forzando redirección manual a la ruta del propietario');
+          AppLogger.logInfo('Forzando redirección manual a la ruta del propietario');
           context.go(AppRoutes.ownerRoot);
         },
         orElse: () {},

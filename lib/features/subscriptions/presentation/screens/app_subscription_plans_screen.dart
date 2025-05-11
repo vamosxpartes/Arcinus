@@ -1,4 +1,4 @@
-import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/app_subscription_model.dart';
 import 'package:arcinus/features/subscriptions/presentation/providers/app_subscription_provider.dart';
 import 'package:flutter/material.dart';

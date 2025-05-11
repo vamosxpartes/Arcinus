@@ -1,7 +1,7 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/data/repositories/payment_repository_impl.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
@@ -172,7 +172,6 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
   }
 
   Widget _buildPaymentStatusIndicator() {
-    // TODO: Obtener estado real del usuario desde un provider
     const status = 'active'; // Simulación: Cambiar por datos reales
     
     Color statusColor;
@@ -210,7 +209,6 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
   }
 
   Widget _buildSubscriptionInfo() {
-    // TODO: Obtener información del plan desde un provider
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

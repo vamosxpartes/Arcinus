@@ -2,7 +2,7 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:arcinus/features/academies/domain/repositories/academy_repository.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
-import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/app_subscription_model.dart';
 import 'package:arcinus/features/subscriptions/domain/repositories/app_subscription_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

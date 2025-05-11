@@ -56,27 +56,6 @@ class ProfileScreen extends ConsumerWidget {
                 label: 'Correo Electrónico',
                 value: userProfile.email, // email es requerido, no necesita ??
               ),
-              // TODO: Descomentar cuando UserModel tenga el campo 'phone'
-              // _buildProfileDetailItem(
-              //   icon: Icons.phone_outlined,
-              //   label: 'Teléfono',
-              //   value: userProfile.phone ?? 'No especificado',
-              // ),
-              // TODO: Descomentar y ajustar cuando UserModel tenga el campo 'role'/'roles'
-              // _buildProfileDetailItem(
-              //   icon: Icons.badge_outlined,
-              //   label: 'Rol Principal',
-              //   value: userProfile.role?.displayName ?? 'No especificado',
-              // ),
-              // if (userProfile.roles != null && userProfile.roles!.length > 1)
-              //   _buildProfileDetailItem(
-              //     icon: Icons.group_work_outlined,
-              //     label: 'Otros Roles',
-              //     value: userProfile.roles!
-              //         .where((role) => role != userProfile.role)
-              //         .map((role) => role.displayName)
-              //         .join(', '),
-              //   ),
               _buildProfileDetailItem(
                 icon: Icons.calendar_today_outlined,
                 label: 'Miembro desde',

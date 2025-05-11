@@ -70,6 +70,14 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
     state = state.copyWith(position: position);
   }
   
+  void updateExperience(String experience) {
+    state = state.copyWith(experience: experience);
+  }
+  
+  void updateSpecialization(String specialization) {
+    state = state.copyWith(specialization: specialization);
+  }
+  
   // Métodos para manejar pasos del formulario
   void nextStep() {
     if (state.currentStep < 4) { // 5 pasos en total (0-4)
@@ -234,6 +242,33 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
         'createdBy': userId, // ID del usuario que crea este registro
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      // Preparar la información deportiva
+      if (state.position != null && state.position!.isNotEmpty) {
+        userData['sportData'] = {
+          'position': state.position,
+          'experience': state.experience,
+          'specialization': state.specialization,
+        };
+      }
+      
+      // Información física como métricas
+      userData['metrics'] = {
+        'height': state.heightCm,
+        'weight': state.weightKg,
+      };
+      
+      // Información médica
+      userData['medicalInfo'] = {
+        'allergies': state.allergies,
+        'conditions': state.medicalConditions,
+      };
+      
+      // Información de contacto
+      userData['contactInfo'] = {
+        'emergencyName': state.emergencyContactName,
+        'emergencyPhone': state.emergencyContactPhone,
       };
       
       AppLogger.logInfo(

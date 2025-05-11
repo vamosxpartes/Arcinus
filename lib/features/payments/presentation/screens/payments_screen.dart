@@ -1,5 +1,5 @@
 import 'package:arcinus/core/error/failures.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
@@ -240,7 +240,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
           },
         ),
         onTap: () {
-          // TODO: Navegar a la vista detallada del pago
+          // Navegar a la vista detallada del pago
         },
       ),
     );
@@ -273,7 +273,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                 title: const Text('Ver detalles'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navegar a la vista detallada del pago
+                  // Navegar a la vista detallada del pago
                 },
               ),
               ListTile(
@@ -281,7 +281,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
                 title: const Text('Editar'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navegar a la pantalla de edición de pago
+                  // Navegar a la pantalla de edición de pago
                 },
               ),
               ListTile(
@@ -316,15 +316,19 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                // TODO: Implementar eliminación de pago
+                // Implementar eliminación de pago
                 ref.read(academyPaymentsNotifierProvider.notifier).deletePayment(payment.id!).then((_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Pago eliminado correctamente')),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Pago eliminado correctamente')),
+                    );
+                  }
                 }).catchError((error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error al eliminar el pago: $error')),
-                  );
+                  if (context.mounted) {  
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error al eliminar el pago: $error')),
+                    );
+                  }
                 });
               },
               child: const Text('Eliminar', style: TextStyle(color: Colors.red)),

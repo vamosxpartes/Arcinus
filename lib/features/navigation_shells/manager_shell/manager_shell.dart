@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/widgets/manager_drawer.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/core/auth/roles.dart';
 
-/// Provider para manejar el título de la pantalla actual
+// Provider para manejar el título de la pantalla actual
 final currentScreenTitleProvider = StateProvider<String>((ref) => 'Arcinus');
 
 /// Widget Shell para roles de gestión (Propietario y Colaborador).
@@ -129,7 +129,7 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
                 userRole == AppRole.propietario ? 'Propietario' : 'Colaborador',
                 style: const TextStyle(fontSize: 12, color: Colors.white),
               ),
-              backgroundColor: appBarColor.withOpacity(0.7),
+              backgroundColor: appBarColor.withAlpha(178),
               visualDensity: VisualDensity.compact,
             ),
           ),

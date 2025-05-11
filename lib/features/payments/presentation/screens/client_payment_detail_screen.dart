@@ -69,7 +69,6 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
 
   // Tarjeta con información de suscripción actual
   Widget _buildSubscriptionCard() {
-    // TODO: Obtener datos reales de suscripción desde un provider
     // Datos simulados para demostración
     final planName = 'Plan Mensual';
     final planPrice = '\$50.000 / mes';
@@ -106,8 +105,10 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     Text(
+                      // ignore: dead_code
                       isActive ? 'Estado: Activo' : 'Estado: Pendiente de pago',
                       style: TextStyle(
+                        // ignore: dead_code
                         color: isActive ? Colors.green : Colors.orange,
                         fontWeight: FontWeight.bold,
                       ),
@@ -311,7 +312,6 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
           if (payment.receiptUrl != null && payment.receiptUrl!.isNotEmpty)
             TextButton(
               onPressed: () {
-                // TODO: Implementar visualización o descarga de comprobante
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Próximamente: Ver comprobante')),

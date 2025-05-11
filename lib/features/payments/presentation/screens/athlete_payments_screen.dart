@@ -1,6 +1,6 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/data/repositories/payment_repository_impl.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';

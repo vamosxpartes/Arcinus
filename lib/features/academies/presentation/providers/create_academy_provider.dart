@@ -17,10 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:arcinus/core/error/failures.dart'; // Asumiendo ubicación
 import 'package:arcinus/core/auth/roles.dart'; // Needed for AppRole
 import 'package:arcinus/features/memberships/data/models/membership_model.dart'; // Importar MembershipModel
-import 'package:logger/logger.dart'; // Importar logger
-
-// Instancia de Logger
-final _logger = Logger();
+import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Provider for managing the state of academy creation.
 final createAcademyProvider = StateNotifierProvider.autoDispose<
@@ -30,7 +27,7 @@ final createAcademyProvider = StateNotifierProvider.autoDispose<
   final subscriptionRepository = ref.watch(subscriptionRepositoryProvider); // Obtener repo subs
   final membershipRepository = ref.watch(membershipRepositoryProvider); // <-- Añadir Repo Membresías
   final firebaseAuth = ref.watch(firebaseAuthProvider); // Para obtener el User ID
-  _logger.d('Creando CreateAcademyNotifier con dependencias reales');
+  AppLogger.logInfo('Creando CreateAcademyNotifier con dependencias reales');
   return CreateAcademyNotifier(ref, academyRepository, subscriptionRepository, membershipRepository, firebaseAuth); // <-- Pasar Repo Membresías
 });
 
@@ -75,7 +72,7 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
       if (nameController.text.trim().isEmpty) {
           nameValidationError = 'Ingresa el nombre de la academia';
       }
-      _logger.w('Formulario inválido');
+      AppLogger.logWarning('Formulario inválido');
       // No retornar aún, verificar deporte también
     }
 
@@ -83,7 +80,7 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
     String? sportValidationError;
     if (selectedSportCode == null) {
       sportValidationError = 'Debes seleccionar un deporte';
-      _logger.w('Error: Deporte no seleccionado');
+      AppLogger.logWarning('Error: Deporte no seleccionado');
     }
 
     // Si hay algún error de validación, actualizar estado y retornar
@@ -100,7 +97,9 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
     // 3. Obtener User ID
     final user = _firebaseAuth.currentUser;
     if (user == null) {
-      _logger.e('Error: Usuario no autenticado');
+      AppLogger.logError(
+        message: 'Error: Usuario no autenticado'
+      );
       state = const CreateAcademyState.error(
         Failure.authError(code: 'unauthenticated'),
       );
@@ -111,7 +110,7 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
     // 4. Iniciar estado de carga
     state = const CreateAcademyState.loading();
-    _logger.d('Estado: Cargando creación de academia para usuario $userId');
+    AppLogger.logInfo('Estado: Cargando creación de academia para usuario $userId');
 
     // 5. Intentar crear con llamada real al repositorio
     try {
@@ -127,16 +126,19 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
       await academyResult.fold(
         (failure) async {
-          _logger.e('Estado: Error creando academia - $failure', error: failure);
+          AppLogger.logError(
+            message: 'Estado: Error creando academia - $failure',
+            error: failure
+          );
           state = CreateAcademyState.error(failure);
           _clearErrorAfterDelay();
         },
         (createdAcademy) async {
-          _logger.i('Estado: Éxito creando academia - ID: ${createdAcademy.id}');
+          AppLogger.logInfo('Estado: Éxito creando academia - ID: ${createdAcademy.id}');
 
           // PASO 2: Crear suscripción inicial
           try {
-            _logger.d('Creando suscripción inicial para la academia ${createdAcademy.id}');
+            AppLogger.logInfo('Creando suscripción inicial para la academia ${createdAcademy.id}');
             // Definir suscripción inicial (ej. trial de 30 días)
             final initialSubscription = SubscriptionModel(
               academyId: createdAcademy.id!,
@@ -148,14 +150,17 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
             await subscriptionResult.fold(
               (subFailure) async {
-                 _logger.e('Error creando suscripción inicial: $subFailure. Fallando operación completa...', error: subFailure);
+                 AppLogger.logError(
+                   message: 'Error creando suscripción inicial: $subFailure. Fallando operación completa...',
+                   error: subFailure
+                 );
                  // Si falla la suscripción, revertir estado a error.
                  state = CreateAcademyState.error(subFailure);
                  _clearErrorAfterDelay();
                  // Opcional: Podríamos intentar eliminar la academia creada aquí, pero es complejo.
               },
               (_) async { // Suscripción creada
-                 _logger.i('Suscripción inicial creada con éxito.');
+                 AppLogger.logInfo('Suscripción inicial creada con éxito.');
 
                  // PASO 3: Crear membresía para el propietario
                  try {
@@ -170,14 +175,17 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
                    membershipResult.fold(
                      (memFailure) {
-                        _logger.e('Error creando membresía del propietario: $memFailure. Continuando...', error: memFailure);
+                        AppLogger.logError(
+                          message: 'Error creando membresía del propietario: $memFailure. Continuando...',
+                          error: memFailure
+                        );
                         // Decidir: ¿fallar todo? Por ahora, solo log y éxito parcial.
                         state = CreateAcademyState.success(createdAcademy.id!);
                         // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
                         _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
                      },
                      (_) {
-                        _logger.i('Membresía del propietario creada con éxito.');
+                        AppLogger.logInfo('Membresía del propietario creada con éxito.');
                         // Todas las operaciones (Academia, Suscripción, Membresía) exitosas
                         state = CreateAcademyState.success(createdAcademy.id!); 
                         // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
@@ -185,7 +193,11 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                      }
                    );
                  } catch (memError, memStackTrace) {
-                    _logger.e('Excepción inesperada creando membresía: $memError', error: memError, stackTrace: memStackTrace);
+                    AppLogger.logError(
+                      message: 'Excepción inesperada creando membresía: $memError',
+                      error: memError,
+                      stackTrace: memStackTrace
+                    );
                     state = CreateAcademyState.success(createdAcademy.id!); 
                     // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
                     _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
@@ -194,7 +206,11 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
             );
 
           } catch (subError, subStackTrace) {
-             _logger.e('Excepción inesperada creando suscripción: $subError', error: subError, stackTrace: subStackTrace);
+             AppLogger.logError(
+               message: 'Excepción inesperada creando suscripción: $subError',
+               error: subError,
+               stackTrace: subStackTrace
+             );
              state = CreateAcademyState.error(Failure.unexpectedError(error: subError, stackTrace: subStackTrace));
              _clearErrorAfterDelay();
           }
@@ -202,7 +218,11 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
       );
 
     } catch (e, stackTrace) {
-      _logger.e('Estado: Error (excepción inesperada) creando academia', error: e, stackTrace: stackTrace);
+      AppLogger.logError(
+        message: 'Estado: Error (excepción inesperada) creando academia',
+        error: e,
+        stackTrace: stackTrace
+      );
       state = CreateAcademyState.error(Failure.unexpectedError(error: e, stackTrace: stackTrace));
       _clearErrorAfterDelay();
     }
@@ -219,7 +239,7 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
   @override
   void dispose() {
-    _logger.d('Disposing CreateAcademyNotifier controllers');
+    AppLogger.logInfo('Disposing CreateAcademyNotifier controllers');
     nameController.dispose();
     super.dispose();
   }

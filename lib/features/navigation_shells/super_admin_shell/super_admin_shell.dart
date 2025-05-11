@@ -175,7 +175,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           title: const Text('Dashboard'),
           onTap: () {
             Navigator.pop(context); // Cerrar drawer
-            // TODO: Implementar navegación
           },
         ),
         const Divider(),
@@ -188,7 +187,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           title: const Text('Usuarios'),
           onTap: () {
             Navigator.pop(context);
-            // TODO: Implementar navegación
           },
         ),
         ListTile(
@@ -196,7 +194,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           title: const Text('Academias'),
           onTap: () {
             Navigator.pop(context);
-            // TODO: Implementar navegación
           },
         ),
         ListTile(
@@ -204,7 +201,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           title: const Text('Métricas'),
           onTap: () {
             Navigator.pop(context);
-            // TODO: Implementar navegación
           },
         ),
         const Divider(),
@@ -217,7 +213,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           title: const Text('Configuración'),
           onTap: () {
             Navigator.pop(context);
-            // TODO: Implementar navegación
           },
         ),
         ListTile(
@@ -241,7 +236,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           className: 'SuperAdminShell',
           functionName: '_handleMenuSelection',
         );
-        // TODO: Implementar navegación a logs
         break;
       case 'users':
         AppLogger.logInfo(
@@ -249,7 +243,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           className: 'SuperAdminShell',
           functionName: '_handleMenuSelection',
         );
-        // TODO: Implementar navegación a gestión de usuarios
         break;
       case 'academies':
         AppLogger.logInfo(
@@ -257,7 +250,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           className: 'SuperAdminShell',
           functionName: '_handleMenuSelection',
         );
-        // TODO: Implementar navegación a gestión de academias
         break;
       case 'settings':
         AppLogger.logInfo(
@@ -265,7 +257,6 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           className: 'SuperAdminShell',
           functionName: '_handleMenuSelection',
         );
-        // TODO: Implementar navegación a configuración
         break;
       case 'signout':
         _confirmSignOut(context);

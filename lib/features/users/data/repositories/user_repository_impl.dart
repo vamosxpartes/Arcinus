@@ -3,8 +3,8 @@ import 'package:arcinus/core/providers/firebase_providers.dart'; // Para Firesto
 import 'package:arcinus/features/auth/data/models/user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/user_repository.dart';
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/features/payments/data/models/manager_user_model.dart';
-import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/manager_user_model.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -118,24 +118,33 @@ class UserRepositoryImpl implements UserRepository {
                 ];
           
           // 4. Crear modelo de manager
+          final now = DateTime.now();
           final managerUser = ManagerUserModel(
             userId: userId,
-            academyId: academyId,
+            academyId: academyId.isEmpty ? 'pending_academy' : academyId, // Valor temporal si no hay academyId
             managerType: managerType,
             permissions: defaultPermissions,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
+            createdAt: now,
+            updatedAt: now,
           );
           
-          // 5. Guardar en Firestore
-          final managerData = managerUser.toJson();
-          
-          await _firestore
-              .collection('academies')
-              .doc(academyId)
-              .collection('managers')
-              .doc(userId)
-              .set(managerData, SetOptions(merge: true));
+          // 5. Guardar en Firestore solo si hay academyId válido
+          if (academyId.isNotEmpty) {
+            final managerData = managerUser.toJson();
+            
+            await _firestore
+                .collection('academies')
+                .doc(academyId)
+                .collection('managers')
+                .doc(userId)
+                .set(managerData, SetOptions(merge: true));
+          } else {
+            // Si no hay academyId, guardar en una colección temporal de managers pendientes
+            await _firestore
+                .collection('pending_managers')
+                .doc(userId)
+                .set(managerUser.toJson(), SetOptions(merge: true));
+          }
           
           // 6. Si es propietario, actualizar el campo role en users
           if (managerType == AppRole.propietario && user.appRole != AppRole.propietario) {

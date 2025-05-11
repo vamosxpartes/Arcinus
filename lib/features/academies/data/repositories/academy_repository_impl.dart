@@ -3,9 +3,12 @@ import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/domain/repositories/academy_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Implementación de la interfaz [AcademyRepository] para interactuar
 class AcademyRepositoryImpl implements AcademyRepository {
+  static const String _className = 'AcademyRepositoryImpl';
+  
   /// Constructor de la clase.
   AcademyRepositoryImpl(this._firestore) {
     /// Inicializamos la colección de academias.
@@ -19,6 +22,13 @@ class AcademyRepositoryImpl implements AcademyRepository {
     AcademyModel academy,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Iniciando creación de academia',
+        className: _className,
+        functionName: 'createAcademy',
+        params: {'academy': '${academy.name}'},
+      );
+      
       final now = DateTime.now();
       // Aseguramos que createdAt y updatedAt estén en el modelo como DateTime
       final academyToProcess = academy.copyWith(
@@ -56,12 +66,34 @@ class AcademyRepositoryImpl implements AcademyRepository {
       // Devolvemos el modelo con el ID asignado por Firestore
       // y los timestamps del modelo que usamos para la data (que son DateTime).
       final createdAcademy = academyToProcess.copyWith(id: docRef.id);
+      
+      AppLogger.logInfo(
+        'Academia creada exitosamente',
+        className: _className,
+        functionName: 'createAcademy',
+        params: {'academyId': docRef.id, 'academyName': createdAcademy.name},
+      );
+      
       return Right(createdAcademy);
     } on FirebaseException catch (e) {
+      AppLogger.logError(
+        message: 'Error de Firestore al crear academia',
+        error: e,
+        className: _className,
+        functionName: 'createAcademy',
+        params: {'code': e.code, 'message': e.message},
+      );
       return Left(
         ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'),
       );
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error inesperado creando academia',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'createAcademy',
+      );
       return Left(
         ServerFailure(message: 'Error inesperado creando academia: $e'),
       );
@@ -71,23 +103,64 @@ class AcademyRepositoryImpl implements AcademyRepository {
   @override
   Future<Either<Failure, AcademyModel>> getAcademyById(String id) async {
     if (id.isEmpty) {
+      AppLogger.logWarning(
+        'ID de academia vacío en getAcademyById',
+        className: _className,
+        functionName: 'getAcademyById',
+      );
       return const Left(Failure.unexpectedError(error: 'Academy ID cannot be empty'));
     }
     try {
+      AppLogger.logInfo(
+        'Obteniendo academia por ID',
+        className: _className,
+        functionName: 'getAcademyById',
+        params: {'academyId': id},
+      );
+      
       final docSnapshot = await _academiesCollection.doc(id).get();
 
       if (!docSnapshot.exists) {
+        AppLogger.logWarning(
+          'Academia no encontrada',
+          className: _className,
+          functionName: 'getAcademyById',
+          params: {'academyId': id},
+        );
         return const Left(Failure.unexpectedError(error: 'Academy not found'));
       }
 
       final academyData = docSnapshot.data()! as Map<String, dynamic>;
       final academy = AcademyModel.fromJson(academyData).copyWith(id: docSnapshot.id);
+      
+      AppLogger.logInfo(
+        'Academia obtenida correctamente',
+        className: _className,
+        functionName: 'getAcademyById',
+        params: {'academyId': id, 'academyName': academy.name},
+      );
+      
       return Right(academy);
     } on FirebaseException catch (e) {
+      AppLogger.logError(
+        message: 'Error de Firestore al obtener academia',
+        error: e,
+        className: _className,
+        functionName: 'getAcademyById',
+        params: {'academyId': id, 'code': e.code, 'message': e.message},
+      );
       return Left(
         ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'),
       );
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error inesperado obteniendo academia',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getAcademyById',
+        params: {'academyId': id},
+      );
       return Left(
         ServerFailure(message: 'Error inesperado obteniendo academia: $e'),
       );
@@ -97,9 +170,21 @@ class AcademyRepositoryImpl implements AcademyRepository {
   @override
   Future<Either<Failure, void>> updateAcademy(AcademyModel academy) async {
     if (academy.id == null || academy.id!.isEmpty) {
+      AppLogger.logWarning(
+        'ID de academia requerido para actualización',
+        className: _className,
+        functionName: 'updateAcademy',
+      );
       return const Left(Failure.validationError(message: 'Academy ID is required for update'));
     }
     try {
+      AppLogger.logInfo(
+        'Actualizando academia',
+        className: _className,
+        functionName: 'updateAcademy',
+        params: {'academyId': academy.id, 'academyName': academy.name},
+      );
+      
       // Asegurar que updatedAt se actualice usando copyWith (ahora debería funcionar)
       final academyToUpdate = academy.copyWith(updatedAt: DateTime.now());
       final dataToUpdate = academyToUpdate.toJson();
@@ -109,13 +194,36 @@ class AcademyRepositoryImpl implements AcademyRepository {
       dataToUpdate.remove('createdAt');
 
       await _academiesCollection.doc(academy.id!).update(dataToUpdate);
+      
+      AppLogger.logInfo(
+        'Academia actualizada exitosamente',
+        className: _className,
+        functionName: 'updateAcademy',
+        params: {'academyId': academy.id},
+      );
+      
       return const Right(null); // Indicar éxito (void)
     } on FirebaseException catch (e) {
       // Podrías mapear e.code a errores más específicos si es necesario
+      AppLogger.logError(
+        message: 'Error de Firestore al actualizar academia',
+        error: e,
+        className: _className,
+        functionName: 'updateAcademy',
+        params: {'academyId': academy.id, 'code': e.code, 'message': e.message},
+      );
       return Left(
         ServerFailure(message: e.message ?? 'Error Firestore [${e.code}]'),
       );
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error inesperado actualizando academia',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'updateAcademy',
+        params: {'academyId': academy.id},
+      );
       return Left(
         ServerFailure(message: 'Error inesperado actualizando academia: $e'),
       );

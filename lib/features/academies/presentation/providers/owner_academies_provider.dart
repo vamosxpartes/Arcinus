@@ -1,9 +1,7 @@
 import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
-
-final _logger = Logger();
+import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Provider that checks if an owner has at least one academy.
 ///
@@ -52,32 +50,45 @@ final ownerAcademiesProvider =
     return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
-        _logger.d('Intentando procesar documento (ordenado): ${doc.id}');
-        _logger.d('Datos crudos (ordenado) ${doc.id}: $data');
+        AppLogger.logInfo('Intentando procesar documento (ordenado): ${doc.id}');
+        AppLogger.logInfo('Datos crudos (ordenado) ${doc.id}: $data');
         if (data.containsKey('createdAt')) {
-          _logger.d('Campo createdAt (ordenado) ${doc.id} - Tipo: ${data['createdAt'].runtimeType}, Valor: ${data['createdAt']}');
+          AppLogger.logInfo('Campo createdAt (ordenado) ${doc.id} - Tipo: ${data['createdAt'].runtimeType}, Valor: ${data['createdAt']}');
         } else {
-          _logger.w('Campo createdAt (ordenado) ${doc.id} no encontrado en los datos.');
+          AppLogger.logWarning('Campo createdAt (ordenado) ${doc.id} no encontrado en los datos.');
         }
         try {
         // Convertir a AcademyModel y asignar ID
           final academy = AcademyModel.fromJson(data).copyWith(id: doc.id);
-          _logger.d('Academia convertida (ordenado) ${doc.id}: ${academy.name}, CreatedAt: ${academy.createdAt}');
+          AppLogger.logInfo('Academia convertida (ordenado) ${doc.id}: ${academy.name}, CreatedAt: ${academy.createdAt}');
           return academy;
         } catch (e, s) {
-          _logger.e('Error convirtiendo AcademyModel.fromJson (ordenado) para ${doc.id}: $e', error: e, stackTrace: s as StackTrace?);
-          _logger.e('Datos que causaron el error (ordenado) ${doc.id}: $data');
+          AppLogger.logError(
+            message: 'Error convirtiendo AcademyModel.fromJson (ordenado) para ${doc.id}: $e',
+            error: e,
+            stackTrace: s
+          );
+          AppLogger.logError(
+            message: 'Datos que causaron el error (ordenado) ${doc.id}: $data'
+          );
           // Propagar el error para que lo maneje handleError o el catch externo
           throw Exception('Fallo al convertir datos para ${doc.id} (ordenado): $e');
         }
       }).toList();
-    }).handleError((error, stackTrace) { // Asegúrate de capturar stackTrace también
-      _logger.e('Error en Stream de consulta ordenada de academias: $error', error: error, stackTrace: stackTrace as StackTrace?);
+    }).handleError((error, stackTrace) {
+      AppLogger.logError(
+        message: 'Error en Stream de consulta ordenada de academias: $error',
+        error: error,
+        stackTrace: stackTrace as StackTrace?
+      );
       // Si hay un error (posiblemente falta de índice), lanzamos una excepción para que pase al catch
       throw Exception('Error en consulta ordenada: $error');
     });
-  } catch (e, s) { // Capturar también el StackTrace s aquí
-    _logger.w('Usando consulta alternativa sin ordenamiento debido a: $e', error: e, stackTrace: s as StackTrace?);
+  } catch (e, s) {
+    AppLogger.logWarning(
+      'Usando consulta alternativa sin ordenamiento debido a: $e',
+      error: e
+    );
     
     // Consulta alternativa sin ordenamiento (no requiere índice)
     final fallbackQuery = firestore
@@ -88,21 +99,27 @@ final ownerAcademiesProvider =
     return fallbackQuery.snapshots().map((snapshot) {
       final academies = snapshot.docs.map((doc) {
         final data = doc.data();
-        _logger.d('Intentando procesar documento (fallback): ${doc.id}');
-        _logger.d('Datos crudos (fallback) ${doc.id}: $data');
+        AppLogger.logInfo('Intentando procesar documento (fallback): ${doc.id}');
+        AppLogger.logInfo('Datos crudos (fallback) ${doc.id}: $data');
         if (data.containsKey('createdAt')) {
-          _logger.d('Campo createdAt (fallback) ${doc.id} - Tipo: ${data['createdAt'].runtimeType}, Valor: ${data['createdAt']}');
+          AppLogger.logInfo('Campo createdAt (fallback) ${doc.id} - Tipo: ${data['createdAt'].runtimeType}, Valor: ${data['createdAt']}');
         } else {
-          _logger.w('Campo createdAt (fallback) ${doc.id} no encontrado en los datos.');
+          AppLogger.logWarning('Campo createdAt (fallback) ${doc.id} no encontrado en los datos.');
         }
         try {
           // Convertir a AcademyModel y asignar ID
           final academy = AcademyModel.fromJson(data).copyWith(id: doc.id);
-          _logger.d('Academia convertida (fallback) ${doc.id}: ${academy.name}, CreatedAt: ${academy.createdAt}');
+          AppLogger.logInfo('Academia convertida (fallback) ${doc.id}: ${academy.name}, CreatedAt: ${academy.createdAt}');
           return academy;
         } catch (e, s) {
-          _logger.e('Error convirtiendo AcademyModel.fromJson (fallback) para ${doc.id}: $e', error: e, stackTrace: s as StackTrace?);
-          _logger.e('Datos que causaron el error (fallback) ${doc.id}: $data');
+          AppLogger.logError(
+            message: 'Error convirtiendo AcademyModel.fromJson (fallback) para ${doc.id}: $e',
+            error: e,
+            stackTrace: s
+          );
+          AppLogger.logError(
+            message: 'Datos que causaron el error (fallback) ${doc.id}: $data'
+          );
           // Propagar el error
           throw Exception('Fallo al convertir datos para ${doc.id} (fallback): $e');
         }

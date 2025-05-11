@@ -86,23 +86,6 @@ class EditPermissionsNotifier extends StateNotifier<({
         permissions: state.selectedPermissions,
       );
 
-      // Obtener el repositorio
-      // final MembershipRepository memberhipRepository = ref.read(membershipRepositoryProvider);
-
-      // Guardar en Firestore
-      // TODO: Implementar el método updateMembership en el repositorio
-      // Actualmente no existe, así que esto fallará
-      // final result = await membershipRepository.updateMembership(updatedMembership);
-
-      // Por ahora, simular éxito para el MVP
-      // En producción, usar el resultado del repositorio
-      // result.fold(
-      //   (failure) {
-      //     state = (
-      //       status: EditPermissionsStatus.error,
-      //       membership: state.membership,
-      //       error: failure,
-      //       selectedPermissions: state.selecte
           state = (
             status: EditPermissionsStatus.success,
             membership: updatedMembership,

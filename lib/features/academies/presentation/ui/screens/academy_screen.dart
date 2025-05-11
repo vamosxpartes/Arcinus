@@ -1,6 +1,6 @@
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // For date formatting
@@ -113,14 +113,12 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> {
         if (academy.createdAt != null)
           _buildDetailItem(context, Icons.calendar_today_outlined, 'Fecha de Creación', DateFormat.yMMMd('es').format(academy.createdAt!)),
         
-        // TODO: Add more fields as needed, e.g., for managing members, schedules, etc.
         // Consider adding Edit Academy button if applicable for the owner
         const SizedBox(height: 24),
         ElevatedButton.icon(
           icon: const Icon(Icons.edit_outlined),
           label: const Text('Editar Academia'),
           onPressed: () {
-            // TODO: Implement navigation to edit academy screen
             // context.go('/owner/academy/$academyId/edit');
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Próximamente: Editar Academia')),

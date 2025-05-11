@@ -33,7 +33,6 @@ final hasPermissionProvider = FutureProvider.family.autoDispose<bool, ({String a
     // Propietario siempre tiene todos los permisos en su academia
     // Modificar cuando conozcamos cómo identificar la relación propietario-academia
     if (currentUser.role == AppRole.propietario) {
-      // TODO: Verificar si es propietario de esta academia específica
       return true;
     }
     
@@ -92,7 +91,6 @@ final userPermissionsProvider = FutureProvider.family.autoDispose<List<String>, 
     // Propietario tiene todos los permisos en su academia
     // Modificar cuando conozcamos cómo identificar la relación propietario-academia
     if (currentUser.role == AppRole.propietario) {
-      // TODO: Verificar si es propietario de esta academia específica
       return AppPermissions.allPermissions;
     }
     

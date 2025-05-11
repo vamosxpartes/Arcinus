@@ -2,7 +2,7 @@ import 'package:arcinus/core/auth/app_permissions.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/models/user_model.dart';
 import 'package:arcinus/features/memberships/data/models/membership_model.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

@@ -4,7 +4,7 @@ import 'package:arcinus/features/memberships/data/repositories/academy_users_rep
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_user_details_screen.dart';
 import 'package:arcinus/features/memberships/presentation/widgets/permission_widget.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/utils/screens/screen_under_development.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

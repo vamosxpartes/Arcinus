@@ -173,7 +173,6 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
 
   // Widget para tarjeta con información del usuario y suscripción
   Widget _buildUserInfoCard(dynamic clientUser, bool isOwner) {
-    // TODO: Implementar con el modelo real ClientUserModel cuando esté disponible
     // Por ahora usar datos simulados
     final userName = widget.userName ?? 'Usuario';
     final paymentStatus = 'active'; // Simulación
@@ -618,7 +617,6 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
           },
         ),
         onTap: () {
-          // TODO: Navegar a la pantalla detallada del pago
           // _navigateToPaymentDetail(payment);
         },
       ),
@@ -639,7 +637,6 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
                 title: const Text('Ver detalles'),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navegar a detalles del pago
                 },
               ),
               // Solo propietarios pueden editar
@@ -743,7 +740,6 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
 
   // Generar comprobante de pago
   void _generateReceipt(BuildContext context, PaymentModel payment) {
-    // TODO: Implementar generación de comprobante
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Próximamente: Generación de comprobantes')),
     );
@@ -751,7 +747,6 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
 
   // Cambiar plan de suscripción
   void _changePlan(BuildContext context) {
-    // TODO: Implementar cambio de plan
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Próximamente: Cambio de planes')),
     );

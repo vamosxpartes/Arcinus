@@ -208,8 +208,6 @@ class _ClientShellState extends ConsumerState<ClientShell> {
       className: 'ClientShell',
       functionName: '_navigateToTab',
       params: {'route': route},
-    );
-    
-    // TODO: Implementar navegación real cuando se actualice el router
+    ); 
   }
 } 

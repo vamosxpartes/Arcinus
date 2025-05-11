@@ -40,7 +40,6 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
               icon: const Icon(Icons.edit),
               tooltip: 'Editar usuario',
               onPressed: () {
-                // TODO: Implementar navegación a pantalla de edición
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Función en desarrollo: Editar usuario')),
                 );

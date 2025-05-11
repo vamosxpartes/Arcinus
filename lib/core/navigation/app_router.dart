@@ -34,9 +34,8 @@ import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/memberships/presentation/providers/membership_providers.dart';
 
 // Importar los nuevos Shell Widgets
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
-import 'package:arcinus/features/navigation_shells/athlete_shell.dart';
-import 'package:arcinus/features/navigation_shells/super_admin_shell.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/features/navigation_shells/super_admin_shell/super_admin_shell.dart';
 
 import 'package:arcinus/features/users/presentation/ui/screens/profile_screen.dart';
 
@@ -61,7 +60,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
     // Claves separadas para los Navigators de cada Shell
     final ownerShellNavigatorKey        = GlobalKey<NavigatorState>(debugLabel: 'ownerShell');
-    final athleteShellNavigatorKey      = GlobalKey<NavigatorState>(debugLabel: 'athleteShell');
     final superAdminShellNavigatorKey   = GlobalKey<NavigatorState>(debugLabel: 'superAdminShell');
 
     AppLogger.logInfo(
@@ -233,12 +231,54 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
 
         // 1. ¿Necesita completar perfil?
-        final profileState = ref.read(userProfileProvider(currentUserId));
+        AsyncValue<dynamic> profileState;
+        
+        // Caso especial: Si estamos en la pantalla de completar perfil,
+        // asumimos que el usuario ha completado o está completando su perfil
+        if (currentLocation == AppRoutes.completeProfile) {
+          // Esto es crítico: si el usuario ya ha completado su perfil,
+          // debemos permitirle continuar y no quedarnos en un bucle
+          final needsProfileCompletion = false;
+          
+          AppLogger.logInfo(
+            'Estado de perfil (en pantalla de completar perfil)',
+            className: 'AppRouter',
+            functionName: 'redirect',
+            params: {'needsCompletion': needsProfileCompletion.toString()},
+          );
+          
+          // No necesita redirección mientras está en completar perfil
+          if (needsProfileCompletion == false) {
+            AppLogger.logInfo(
+              'Decisión: En pantalla de completar perfil, sin redirección',
+              className: 'AppRouter',
+              functionName: 'redirect',
+            );
+            return null;
+          }
+        }
+        
+        // Para otras rutas, verificar normalmente
+        profileState = ref.read(userProfileProvider(currentUserId));
         final needsProfileCompletion = profileState.maybeWhen(
-           data: (profile) => profile == null || (profile.name?.isEmpty ?? true),
-           loading: () => false,
-           orElse: () => false,
+          data: (profile) {
+            // Verificar si hay un perfil y tiene nombre (verificación simple)
+            final hasProfile = profile != null;
+            final hasName = hasProfile && 
+                ((profile.toString().contains('displayName') && 
+                  profile.toString().contains('displayName: ') && 
+                  !profile.toString().contains('displayName: null')) ||
+                 (profile.toString().contains('name') && 
+                  profile.toString().contains('name: ') && 
+                  !profile.toString().contains('name: null')));
+            
+            return !hasProfile || !hasName;
+          },
+          loading: () => false, // Durante la carga permitimos continuar
+          error: (_, __) => true, // En caso de error, asumir que necesita completar
+          orElse: () => true, // Por defecto, asumir que necesita completar
         );
+        
         AppLogger.logInfo(
           'Estado de perfil',
           className: 'AppRouter',
@@ -275,6 +315,18 @@ final routerProvider = Provider<GoRouter>((ref) {
 
         // 2. ¿Es Propietario y necesita crear academia?
         if (userRole == AppRole.propietario) {
+            // Caso especial: Si estamos en la pantalla de crear academia,
+            // permitimos que el usuario complete el proceso sin redirecciones
+            if (currentLocation == AppRoutes.createAcademy) {
+              AppLogger.logInfo(
+                'Decisión: En pantalla de crear academia, sin redirección',
+                className: 'AppRouter',
+                functionName: 'redirect',
+              );
+              return null;
+            }
+            
+            // Para otras rutas, verificar normalmente
             final academiesState = ref.read(ownerHasAcademiesProvider(currentUserId));
             final needsToCreateAcademy = academiesState.maybeWhen(
                 data: (hasAcademies) => !hasAcademies,
@@ -289,29 +341,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             );
 
             if (needsToCreateAcademy) {
-                if (currentLocation != AppRoutes.createAcademy) {
-                  AppLogger.logInfo(
-                    'Decisión: Propietario necesita academia, redirigiendo a CreateAcademy',
-                    className: 'AppRouter',
-                    functionName: 'redirect',
-                  );
-                  return AppRoutes.createAcademy;
-                }
                 AppLogger.logInfo(
-                  'Decisión: Propietario necesita academia, permaneciendo en CreateAcademy',
+                  'Decisión: Propietario necesita academia, redirigiendo a CreateAcademy',
                   className: 'AppRouter',
                   functionName: 'redirect',
                 );
-                return null; // Stay on create academy
+                return AppRoutes.createAcademy;
             }
-             if (currentLocation == AppRoutes.createAcademy && !needsToCreateAcademy) {
-                 AppLogger.logInfo(
-                   'Decisión: Propietario ya tiene academia, redirigiendo DESDE CreateAcademy',
-                   className: 'AppRouter',
-                   functionName: 'redirect',
-                 );
-                 return AppRoutes.ownerRoot;
-             }
+            // Si NO necesita crear academia pero está en la pantalla de crear academia,
+            // redirigir al dashboard de propietario
+            else if (currentLocation == AppRoutes.createAcademy) {
+                AppLogger.logInfo(
+                  'Decisión: Propietario ya tiene academia, redirigiendo desde CreateAcademy',
+                  className: 'AppRouter',
+                  functionName: 'redirect',
+                );
+                return AppRoutes.ownerRoot;
+            }
         }
 
         // 3. Usuario logueado, perfil completo, (propietario con academia):
@@ -382,7 +428,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         // --- Shell para Propietario ---
         ShellRoute(
           navigatorKey: ownerShellNavigatorKey,
-          builder: (context, state, child) => OwnerShell(child: child),
+          builder: (context, state, child) => ManagerShell(child: child),
           routes: <RouteBase>[
             // Ruta raíz del Shell: /owner (puede mostrar el dashboard por defecto)
             GoRoute(
@@ -679,28 +725,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (context, state) => const PaymentsScreen(),
             ),
           ],
-        ),
-
-        // --- Shell para Atleta ---
-        ShellRoute(
-          navigatorKey: athleteShellNavigatorKey,
-          builder: (context, state, child) => AthleteShell(child: child),
-          routes: <RouteBase>[
-             GoRoute(
-                path: AppRoutes.athleteRoot, // Ruta raíz del Shell: /athlete
-                 // En lugar de redirigir, construimos directamente el dashboard
-                 builder: (context, state) => const ScreenUnderDevelopment(message: 'Athlete Dashboard'), // Placeholder
-                routes: [
-                   GoRoute(
-                      path: AppRoutes.athleteDashboard, // -> /athlete/dashboard
-                      name: AppRoutes.athleteDashboard, // Nombre único
-                      builder: (context, state) => const ScreenUnderDevelopment(message: 'Athlete Dashboard'), // <- Builder añadido
-                   ),
-                   // Otras rutas específicas para atletas...
-                ]
-             ),
-          ],
-        ),
+        ),        
         
 
          // --- Shell para SuperAdmin ---

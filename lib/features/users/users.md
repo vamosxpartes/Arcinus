@@ -32,6 +32,33 @@ Características:
 ### 3. Superadministradores
 Usuarios con acceso a funciones de administración global de la plataforma.
 
+## Enumeraciones
+
+### Estado de Usuarios Gestores (`ManagerStatus`)
+- **active**: Manager activo con permisos completos según su rol
+- **restricted**: Manager con acceso restringido temporalmente
+- **inactive**: Manager inactivo, sin acceso a la plataforma
+
+### Permisos de Usuarios Gestores (`ManagerPermission`)
+- **manageUsers**: Permiso para gestionar usuarios (añadir, modificar, eliminar)
+- **managePayments**: Permiso para gestionar pagos (registrar, modificar, eliminar)
+- **manageSubscriptions**: Permiso para gestionar suscripciones y planes
+- **viewStats**: Permiso para ver estadísticas y reportes
+- **editAcademy**: Permiso para modificar configuración de academia
+- **manageSchedule**: Permiso para gestionar horarios y eventos
+- **fullAccess**: Permiso para acceder a todas las funcionalidades (solo propietarios)
+
+### Estado de Pagos (`PaymentStatus`)
+- **active**: Cliente al día con sus pagos
+- **overdue**: Cliente con pagos atrasados/pendientes
+- **inactive**: Cliente inactivo (no está pagando actualmente)
+
+### Ciclos de Facturación (`BillingCycle`)
+- **monthly**: Facturación mensual
+- **quarterly**: Facturación trimestral
+- **biannual**: Facturación semestral
+- **annual**: Facturación anual
+
 ## Estructura de Datos en Firestore
 
 ### Colección `users`
@@ -79,13 +106,35 @@ Datos específicos de usuarios dentro de cada academia:
 - `ClientUserRepository`: Operaciones específicas para usuarios clientes
 
 ### Modelos
-- `User`: Modelo base con información compartida
-- `ManagerUserModel`: Para propietarios y colaboradores
-- `ClientUserModel`: Para atletas y padres
-- Enums asociados: `AppRole`, `ManagerPermission`, `PaymentStatus`
+- `UserModel`: Modelo base con información compartida de usuario en la colección `users`
+- `ManagerUserModel`: Almacena información específica para propietarios y colaboradores
+- `ClientUserModel`: Almacena información específica para atletas y padres
+- `SubscriptionPlanModel`: Utilizado por ClientUserModel para gestionar suscripciones
+
+### Providers (Riverpod)
+- `UserProvider`: Provee acceso al usuario básico
+- `ManagerUserProvider`: Provee acceso a información específica de gestores
+- `ClientUserProvider`: Provee acceso a información específica de clientes
+
+## Interacción con Otros Módulos
+
+### Módulo de Auth
+- Obtención inicial del usuario
+- Gestión de credenciales y autenticación
+- Flujo de registro y login
+
+### Módulo de Pagos
+- Utiliza los modelos de usuarios para asignar pagos y planes de suscripción
+- Consulta estados de pago de los usuarios clientes
 
 ## Mejores Prácticas
 1. Utilizar el repositorio adecuado según el tipo de operación
 2. Validar siempre los permisos antes de realizar operaciones
 3. Mantener la coherencia entre los datos básicos y específicos
-4. Utilizar transacciones para operaciones que afecten a múltiples documentos 
+4. Utilizar transacciones para operaciones que afecten a múltiples documentos
+
+## Mejoras Futuras
+- Implementar sistema de roles más flexible y detallado
+- Añadir opciones de autenticación adicionales (redes sociales, SSO)
+- Mejorar la gestión de relaciones entre usuarios (equipos, grupos)
+- Implementar sistema de notificaciones específicas según rol de usuario 

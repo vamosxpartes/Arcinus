@@ -1,17 +1,23 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/error/failures.dart';
-import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/domain/repositories/client_user_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 part 'client_user_repository_impl.g.dart';
 
 /// Proveedor del repositorio de usuarios cliente (atletas y padres)
 @riverpod
 ClientUserRepository clientUserRepository(Ref ref) {
+  AppLogger.logInfo(
+    'Creando instancia de ClientUserRepository',
+    className: 'client_user_repository',
+    functionName: 'clientUserRepository',
+  );
   return ClientUserRepositoryImpl(
     firestore: FirebaseFirestore.instance,
   );
@@ -19,11 +25,18 @@ ClientUserRepository clientUserRepository(Ref ref) {
 
 /// Implementación del repositorio de usuarios cliente
 class ClientUserRepositoryImpl implements ClientUserRepository {
+  static const String _className = 'ClientUserRepositoryImpl';
   final FirebaseFirestore _firestore;
   
   ClientUserRepositoryImpl({
     required FirebaseFirestore firestore,
-  }) : _firestore = firestore;
+  }) : _firestore = firestore {
+    AppLogger.logInfo(
+      'Inicializado ClientUserRepositoryImpl',
+      className: _className,
+      functionName: 'constructor',
+    );
+  }
   
   // Referencia a la subcolección de usuarios de una academia
   CollectionReference<Map<String, dynamic>> _getUsersCollection(String academyId) {
@@ -38,9 +51,22 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
   @override
   Future<Either<Failure, ClientUserModel>> getClientUser(String academyId, String userId) async {
     try {
+      AppLogger.logInfo(
+        'Obteniendo usuario cliente',
+        className: _className,
+        functionName: 'getClientUser',
+        params: {'academyId': academyId, 'userId': userId},
+      );
+      
       final userDoc = await _getUsersCollection(academyId).doc(userId).get();
       
       if (!userDoc.exists) {
+        AppLogger.logWarning(
+          'Usuario no encontrado',
+          className: _className,
+          functionName: 'getClientUser',
+          params: {'academyId': academyId, 'userId': userId},
+        );
         return left(const Failure.notFound(message: 'Usuario no encontrado'));
       }
       
@@ -49,6 +75,12 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
       // Verificar si el usuario es un atleta o padre
       final role = AppRole.fromString(userData['role'] as String?);
       if (role != AppRole.atleta && role != AppRole.padre) {
+        AppLogger.logWarning(
+          'Usuario no es un cliente (atleta o padre)',
+          className: _className,
+          functionName: 'getClientUser',
+          params: {'academyId': academyId, 'userId': userId, 'role': role?.name ?? 'null'},
+        );
         return left(const Failure.validationError(
           message: 'El usuario no es un cliente (atleta o padre)'
         ));
@@ -62,6 +94,13 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
       final subscriptionPlanId = clientData['subscriptionPlanId'] as String?;
       
       if (subscriptionPlanId != null) {
+        AppLogger.logInfo(
+          'Obteniendo plan de suscripción',
+          className: _className,
+          functionName: 'getClientUser',
+          params: {'academyId': academyId, 'subscriptionPlanId': subscriptionPlanId},
+        );
+        
         final planDoc = await _getSubscriptionPlansCollection(academyId)
             .doc(subscriptionPlanId).get();
         
@@ -94,8 +133,23 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
         metadata: clientData['metadata'] as Map<String, dynamic>? ?? {},
       );
       
+      AppLogger.logInfo(
+        'Usuario cliente obtenido exitosamente',
+        className: _className,
+        functionName: 'getClientUser',
+        params: {'academyId': academyId, 'userId': userId, 'clientType': role?.name ?? 'unknown'},
+      );
+      
       return right(clientUser);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener usuario cliente',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getClientUser',
+        params: {'academyId': academyId, 'userId': userId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -107,6 +161,17 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     PaymentStatus? paymentStatus,
   }) async {
     try {
+      AppLogger.logInfo(
+        'Obteniendo lista de usuarios cliente',
+        className: _className,
+        functionName: 'getClientUsers',
+        params: {
+          'academyId': academyId,
+          'clientType': clientType?.name,
+          'paymentStatus': paymentStatus?.name,
+        },
+      );
+      
       Query<Map<String, dynamic>> query = _getUsersCollection(academyId);
       
       // Filtrar por tipo de cliente (atleta o padre)
@@ -119,6 +184,13 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
       
       // Obtener los resultados
       final snapshot = await query.get();
+      
+      AppLogger.logInfo(
+        'Registros obtenidos',
+        className: _className,
+        functionName: 'getClientUsers',
+        params: {'academyId': academyId, 'count': snapshot.docs.length},
+      );
       
       // Procesar los resultados
       final List<ClientUserModel> clientUsers = [];
@@ -174,8 +246,23 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
         clientUsers.add(clientUser);
       }
       
+      AppLogger.logInfo(
+        'Lista de usuarios cliente procesada',
+        className: _className,
+        functionName: 'getClientUsers',
+        params: {'academyId': academyId, 'resultCount': clientUsers.length},
+      );
+      
       return right(clientUsers);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener lista de usuarios cliente',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getClientUsers',
+        params: {'academyId': academyId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -186,6 +273,13 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     bool activeOnly = true,
   }) async {
     try {
+      AppLogger.logInfo(
+        'Obteniendo planes de suscripción',
+        className: _className,
+        functionName: 'getSubscriptionPlans',
+        params: {'academyId': academyId, 'activeOnly': activeOnly},
+      );
+      
       Query<Map<String, dynamic>> query = _getSubscriptionPlansCollection(academyId);
       
       if (activeOnly) {
@@ -202,8 +296,23 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
         });
       }).toList();
       
+      AppLogger.logInfo(
+        'Planes de suscripción obtenidos exitosamente',
+        className: _className,
+        functionName: 'getSubscriptionPlans',
+        params: {'academyId': academyId, 'count': plans.length},
+      );
+      
       return right(plans);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener planes de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getSubscriptionPlans',
+        params: {'academyId': academyId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -214,9 +323,22 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     String planId,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Obteniendo plan de suscripción por ID',
+        className: _className,
+        functionName: 'getSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      
       final planDoc = await _getSubscriptionPlansCollection(academyId).doc(planId).get();
       
       if (!planDoc.exists) {
+        AppLogger.logWarning(
+          'Plan de suscripción no encontrado',
+          className: _className,
+          functionName: 'getSubscriptionPlan',
+          params: {'academyId': academyId, 'planId': planId},
+        );
         return left(const Failure.notFound(message: 'Plan de suscripción no encontrado'));
       }
       
@@ -226,8 +348,23 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
         ...data,
       });
       
+      AppLogger.logInfo(
+        'Plan de suscripción obtenido exitosamente',
+        className: _className,
+        functionName: 'getSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId, 'planName': plan.name},
+      );
+      
       return right(plan);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -238,14 +375,36 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     SubscriptionPlanModel plan,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Creando plan de suscripción',
+        className: _className,
+        functionName: 'createSubscriptionPlan',
+        params: {'academyId': academyId, 'planName': plan.name},
+      );
+      
       final planData = plan.toJson();
       
       final docRef = await _getSubscriptionPlansCollection(academyId).add(planData);
       
       final createdPlan = plan.copyWith(id: docRef.id);
       
+      AppLogger.logInfo(
+        'Plan de suscripción creado exitosamente',
+        className: _className,
+        functionName: 'createSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': docRef.id, 'planName': plan.name},
+      );
+      
       return right(createdPlan);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al crear plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'createSubscriptionPlan',
+        params: {'academyId': academyId, 'planName': plan.name},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -257,12 +416,34 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     SubscriptionPlanModel plan,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Actualizando plan de suscripción',
+        className: _className,
+        functionName: 'updateSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId, 'planName': plan.name},
+      );
+      
       final planData = plan.toJson();
       
       await _getSubscriptionPlansCollection(academyId).doc(planId).update(planData);
       
+      AppLogger.logInfo(
+        'Plan de suscripción actualizado exitosamente',
+        className: _className,
+        functionName: 'updateSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      
       return right(plan.copyWith(id: planId));
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al actualizar plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'updateSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -273,10 +454,32 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     String planId,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Eliminando plan de suscripción',
+        className: _className,
+        functionName: 'deleteSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      
       await _getSubscriptionPlansCollection(academyId).doc(planId).delete();
       
+      AppLogger.logInfo(
+        'Plan de suscripción eliminado exitosamente',
+        className: _className,
+        functionName: 'deleteSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      
       return right(unit);
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al eliminar plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'deleteSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -288,16 +491,53 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     Map<String, dynamic> clientData,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Actualizando datos de usuario cliente',
+        className: _className,
+        functionName: 'updateClientUser',
+        params: {'academyId': academyId, 'userId': userId},
+      );
+      
       // Actualizar solo el campo clientData
       await _getUsersCollection(academyId).doc(userId).update({
         'clientData': FieldValue.arrayUnion([clientData]),
       });
       
+      AppLogger.logInfo(
+        'Usuario cliente actualizado, obteniendo datos actualizados',
+        className: _className,
+        functionName: 'updateClientUser',
+        params: {'academyId': academyId, 'userId': userId},
+      );
+      
       // Obtener el usuario actualizado
       final result = await getClientUser(academyId, userId);
       
+      result.fold(
+        (failure) => AppLogger.logWarning(
+          'Error al obtener datos actualizados del usuario',
+          className: _className,
+          functionName: 'updateClientUser',
+          params: {'academyId': academyId, 'userId': userId, 'error': failure.message},
+        ),
+        (user) => AppLogger.logInfo(
+          'Usuario cliente actualizado exitosamente',
+          className: _className,
+          functionName: 'updateClientUser',
+          params: {'academyId': academyId, 'userId': userId},
+        ),
+      );
+      
       return result;
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al actualizar usuario cliente',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'updateClientUser',
+        params: {'academyId': academyId, 'userId': userId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }
@@ -310,11 +550,36 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     DateTime? startDate,
   ) async {
     try {
+      AppLogger.logInfo(
+        'Asignando plan de suscripción a usuario',
+        className: _className,
+        functionName: 'assignSubscriptionPlan',
+        params: {
+          'academyId': academyId,
+          'userId': userId,
+          'planId': planId,
+          'startDate': startDate?.toIso8601String(),
+        },
+      );
+      
       // Obtener el plan
       final planResult = await getSubscriptionPlan(academyId, planId);
       
       return planResult.fold(
-        (failure) => left(failure),
+        (failure) {
+          AppLogger.logWarning(
+            'Plan de suscripción no encontrado para asignar',
+            className: _className,
+            functionName: 'assignSubscriptionPlan',
+            params: {
+              'academyId': academyId,
+              'userId': userId,
+              'planId': planId,
+              'error': failure.message,
+            },
+          );
+          return left(failure);
+        },
         (plan) async {
           // Calcular la próxima fecha de pago
           final effectiveStartDate = startDate ?? DateTime.now();
@@ -332,13 +597,59 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
             'assignedAt': Timestamp.fromDate(DateTime.now()),
           };
           
+          AppLogger.logInfo(
+            'Actualizando datos de usuario con plan de suscripción',
+            className: _className,
+            functionName: 'assignSubscriptionPlan',
+            params: {
+              'academyId': academyId,
+              'userId': userId,
+              'planId': planId,
+              'nextPaymentDate': nextPaymentDate.toIso8601String(),
+              'remainingDays': remainingDays,
+            },
+          );
+          
           // Actualizar el usuario
           final updateResult = await updateClientUser(academyId, userId, clientData);
+          
+          updateResult.fold(
+            (failure) => AppLogger.logWarning(
+              'Error al asignar plan al usuario',
+              className: _className,
+              functionName: 'assignSubscriptionPlan',
+              params: {
+                'academyId': academyId,
+                'userId': userId,
+                'planId': planId,
+                'error': failure.message,
+              },
+            ),
+            (user) => AppLogger.logInfo(
+              'Plan de suscripción asignado exitosamente',
+              className: _className,
+              functionName: 'assignSubscriptionPlan',
+              params: {
+                'academyId': academyId,
+                'userId': userId,
+                'planId': planId,
+                'planName': plan.name,
+              },
+            ),
+          );
           
           return updateResult;
         },
       );
-    } catch (e) {
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al asignar plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'assignSubscriptionPlan',
+        params: {'academyId': academyId, 'userId': userId, 'planId': planId},
+      );
       return left(Failure.unexpectedError(error: e));
     }
   }

@@ -9,10 +9,9 @@ import 'package:arcinus/features/auth/presentation/providers/user_profile_provid
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/navigation/app_routes.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
-
-// Instancia de Logger
-final _logger = Logger();
+import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class CompleteProfileScreen extends ConsumerWidget {
   const CompleteProfileScreen({super.key});
@@ -21,6 +20,7 @@ class CompleteProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(completeProfileProvider.notifier);
     final state = ref.watch(completeProfileProvider);
+    final profileState = ref.watch(completeProfileStateProvider);
     final isLoading = state.maybeWhen(loading: () => true, orElse: () => false);
 
     // Escuchar cambios de estado para efectos secundarios (navegación, snackbars)
@@ -40,7 +40,7 @@ class CompleteProfileScreen extends ConsumerWidget {
         },
         success: () {
           // La navegación debería manejarse por GoRouter.redirect observando el estado de autenticación/perfil
-          _logger.i('Perfil guardado con éxito, GoRouter debería redirigir.');
+          AppLogger.logInfo('Perfil guardado con éxito, GoRouter debería redirigir.');
           
           // Redirección manual como fallback si el router no redirecciona automáticamente
           // (Podría eliminarse si GoRouter.redirect es robusto)
@@ -53,13 +53,13 @@ class CompleteProfileScreen extends ConsumerWidget {
             // Esperar un momento y luego redirigir manualmente
             Future.delayed(const Duration(milliseconds: 500), () {
               if (user.role == AppRole.propietario) {
-                _logger.d('Redirigiendo manualmente a la pantalla de creación de academia');
+                AppLogger.logInfo('Redirigiendo manualmente a la pantalla de creación de academia');
                 if (context.mounted) {
                   context.go(AppRoutes.createAcademy);
                 }
               } else {
                 final targetRoute = _getRoleRootRoute(user.role);
-                _logger.d('Redirigiendo manualmente a $targetRoute');
+                AppLogger.logInfo('Redirigiendo manualmente a $targetRoute');
                 if (context.mounted) {
                   context.go(targetRoute);
                 }
@@ -100,6 +100,11 @@ class CompleteProfileScreen extends ConsumerWidget {
               key: notifier.formKey,
               child: ListView(
                 children: [
+                  // Sección de imagen de perfil
+                  _buildProfileImageSection(context, ref, profileState, isLoading),
+                  
+                  const SizedBox(height: 24),
+                  
                   TextFormField(
                     controller: notifier.nameController,
                     decoration: const InputDecoration(
@@ -149,10 +154,113 @@ class CompleteProfileScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // Indicador de carga superpuesto opcional
+          // Indicador de carga superpuesto
           if (isLoading)
             const LoadingIndicator(message: 'Guardando...'),
         ],
+      ),
+    );
+  }
+  
+  // Widget para la sección de imagen de perfil
+  Widget _buildProfileImageSection(
+    BuildContext context, 
+    WidgetRef ref, 
+    CompleteProfileExtendedState profileState, 
+    bool isLoading
+  ) {
+    return Center(
+      child: Column(
+        children: [
+          // Círculo con la imagen o placeholder
+          GestureDetector(
+            onTap: isLoading 
+              ? null 
+              : () => _showImagePickerOptions(context, ref),
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey[200],
+                border: Border.all(
+                  color: Theme.of(context).primaryColor,
+                  width: 2,
+                ),
+                image: profileState.profileImage != null
+                  ? DecorationImage(
+                      image: FileImage(profileState.profileImage!),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
+              ),
+              child: profileState.profileImage == null
+                ? const Icon(
+                    Icons.person,
+                    size: 60,
+                    color: Colors.grey,
+                  )
+                : null,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Botón para cambiar la imagen
+          TextButton.icon(
+            onPressed: isLoading 
+              ? null 
+              : () => _showImagePickerOptions(context, ref),
+            icon: const Icon(Icons.photo_camera),
+            label: Text(
+              profileState.profileImage == null 
+                ? 'Añadir foto de perfil' 
+                : 'Cambiar foto',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Mostrar opciones para seleccionar imagen
+  void _showImagePickerOptions(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(completeProfileProvider.notifier);
+    
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Tomar foto'),
+              onTap: () {
+                Navigator.of(context).pop();
+                notifier.pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Elegir de la galería'),
+              onTap: () {
+                Navigator.of(context).pop();
+                notifier.pickImage(ImageSource.gallery);
+              },
+            ),
+            if (ref.read(completeProfileStateProvider).profileImage != null)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Eliminar foto', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  // Resetear la imagen en el estado
+                  ref.read(completeProfileStateProvider.notifier).state = 
+                     CompleteProfileExtendedState(profileImage: null);
+                },
+              ),
+          ],
+        ),
       ),
     );
   }

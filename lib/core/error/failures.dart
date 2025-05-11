@@ -60,11 +60,3 @@ sealed class Failure with _$Failure {
     );
   }
 }
-
-/// Implementación del fallo cuando un recurso no se encuentra.
-class _NotFoundFailure extends Failure {
-  const _NotFoundFailure({this.message = ''}) : super._();
-  
-  @override
-  final String message;
-}

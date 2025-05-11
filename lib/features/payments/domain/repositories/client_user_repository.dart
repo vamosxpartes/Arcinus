@@ -1,6 +1,6 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/error/failures.dart';
-import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:fpdart/fpdart.dart';
 
 /// Interfaz para el repositorio de usuarios cliente (atletas y padres)

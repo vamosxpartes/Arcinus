@@ -1,6 +1,7 @@
 import 'package:arcinus/features/memberships/domain/state/add_athlete_state.dart';
 import 'package:arcinus/features/memberships/presentation/providers/add_athlete_providers.dart';
-import 'package:arcinus/features/navigation_shells/owner_shell/owner_shell.dart';
+import 'package:arcinus/features/memberships/presentation/providers/academy_providers.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -100,7 +101,6 @@ class AddAthleteScreen extends ConsumerWidget {
                   addAthleteNotifier.updateEmergencyContactPhone(emergencyContactPhone);
                   addAthleteNotifier.updatePosition(position);
                   
-                  // TODO: Obtener el ID de usuario actual
                   final userId = 'usuario_actual'; // Este debería venir de un provider de autenticación
                   
                   // Enviar formulario
@@ -291,10 +291,99 @@ class AddAthleteScreen extends ConsumerWidget {
         title: const Text('Información Deportiva'),
         content: Column(
           children: <Widget>[
+            Consumer(
+              builder: (context, ref, child) {
+                final positionsAsync = ref.watch(sportPositionsProvider(academyId));
+                
+                return positionsAsync.when(
+                  data: (positions) {
+                    if (positions.isEmpty) {
+                      return TextFormField(
+                        controller: controllers['position'],
+                        decoration: const InputDecoration(labelText: 'Posición Principal'),
+                        onChanged: (value) => addAthleteNotifier.updatePosition(value),
+                      );
+                    } else {
+                      return DropdownButtonFormField<String>(
+                        value: state.position?.isNotEmpty == true && positions.contains(state.position) 
+                          ? state.position 
+                          : null,
+                        decoration: const InputDecoration(labelText: 'Posición Principal'),
+                        items: positions.map((position) => 
+                          DropdownMenuItem(
+                            value: position,
+                            child: Text(position),
+                          )
+                        ).toList(),
+                        onChanged: (value) {
+                          if (value != null) {
+                            addAthleteNotifier.updatePosition(value);
+                            controllers['position']!.text = value;
+                          }
+                        },
+                      );
+                    }
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => TextFormField(
+                    controller: controllers['position'],
+                    decoration: const InputDecoration(
+                      labelText: 'Posición Principal',
+                      helperText: 'Error cargando posiciones',
+                    ),
+                    onChanged: (value) => addAthleteNotifier.updatePosition(value),
+                  ),
+                );
+              },
+            ),
+            
+            const SizedBox(height: 15),
+            
             TextFormField(
-              controller: controllers['position'],
-              decoration: const InputDecoration(labelText: 'Posición Principal'),
-              onChanged: (value) => addAthleteNotifier.updatePosition(value),
+              controller: controllers['experience'] ?? TextEditingController(),
+              decoration: const InputDecoration(labelText: 'Experiencia (años)'),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                if (addAthleteNotifier is AddAthleteNotifier) {
+                  (addAthleteNotifier as dynamic).updateExperience(value);
+                }
+              },
+            ),
+            
+            const SizedBox(height: 15),
+            
+            Consumer(
+              builder: (context, ref, child) {
+                final characteristicsAsync = ref.watch(academySportCharacteristicsProvider(academyId));
+                
+                return characteristicsAsync.when(
+                  data: (characteristics) {
+                    if (characteristics == null || characteristics.athleteSpecializations.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    
+                    return DropdownButtonFormField<String>(
+                      value: null,
+                      decoration: const InputDecoration(labelText: 'Especialización'),
+                      items: characteristics.athleteSpecializations.map((specialization) => 
+                        DropdownMenuItem(
+                          value: specialization,
+                          child: Text(specialization),
+                        )
+                      ).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          if (addAthleteNotifier is AddAthleteNotifier) {
+                            (addAthleteNotifier as dynamic).updateSpecialization(value);
+                          }
+                        }
+                      },
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                );
+              },
             ),
           ],
         ),

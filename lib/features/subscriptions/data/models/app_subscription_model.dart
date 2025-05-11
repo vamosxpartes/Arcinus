@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:arcinus/core/utils/timestamp_converter.dart';
-import 'package:arcinus/features/payments/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 
 part 'app_subscription_model.freezed.dart';
 part 'app_subscription_model.g.dart';
