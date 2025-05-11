@@ -242,12 +242,48 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                                 width: 1.5,
                               ),
                             ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.check,
-                                size: 12,
-                                color: Colors.black,
-                              ),
+                            child: Center(
+                              child: (clientUser?.subscriptionPlan != null && clientUser?.nextPaymentDate != null)
+                                ? Builder(
+                                    builder: (context) {
+                                      // Fecha actual
+                                      final now = DateTime.now();
+                                      final nextPaymentDate = clientUser!.nextPaymentDate!;
+                                      
+                                      // Si ya está vencido, mostrar '!'
+                                      if (now.isAfter(nextPaymentDate)) {
+                                        return const Text(
+                                          '!',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.bonfireRed,
+                                          ),
+                                        );
+                                      }
+                                      
+                                      // Calcular días restantes desde hoy hasta el próximo pago
+                                      final daysRemaining = nextPaymentDate.difference(now).inDays;
+                                      
+                                      return Text(
+                                        '$daysRemaining',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: daysRemaining < 5 
+                                              ? AppTheme.bonfireRed 
+                                              : (daysRemaining < 15 
+                                                  ? AppTheme.goldTrophy 
+                                                  : Colors.black),
+                                        ),
+                                      );
+                                    }
+                                  )
+                                : const Icon(
+                                    Icons.check,
+                                    size: 12,
+                                    color: Colors.black,
+                                  ),
                             ),
                           ),
                         ),

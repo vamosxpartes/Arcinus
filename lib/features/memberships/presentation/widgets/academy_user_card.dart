@@ -164,141 +164,104 @@ class AcademyUserCard extends ConsumerWidget {
                       );
                       
                       // Si el usuario no tiene plan, mostrar barra gris inactiva
-                      if (clientUser == null || 
-                          clientUser.subscriptionPlan == null || 
-                          clientUser.paymentStatus == PaymentStatus.inactive) {
+                      if (clientUser == null || clientUser.subscriptionPlan == null) {
                         AppLogger.logInfo(
-                          'Mostrando barra inactiva para usuario ${user.id}',
+                          'Mostrando barra inactiva para usuario sin plan: ${user.id}',
                           className: 'AcademyUserCard'
                         );
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8, right: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Barra gris inactiva
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: 0.0,
-                                  backgroundColor: Colors.grey.withOpacity(0.2),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.grey),
-                                  minHeight: 3,
-                                ),
-                              ),
-                              
-                              // Texto de inactivo
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Usuario inactivo',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      } else {
-                        // Para usuarios activos comprobamos fechas
-                        // Verificar fechas de pago
-                        if (clientUser.nextPaymentDate == null || 
-                            clientUser.lastPaymentDate == null) {
-                          AppLogger.logWarning(
-                            'Usuario activo sin fechas de pago: ${user.id}',
-                            className: 'AcademyUserCard'
-                          );
-                          return const SizedBox.shrink();
-                        }
-                        
-                        final now = DateTime.now();
-                        final nextPayment = clientUser.nextPaymentDate!;
-                        
-                        // Solo mostramos la barra si hay próximo pago en el futuro
-                        if (!nextPayment.isAfter(now)) {
-                          AppLogger.logInfo(
-                            'Próximo pago en el pasado para usuario ${user.id}',
-                            className: 'AcademyUserCard',
-                            params: {'nextPayment': nextPayment.toString(), 'now': now.toString()}
-                          );
-                          return const SizedBox.shrink();
-                        }
-                        
-                        final lastPayment = clientUser.lastPaymentDate!;
-                        final totalDays = nextPayment.difference(lastPayment).inDays;
-                        final daysElapsed = now.difference(lastPayment).inDays;
-                        final daysRemaining = nextPayment.difference(now).inDays;
-                        
-                        // Evitar división por cero y limitar progreso entre 0 y 1
-                        final double progressPercent = totalDays > 0 
-                            ? daysElapsed / totalDays 
-                            : 0.0;
-                        final double clampedProgress = progressPercent.clamp(0.0, 1.0);
-                        
-                        // Color según días restantes
-                        final Color progressColor;
-                        if (daysRemaining < 5) {
-                          progressColor = AppTheme.bonfireRed;
-                        } else if (daysRemaining < 15) {
-                          progressColor = AppTheme.goldTrophy;
-                        } else {
-                          progressColor = AppTheme.courtGreen;
-                        }
-                        
-                        AppLogger.logInfo(
-                          'Mostrando barra de progreso para usuario ${user.id}',
-                          className: 'AcademyUserCard',
-                          params: {
-                            'progreso': clampedProgress.toString(), 
-                            'días_totales': totalDays.toString(),
-                            'días_transcurridos': daysElapsed.toString(),
-                            'días_restantes': daysRemaining.toString()
-                          }
-                        );
-                        
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8, right: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Barra de progreso
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: clampedProgress,
-                                  backgroundColor: Colors.grey.withOpacity(0.2),
-                                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                                  minHeight: 3,
-                                ),
-                              ),
-                              
-                              // Fecha de próximo pago
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Próximo: ${formatDate(nextPayment)}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: daysRemaining < 5 ? AppTheme.bonfireRed : AppTheme.lightGray,
-                                    ),
-                                  ),
-                                  if (daysRemaining < 30)
-                                    Text(
-                                      '$daysRemaining días',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: daysRemaining < 5 ? AppTheme.bonfireRed : AppTheme.lightGray,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
+                        return _buildInactiveProgressBar();
                       }
+                      
+                      // Verificar si tenemos fecha de próximo pago
+                      if (clientUser.nextPaymentDate == null) {
+                        AppLogger.logWarning(
+                          'Usuario con plan sin fecha de próximo pago: ${user.id}',
+                          className: 'AcademyUserCard'
+                        );
+                        return _buildInactiveProgressBar();
+                      }
+                      
+                      final now = DateTime.now();
+                      final nextPaymentDate = clientUser.nextPaymentDate!;
+                      
+                      // Calcular la duración del plan en días según el ciclo de facturación
+                      final int planDurationInDays = _getPlanDurationInDays(clientUser.subscriptionPlan!);
+                      
+                      // Determinar la fecha de inicio (preferimos lastPaymentDate, si no está disponible calculamos desde nextPaymentDate)
+                      final DateTime startDate = clientUser.lastPaymentDate ?? 
+                        nextPaymentDate.subtract(Duration(days: planDurationInDays));
+                      
+                      // Calcular días totales, transcurridos y restantes
+                      final int totalDays = planDurationInDays;
+                      final int daysElapsed = now.difference(startDate).inDays;
+                      final int daysRemaining = nextPaymentDate.difference(now).inDays;
+                      
+                      // Calcular progreso (entre 0.0 y 1.0)
+                      final double progress = (daysElapsed / totalDays).clamp(0.0, 1.0);
+                      
+                      // Determinar el color según si está vencido o no
+                      final bool isOverdue = now.isAfter(nextPaymentDate);
+                      final Color progressColor = _getProgressColor(daysRemaining, isOverdue);
+                      
+                      AppLogger.logInfo(
+                        'Cálculo unificado de barra de progreso para usuario ${user.id}',
+                        className: 'AcademyUserCard',
+                        params: {
+                          'fecha_inicio': startDate.toString(),
+                          'fecha_próximo_pago': nextPaymentDate.toString(),
+                          'duración_plan_días': totalDays.toString(),
+                          'días_transcurridos': daysElapsed.toString(),
+                          'días_restantes': daysRemaining.toString(),
+                          'progreso': progress.toString(),
+                          'está_vencido': isOverdue.toString(),
+                        }
+                      );
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8, right: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Barra de progreso
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                backgroundColor: Colors.grey.withOpacity(0.2),
+                                valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                                minHeight: 3,
+                              ),
+                            ),
+                            
+                            // Fecha de próximo pago
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  isOverdue 
+                                    ? 'Vencido: ${formatDate(nextPaymentDate)}'
+                                    : 'Próximo: ${formatDate(nextPaymentDate)}',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: _getTextColor(daysRemaining, isOverdue),
+                                  ),
+                                ),
+                                Text(
+                                  isOverdue 
+                                    ? 'Pago pendiente'
+                                    : '$daysRemaining días',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getTextColor(daysRemaining, isOverdue),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
                     },
                     loading: () => Padding(
                       padding: const EdgeInsets.only(top: 8),
@@ -441,5 +404,89 @@ class AcademyUserCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  // Retorna un widget de barra de progreso inactiva
+  Widget _buildInactiveProgressBar() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, right: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Barra gris inactiva
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: 0.0,
+              backgroundColor: Colors.grey.withOpacity(0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.grey),
+              minHeight: 3,
+            ),
+          ),
+          
+          // Texto de inactivo
+          const SizedBox(height: 4),
+          const Text(
+            'Usuario inactivo',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Calcula la duración del plan en días según el ciclo de facturación
+  int _getPlanDurationInDays(SubscriptionPlanModel plan) {
+    // Si el plan tiene billingCycle como texto (desde JSON)
+    final String? cycleName = plan.billingCycle is String 
+        ? plan.billingCycle as String
+        : null;
+        
+    // Usar el enum BillingCycle si está disponible
+    final BillingCycle cycle = cycleName != null
+        ? BillingCycle.values.firstWhere(
+            (e) => e.name == cycleName,
+            orElse: () => BillingCycle.monthly,
+          )
+        : (plan.billingCycle is BillingCycle 
+            ? plan.billingCycle as BillingCycle 
+            : BillingCycle.monthly);
+    
+    // Convertir meses a días aproximados
+    switch (cycle) {
+      case BillingCycle.annual:
+        return 365; // Un año
+      case BillingCycle.biannual:
+        return 180; // Seis meses aproximados
+      case BillingCycle.quarterly:
+        return 90; // Tres meses aproximados
+      case BillingCycle.monthly:
+      default:
+        return 30; // Un mes aproximado
+    }
+  }
+  
+  // Determina el color de la barra de progreso
+  Color _getProgressColor(int daysRemaining, bool isOverdue) {
+    if (isOverdue) {
+      return AppTheme.bonfireRed; // Rojo para vencido
+    } else if (daysRemaining < 5) {
+      return AppTheme.bonfireRed; // Rojo para casi vencido
+    } else if (daysRemaining < 15) {
+      return AppTheme.goldTrophy; // Amarillo/naranja para próximo a vencer
+    } else {
+      return AppTheme.courtGreen; // Verde para pago al día
+    }
+  }
+  
+  // Determina el color del texto
+  Color _getTextColor(int daysRemaining, bool isOverdue) {
+    if (isOverdue || daysRemaining < 5) {
+      return AppTheme.bonfireRed;
+    }
+    return AppTheme.lightGray;
   }
 } 
