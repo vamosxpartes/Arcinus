@@ -224,7 +224,7 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Colors.green.withOpacity(0.2),
+          backgroundColor: Colors.green.withAlpha(60),
           child: const Icon(Icons.check_circle, color: Colors.green),
         ),
         title: Row(

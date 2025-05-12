@@ -282,7 +282,7 @@ class AcademyUserCard extends ConsumerWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
-                          backgroundColor: Colors.grey.withOpacity(0.15),
+                          backgroundColor: Colors.grey.withAlpha(45),
                           minHeight: 3,
                         ),
                       ),
@@ -447,7 +447,7 @@ class AcademyUserCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: 0.0,
-              backgroundColor: Colors.grey.withOpacity(0.15),
+              backgroundColor: Colors.grey.withAlpha(45),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.grey),
               minHeight: 3,
             ),

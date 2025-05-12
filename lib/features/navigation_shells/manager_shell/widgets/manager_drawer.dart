@@ -341,6 +341,32 @@ class ManagerDrawer extends ConsumerWidget {
           isActive: true,
         ),
         
+        // --- Academia ---
+        ListTile(
+          dense: true,
+          leading: Icon(Icons.school, color: AppTheme.bonfireRed, size: 20),
+          title: Text(
+            'Academia',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: AppTheme.magnoliaWhite,
+              fontSize: AppTheme.bodySize,
+              letterSpacing: 0.15,
+            )
+          ),
+          onTap: () {
+            Navigator.pop(context);
+            final currentAcademy = ref.read(currentAcademyProvider);
+            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
+              context.go('/manager/academy/${currentAcademy.id}');
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Por favor, selecciona una academia primero')),
+              );
+            }
+          },
+        ),
+        
         // --- Miembros ---
         ListTile(
           dense: true,
@@ -410,12 +436,57 @@ class ManagerDrawer extends ConsumerWidget {
           ),
         ),
         
-        // --- Academia ---
+        // --- Inventario ---
         _buildDrawerItem(
           context,
           '',
-          Icons.school,
-          'Academia',
+          Icons.inventory_2_outlined,
+          'Inventario',
+          isActive: false,
+        ),
+        
+        // --- Facturación ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.receipt_long_outlined,
+          'Facturación',
+          isActive: false,
+        ),
+        
+        // --- Normas y documentos ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.gavel_outlined,
+          'Normas y documentos',
+          isActive: false,
+        ),
+        
+        // --- Redes sociales ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.share_outlined,
+          'Redes sociales',
+          isActive: false,
+        ),
+        
+        // --- Marca y personalización ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.brush_outlined,
+          'Marca y personalización',
+          isActive: false,
+        ),
+        
+        // --- Notificaciones ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.notifications_outlined,
+          'Notificaciones',
           isActive: false,
         ),
         

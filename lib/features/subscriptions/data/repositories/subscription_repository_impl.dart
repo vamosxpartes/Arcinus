@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+
 part 'subscription_repository_impl.g.dart';
 
 /// Implementación de [SubscriptionRepository] usando Firestore.

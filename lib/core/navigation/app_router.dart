@@ -11,6 +11,7 @@ import 'package:arcinus/features/auth/presentation/ui/screens/welcome_screen.dar
 import 'package:arcinus/features/auth/presentation/providers/auth_state.dart';
 import 'package:arcinus/features/splash/presentation/screens/splash_screen.dart';
 import 'package:arcinus/features/utils/screens/screen_under_development.dart';
+import 'package:arcinus/features/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -680,6 +681,39 @@ final routerProvider = Provider<GoRouter>((ref) {
                   },
                 ),
                 GoRoute(
+                  path: 'edit',
+                  name: 'managerAcademyEdit',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    // Utilizar Consumer para obtener la academia real
+                    return Consumer(
+                      builder: (context, ref, child) {
+                        final academyAsyncValue = ref.watch(academyProvider(academyId));
+                        // No necesitamos comprobar si es null, el provider lanza error
+                        return academyAsyncValue.when(
+                          data: (academy) {
+                            // Añadir chequeo de nulidad
+                            if (academy == null) {
+                               return Scaffold(
+                                  appBar: AppBar(title: const Text('Error')),
+                                  body: const Center(child: Text('Academia no encontrada.')),
+                               );
+                            }
+                            // Pasar la academia real (ahora no nula) a EditAcademyScreen
+                            return EditAcademyScreen(academy: academy, initialAcademy: academy);
+                          },
+                          loading: () => const Scaffold(
+                            body: Center(child: CircularProgressIndicator()),
+                          ),
+                          error: (error, stackTrace) => Scaffold(
+                            body: Center(child: Text('Error cargando academia: $error')),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                GoRoute(
                   path: 'payments',
                   name: 'managerAcademyPayments',
                   builder: (context, state) {
@@ -713,6 +747,85 @@ final routerProvider = Provider<GoRouter>((ref) {
                   builder: (context, state) {
                     final academyId = state.pathParameters['academyId']!;
                     return SubscriptionPlansScreen(academyId: academyId);
+                  },
+                ),
+                // Rutas para nuevas funcionalidades (en desarrollo)
+                GoRoute(
+                  path: 'inventory',
+                  name: 'managerAcademyInventory',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return ScreenUnderDevelopment(
+                      message: 'Gestión de inventario',
+                      icon: Icons.inventory_2_outlined,
+                      primaryColor: AppTheme.bonfireRed,
+                      description: 'Control de equipamiento, instalaciones y recursos de la academia',
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'billing',
+                  name: 'managerAcademyBilling',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return ScreenUnderDevelopment(
+                      message: 'Sistema de facturación',
+                      icon: Icons.receipt_long_outlined,
+                      primaryColor: AppTheme.bonfireRed,
+                      description: 'Gestión de facturas, recibos y documentos fiscales',
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'documents',
+                  name: 'managerAcademyDocuments',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return ScreenUnderDevelopment(
+                      message: 'Normas y documentación',
+                      icon: Icons.gavel_outlined,
+                      primaryColor: AppTheme.bonfireRed,
+                      description: 'Gestión de reglamentos, protocolos y documentos legales',
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'social',
+                  name: 'managerAcademySocial',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return ScreenUnderDevelopment(
+                      message: 'Redes sociales',
+                      icon: Icons.share_outlined,
+                      primaryColor: AppTheme.bonfireRed,
+                      description: 'Integración con plataformas sociales y gestión de contenido',
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'branding',
+                  name: 'managerAcademyBranding',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return ScreenUnderDevelopment(
+                      message: 'Marca y personalización',
+                      icon: Icons.brush_outlined,
+                      primaryColor: AppTheme.bonfireRed,
+                      description: 'Configuración de identidad visual, colores y elementos de marca',
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'notifications',
+                  name: 'managerAcademyNotifications',
+                  builder: (context, state) {
+                    final academyId = state.pathParameters['academyId']!;
+                    return ScreenUnderDevelopment(
+                      message: 'Centro de notificaciones',
+                      icon: Icons.notifications_outlined,
+                      primaryColor: AppTheme.bonfireRed,
+                      description: 'Gestión de comunicaciones y anuncios para miembros de la academia',
+                    );
                   },
                 ),
               ],

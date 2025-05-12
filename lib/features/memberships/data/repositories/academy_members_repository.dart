@@ -54,7 +54,7 @@ class AcademyMembersRepository {
     final snapshot = await membersCollection(academyId)
         .where('role', isEqualTo: AppRole.atleta.name)
         .where('name_lowercase', isGreaterThanOrEqualTo: lowerQuery)
-        .where('name_lowercase', isLessThanOrEqualTo: lowerQuery + '\uf8ff')
+        .where('name_lowercase', isLessThanOrEqualTo: '$lowerQuery\uf8ff')
         .get();
         
     return snapshot.docs.map((doc) {

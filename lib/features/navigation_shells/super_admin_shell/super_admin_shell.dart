@@ -94,7 +94,7 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
                 'SuperAdmin',
                 style: TextStyle(fontSize: 12, color: Colors.white),
               ),
-              backgroundColor: Colors.deepPurple.withOpacity(0.7),
+              backgroundColor: Colors.deepPurple.withAlpha(170),
               visualDensity: VisualDensity.compact,
             ),
           ),
