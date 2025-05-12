@@ -213,7 +213,7 @@ class ManagerDrawer extends ConsumerWidget {
                       ),
                       onPressed: () {
                         Navigator.pop(context);
-                        context.go('/manager/academy/create');
+                        context.go(AppRoutes.managerCreateAcademy);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.magnoliaWhite.withAlpha(60),
@@ -271,7 +271,7 @@ class ManagerDrawer extends ConsumerWidget {
                         if (newValue != null) {
                           if (newValue == _createNewAcademyValue) {
                             Navigator.pop(context); // Cerrar el drawer
-                            context.go('/manager/academy/create');
+                            context.go(AppRoutes.managerCreateAcademy);
                           } else {
                             // Buscar la academia completa por ID
                             final selectedAcademy = academies.firstWhere(
@@ -398,7 +398,7 @@ class ManagerDrawer extends ConsumerWidget {
           dense: true,
           leading: Icon(Icons.subscriptions, color: AppTheme.bonfireRed, size: 20),
           title: Text(
-            'Planes de Suscripción',
+            'Planes',
             style: TextStyle(
               fontWeight: FontWeight.w500,
               color: AppTheme.magnoliaWhite,
@@ -478,6 +478,15 @@ class ManagerDrawer extends ConsumerWidget {
           '',
           Icons.brush_outlined,
           'Marca y personalización',
+          isActive: false,
+        ),
+        
+        // --- Instalaciones ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.location_on_outlined,
+          'Instalaciones',
           isActive: false,
         ),
         

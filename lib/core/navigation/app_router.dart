@@ -3,6 +3,7 @@ import 'package:arcinus/core/navigation/app_routes.dart';
 import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/create_academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/academy_screen.dart';
+import 'package:arcinus/features/academies/presentation/ui/screens/manager_create_academy_screen.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/login_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/member_access_screen.dart';
@@ -664,6 +665,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               name: 'managerSettings',
               builder: (_, __) => const ScreenUnderDevelopment(message: 'Configuración'),
             ),
+            // Añadir ruta para crear academia dentro del shell manager
+            GoRoute(
+              path: '/manager/create-academy',
+              name: 'managerCreateAcademy',
+              builder: (_, __) => const ManagerCreateAcademyScreen(),
+            ),
             GoRoute(
               path: '/manager/academy/:academyId',
               name: 'managerAcademy',
@@ -754,7 +761,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   path: 'inventory',
                   name: 'managerAcademyInventory',
                   builder: (context, state) {
-                    final academyId = state.pathParameters['academyId']!;
                     return ScreenUnderDevelopment(
                       message: 'Gestión de inventario',
                       icon: Icons.inventory_2_outlined,
@@ -767,7 +773,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   path: 'billing',
                   name: 'managerAcademyBilling',
                   builder: (context, state) {
-                    final academyId = state.pathParameters['academyId']!;
                     return ScreenUnderDevelopment(
                       message: 'Sistema de facturación',
                       icon: Icons.receipt_long_outlined,
@@ -780,7 +785,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   path: 'documents',
                   name: 'managerAcademyDocuments',
                   builder: (context, state) {
-                    final academyId = state.pathParameters['academyId']!;
                     return ScreenUnderDevelopment(
                       message: 'Normas y documentación',
                       icon: Icons.gavel_outlined,
@@ -793,7 +797,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   path: 'social',
                   name: 'managerAcademySocial',
                   builder: (context, state) {
-                    final academyId = state.pathParameters['academyId']!;
                     return ScreenUnderDevelopment(
                       message: 'Redes sociales',
                       icon: Icons.share_outlined,
@@ -806,7 +809,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   path: 'branding',
                   name: 'managerAcademyBranding',
                   builder: (context, state) {
-                    final academyId = state.pathParameters['academyId']!;
                     return ScreenUnderDevelopment(
                       message: 'Marca y personalización',
                       icon: Icons.brush_outlined,
@@ -819,7 +821,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                   path: 'notifications',
                   name: 'managerAcademyNotifications',
                   builder: (context, state) {
-                    final academyId = state.pathParameters['academyId']!;
                     return ScreenUnderDevelopment(
                       message: 'Centro de notificaciones',
                       icon: Icons.notifications_outlined,

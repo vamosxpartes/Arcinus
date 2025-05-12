@@ -593,6 +593,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
   DateTime _startDate = DateTime.now();
   bool _isSubmitting = false;
   bool _isInitialized = false;
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -628,6 +629,39 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
     );
   }
 
+  // Método para refrescar los planes de suscripción
+  Future<void> _refreshSubscriptionPlans() async {
+    if (_isRefreshing) return;
+    
+    setState(() {
+      _isRefreshing = true;
+    });
+    
+    try {
+      // Invalidar los providers para forzar la recarga
+      ref.invalidate(activeSubscriptionPlansProvider(widget.academyId));
+      ref.invalidate(clientUserProvider(widget.athleteId));
+      
+      // Esperar un momento para que la UI refleje el estado de carga
+      await Future.delayed(const Duration(milliseconds: 300));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al actualizar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final plansAsyncValue = ref.watch(activeSubscriptionPlansProvider(widget.academyId));
@@ -659,9 +693,26 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                     'Gestionar Plan de Suscripción',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                  Row(
+                    children: [
+                      // Botón para actualizar los planes
+                      IconButton(
+                        icon: _isRefreshing 
+                          ? const SizedBox(
+                              width: 20, 
+                              height: 20, 
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh),
+                        tooltip: 'Actualizar planes',
+                        onPressed: _isRefreshing ? null : _refreshSubscriptionPlans,
+                      ),
+                      // Botón para cerrar el modal
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/core/providers/firebase_providers.dart';
 
 part 'subscription_repository_impl.g.dart';
 
@@ -28,6 +29,16 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       className: _className,
       functionName: 'constructor',
     );
+  }
+  
+  // Referencia a la colección de planes de suscripción
+  CollectionReference _getPlansCollection(String academyId) {
+    return _firestore.collection('academies').doc(academyId).collection('subscription_plans');
+  }
+
+  // Referencia a la colección de usuarios
+  CollectionReference _getUsersCollection(String academyId) {
+    return _firestore.collection('academies').doc(academyId).collection('users');
   }
 
   @override
@@ -164,9 +175,36 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String academyId, {
     bool activeOnly = false,
   }) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.getSubscriptionPlans(academyId, activeOnly: activeOnly);
+    try {
+      final plansCollection = _getPlansCollection(academyId);
+      Query query = plansCollection;
+      
+      if (activeOnly) {
+        query = query.where('isActive', isEqualTo: true);
+      }
+      
+      final snapshot = await query.get();
+      
+      final plans = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return SubscriptionPlanModel.fromJson({
+          ...data,
+          'id': doc.id,
+        });
+      }).toList();
+      
+      return Right(plans);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener planes de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getSubscriptionPlans',
+        params: {'academyId': academyId},
+      );
+      return Left(ServerFailure(message: 'Error obteniendo planes: $e'));
+    }
   }
 
   @override
@@ -174,9 +212,32 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String academyId,
     String planId,
   ) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.getSubscriptionPlan(academyId, planId);
+    try {
+      final docRef = _getPlansCollection(academyId).doc(planId);
+      final doc = await docRef.get();
+      
+      if (!doc.exists) {
+        return Left(ServerFailure(message: 'Plan no encontrado'));
+      }
+      
+      final data = doc.data() as Map<String, dynamic>;
+      final plan = SubscriptionPlanModel.fromJson({
+        ...data,
+        'id': doc.id,
+      });
+      
+      return Right(plan);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      return Left(ServerFailure(message: 'Error obteniendo plan: $e'));
+    }
   }
 
   @override
@@ -184,9 +245,28 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String academyId,
     SubscriptionPlanModel plan,
   ) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.createSubscriptionPlan(academyId, plan);
+    try {
+      final plansCollection = _getPlansCollection(academyId);
+      final planData = plan.toJson();
+      
+      // Eliminar ID si existe
+      planData.remove('id');
+      
+      final docRef = await plansCollection.add(planData);
+      final createdPlan = plan.copyWith(id: docRef.id);
+      
+      return Right(createdPlan);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al crear plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'createSubscriptionPlan',
+        params: {'academyId': academyId},
+      );
+      return Left(ServerFailure(message: 'Error creando plan: $e'));
+    }
   }
 
   @override
@@ -195,9 +275,28 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String planId,
     SubscriptionPlanModel plan,
   ) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.updateSubscriptionPlan(academyId, planId, plan);
+    try {
+      final docRef = _getPlansCollection(academyId).doc(planId);
+      final planData = plan.toJson();
+      
+      // Eliminar ID si existe
+      planData.remove('id');
+      
+      await docRef.update(planData);
+      final updatedPlan = plan.copyWith(id: planId);
+      
+      return Right(updatedPlan);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al actualizar plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'updateSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      return Left(ServerFailure(message: 'Error actualizando plan: $e'));
+    }
   }
 
   @override
@@ -205,9 +304,22 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String academyId,
     String planId,
   ) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.deleteSubscriptionPlan(academyId, planId);
+    try {
+      final docRef = _getPlansCollection(academyId).doc(planId);
+      await docRef.delete();
+      
+      return const Right(null);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al eliminar plan de suscripción',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'deleteSubscriptionPlan',
+        params: {'academyId': academyId, 'planId': planId},
+      );
+      return Left(ServerFailure(message: 'Error eliminando plan: $e'));
+    }
   }
 
   @override
@@ -217,9 +329,36 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String planId,
     DateTime startDate,
   ) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.assignPlanToUser(academyId, userId, planId, startDate);
+    try {
+      // Obtener el plan
+      final planResult = await getSubscriptionPlan(academyId, planId);
+      
+      return planResult.fold(
+        (failure) => Left(failure),
+        (plan) async {
+          // Asignar el plan al usuario
+          final userRef = _getUsersCollection(academyId).doc(userId);
+          
+          await userRef.update({
+            'subscriptionPlanId': planId,
+            'subscriptionStartDate': startDate,
+            // Podríamos calcular la fecha de fin basada en el plan
+          });
+          
+          return const Right(null);
+        }
+      );
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al asignar plan a usuario',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'assignPlanToUser',
+        params: {'academyId': academyId, 'userId': userId, 'planId': planId},
+      );
+      return Left(ServerFailure(message: 'Error asignando plan: $e'));
+    }
   }
 
   @override
@@ -227,9 +366,34 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     String academyId,
     String userId,
   ) async {
-    // Delegamos al repositorio principal
-    final mainRepository = ProviderContainer().read(subscriptionRepositoryProvider);
-    return mainRepository.getUserPlan(academyId, userId);
+    try {
+      final userRef = _getUsersCollection(academyId).doc(userId);
+      final userDoc = await userRef.get();
+      
+      if (!userDoc.exists) {
+        return const Right(null); // Usuario no encontrado
+      }
+      
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final planId = userData['subscriptionPlanId'] as String?;
+      
+      if (planId == null) {
+        return const Right(null); // No tiene plan asignado
+      }
+      
+      // Obtener el plan
+      return getSubscriptionPlan(academyId, planId);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener plan de usuario',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'getUserPlan',
+        params: {'academyId': academyId, 'userId': userId},
+      );
+      return Left(ServerFailure(message: 'Error obteniendo plan de usuario: $e'));
+    }
   }
 }
 
@@ -241,7 +405,8 @@ SubscriptionRepository subscriptionRepository(Ref ref) {
     className: 'subscription_repository',
     functionName: 'subscriptionRepository',
   );
-  // IMPORTANTE: Devolvemos la implementación del dominio, no esta clase
-  // Para mantener compatibilidad, redirigimos a través del provider principal
-  return ref.watch(subscriptionRepositoryProvider);
+  
+  // Crear una instancia directamente en lugar de usar otro provider
+  final firestore = ref.watch(firestoreProvider);
+  return SubscriptionRepositoryImpl(firestore);
 }

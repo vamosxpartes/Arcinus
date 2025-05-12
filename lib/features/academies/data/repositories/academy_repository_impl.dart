@@ -4,18 +4,24 @@ import 'package:arcinus/features/academies/domain/repositories/academy_repositor
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:uuid/uuid.dart';
 
 /// Implementación de la interfaz [AcademyRepository] para interactuar
 class AcademyRepositoryImpl implements AcademyRepository {
   static const String _className = 'AcademyRepositoryImpl';
   
   /// Constructor de la clase.
-  AcademyRepositoryImpl(this._firestore) {
+  AcademyRepositoryImpl(this._firestore, {FirebaseStorage? storage}) {
     /// Inicializamos la colección de academias.
     _academiesCollection = _firestore.collection('academies');
+    _storage = storage ?? FirebaseStorage.instance;
   }
+  
   final FirebaseFirestore _firestore;
   late final CollectionReference _academiesCollection;
+  late final FirebaseStorage _storage;
 
   @override
   Future<Either<Failure, AcademyModel>> createAcademy(
@@ -226,6 +232,52 @@ class AcademyRepositoryImpl implements AcademyRepository {
       );
       return Left(
         ServerFailure(message: 'Error inesperado actualizando academia: $e'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, AcademyModel>> createAcademyWithLogo(
+    AcademyModel academy,
+    File logoFile,
+  ) async {
+    try {
+      AppLogger.logInfo(
+        'Iniciando creación de academia con logo',
+        className: _className,
+        functionName: 'createAcademyWithLogo',
+        params: {'academy': academy.name},
+      );
+      
+      // 1. Primero subimos la imagen al storage
+      final String fileExtension = logoFile.path.split('.').last;
+      final String fileName = '${const Uuid().v4()}.$fileExtension';
+      final String storagePath = 'academies/logos/$fileName';
+      
+      final storageRef = _storage.ref().child(storagePath);
+      await storageRef.putFile(logoFile);
+      final String logoUrl = await storageRef.getDownloadURL();
+      
+      AppLogger.logInfo(
+        'Logo subido exitosamente',
+        className: _className,
+        functionName: 'createAcademyWithLogo',
+        params: {'logoUrl': logoUrl},
+      );
+      
+      // 2. Creamos la academia con la URL del logo
+      final academyWithLogo = academy.copyWith(logoUrl: logoUrl);
+      return createAcademy(academyWithLogo);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al crear academia con logo',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'createAcademyWithLogo',
+      );
+      return Left(
+        ServerFailure(message: 'Error al subir el logo: $e'),
       );
     }
   }

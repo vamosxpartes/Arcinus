@@ -1,6 +1,7 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:fpdart/fpdart.dart';
+import 'dart:io';
 
 /// Interfaz abstracta para el repositorio de academias.
 /// Define los métodos necesarios para interactuar con los datos
@@ -12,6 +13,16 @@ abstract class AcademyRepository {
   /// el [AcademyModel] creado (con ID y timestamps) en caso de éxito,
   /// o un [Failure] en caso de error.
   Future<Either<Failure, AcademyModel>> createAcademy(AcademyModel academy);
+  
+  /// Crea una nueva academia incluyendo la carga del logo.
+  ///
+  /// Recibe el [academy] a crear y el [logoFile] para subir.
+  /// Devuelve el [AcademyModel] creado con la URL del logo en caso de éxito,
+  /// o un [Failure] en caso de error.
+  Future<Either<Failure, AcademyModel>> createAcademyWithLogo(
+    AcademyModel academy,
+    File logoFile,
+  );
 
   /// Obtiene los detalles de una academia específica por su ID.
   ///

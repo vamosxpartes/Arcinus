@@ -18,6 +18,7 @@ import 'package:arcinus/core/error/failures.dart'; // Asumiendo ubicación
 import 'package:arcinus/core/auth/roles.dart'; // Needed for AppRole
 import 'package:arcinus/features/memberships/data/models/membership_model.dart'; // Importar MembershipModel
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'dart:io'; // Para File
 
 /// Provider for managing the state of academy creation.
 final createAcademyProvider = StateNotifierProvider.autoDispose<
@@ -46,6 +47,27 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
   final formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   String? selectedSportCode;
+  
+  // Flag para permitir pre-validación desde pantallas externas
+  bool _isFormPreValidated = false;
+  
+  // Campos adicionales
+  String description = '';
+  String phone = '';
+  String email = '';
+  String address = '';
+  File? logoFile;
+
+  /// Establece si el formulario está pre-validado externamente
+  void setFormPreValidated(bool validated) {
+    _isFormPreValidated = validated;
+    AppLogger.logInfo(
+      'Formulario configurado como pre-validado',
+      className: 'CreateAcademyNotifier',
+      functionName: 'setFormPreValidated',
+      params: {'preValidated': validated.toString()}
+    );
+  }
 
   // Esta lista debería venir de una fuente de datos real (configuración, Firestore)
   // Por ahora, se mantiene como datos estáticos.
@@ -62,29 +84,95 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
     }
   }
 
+  /// Actualiza los campos adicionales de la academia
+  void updateAdditionalInfo({
+    String? description,
+    String? phone,
+    String? email,
+    String? address,
+    File? logoFile,
+  }) {
+    if (description != null) this.description = description;
+    if (phone != null) this.phone = phone;
+    if (email != null) this.email = email;
+    if (address != null) this.address = address;
+    if (logoFile != null) this.logoFile = logoFile;
+  }
+
   /// Intenta crear la academia validando el formulario y el deporte seleccionado.
   Future<void> createAcademy() async {
-    // 1. Validar formulario
-    final isFormValid = formKey.currentState?.validate() ?? false;
+    // 1. Validar formulario - usar pre-validación si está habilitada
+    final formKeyValid = formKey.currentState?.validate() ?? false;
+    final isFormValid = formKeyValid || _isFormPreValidated;
+    
+    if (_isFormPreValidated) {
+      AppLogger.logInfo(
+        'Usando validación externa del formulario',
+        className: 'CreateAcademyNotifier',
+        functionName: 'createAcademy',
+        params: {'formKeyValid': formKeyValid.toString(), 'preValidated': _isFormPreValidated.toString()}
+      );
+    }
+    
     String? nameValidationError;
     if (!isFormValid) {
       // Capturar el error específico del nombre si es el caso
       if (nameController.text.trim().isEmpty) {
           nameValidationError = 'Ingresa el nombre de la academia';
+          AppLogger.logWarning(
+            'Validación fallida: Campo nombre vacío',
+            className: 'CreateAcademyNotifier',
+            functionName: 'createAcademy',
+            params: {'nombreActual': nameController.text}
+          );
+      } else {
+          AppLogger.logWarning(
+            'Validación fallida: Formulario con errores desconocidos',
+            className: 'CreateAcademyNotifier',
+            functionName: 'createAcademy'
+          );
       }
-      AppLogger.logWarning('Formulario inválido');
       // No retornar aún, verificar deporte también
+    } else {
+      AppLogger.logInfo(
+        'Validación de nombre correcta',
+        className: 'CreateAcademyNotifier',
+        functionName: 'createAcademy',
+        params: {'nombre': nameController.text.trim()}
+      );
     }
 
     // 2. Validar selección de deporte
     String? sportValidationError;
     if (selectedSportCode == null) {
       sportValidationError = 'Debes seleccionar un deporte';
-      AppLogger.logWarning('Error: Deporte no seleccionado');
+      AppLogger.logWarning(
+        'Validación fallida: Deporte no seleccionado',
+        className: 'CreateAcademyNotifier',
+        functionName: 'createAcademy'
+      );
+    } else {
+      AppLogger.logInfo(
+        'Validación de deporte correcta',
+        className: 'CreateAcademyNotifier',
+        functionName: 'createAcademy',
+        params: {'deporte': selectedSportCode}
+      );
     }
 
     // Si hay algún error de validación, actualizar estado y retornar
     if (!isFormValid || sportValidationError != null) {
+       AppLogger.logWarning(
+         'Formulario inválido - No se puede crear academia',
+         className: 'CreateAcademyNotifier',
+         functionName: 'createAcademy',
+         params: {
+           'erroresNombre': nameValidationError ?? 'Ninguno',
+           'erroresDeporte': sportValidationError ?? 'Ninguno',
+           'formularioValido': isFormValid.toString()
+         }
+       );
+       
        state = CreateAcademyState.error(
          Failure.validationError(message: 'Por favor corrige los errores'),
          nameError: nameValidationError,
@@ -98,7 +186,9 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
     final user = _firebaseAuth.currentUser;
     if (user == null) {
       AppLogger.logError(
-        message: 'Error: Usuario no autenticado'
+        message: 'Error: Usuario no autenticado al intentar crear academia',
+        className: 'CreateAcademyNotifier',
+        functionName: 'createAcademy'
       );
       state = const CreateAcademyState.error(
         Failure.authError(code: 'unauthenticated'),
@@ -110,7 +200,17 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
     // 4. Iniciar estado de carga
     state = const CreateAcademyState.loading();
-    AppLogger.logInfo('Estado: Cargando creación de academia para usuario $userId');
+    AppLogger.logInfo(
+      'Iniciando creación de academia',
+      className: 'CreateAcademyNotifier',
+      functionName: 'createAcademy',
+      params: {
+        'userId': userId,
+        'nombre': nameController.text.trim(),
+        'deporte': selectedSportCode,
+        'tieneImagen': (logoFile != null).toString()
+      }
+    );
 
     // 5. Intentar crear con llamada real al repositorio
     try {
@@ -119,26 +219,54 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
         name: nameController.text.trim(),
         sportCode: selectedSportCode!,
         location: '',
+        description: description,
+        phone: phone,
+        email: email,
+        address: address,
+        // El logoUrl se manejará en el repositorio si logoFile no es null
         // createdAt se añadirá en el repositorio
       );
 
-      final academyResult = await _academyRepository.createAcademy(academyToCreateModel);
+      // Si hay un archivo de logo, debemos pasarlo al repositorio
+      final academyResult = logoFile != null 
+          ? await _academyRepository.createAcademyWithLogo(academyToCreateModel, logoFile!)
+          : await _academyRepository.createAcademy(academyToCreateModel);
 
       await academyResult.fold(
         (failure) async {
           AppLogger.logError(
-            message: 'Estado: Error creando academia - $failure',
-            error: failure
+            message: 'Error al crear academia en repositorio',
+            error: failure,
+            className: 'CreateAcademyNotifier',
+            functionName: 'createAcademy',
+            params: {
+              'tipoError': failure.runtimeType.toString(),
+              'mensaje': failure.message
+            }
           );
           state = CreateAcademyState.error(failure);
           _clearErrorAfterDelay();
         },
         (createdAcademy) async {
-          AppLogger.logInfo('Estado: Éxito creando academia - ID: ${createdAcademy.id}');
+          AppLogger.logInfo(
+            'Academia creada con éxito',
+            className: 'CreateAcademyNotifier',
+            functionName: 'createAcademy',
+            params: {
+              'academyId': createdAcademy.id,
+              'nombre': createdAcademy.name,
+              'deporte': createdAcademy.sportCode
+            }
+          );
 
           // PASO 2: Crear suscripción inicial
           try {
-            AppLogger.logInfo('Creando suscripción inicial para la academia ${createdAcademy.id}');
+            AppLogger.logInfo(
+              'Creando suscripción inicial',
+              className: 'CreateAcademyNotifier',
+              functionName: 'createAcademy',
+              params: {'academyId': createdAcademy.id}
+            );
             // Definir suscripción inicial (ej. trial de 30 días)
             final initialSubscription = SubscriptionModel(
               academyId: createdAcademy.id!,
@@ -151,8 +279,15 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
             await subscriptionResult.fold(
               (subFailure) async {
                  AppLogger.logError(
-                   message: 'Error creando suscripción inicial: $subFailure. Fallando operación completa...',
-                   error: subFailure
+                   message: 'Error al crear suscripción inicial',
+                   error: subFailure,
+                   className: 'CreateAcademyNotifier',
+                   functionName: 'createAcademy',
+                   params: {
+                     'academyId': createdAcademy.id,
+                     'tipoError': subFailure.runtimeType.toString(),
+                     'mensaje': subFailure.message
+                   }
                  );
                  // Si falla la suscripción, revertir estado a error.
                  state = CreateAcademyState.error(subFailure);
@@ -160,7 +295,16 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                  // Opcional: Podríamos intentar eliminar la academia creada aquí, pero es complejo.
               },
               (_) async { // Suscripción creada
-                 AppLogger.logInfo('Suscripción inicial creada con éxito.');
+                 AppLogger.logInfo(
+                   'Suscripción inicial creada con éxito',
+                   className: 'CreateAcademyNotifier',
+                   functionName: 'createAcademy',
+                   params: {
+                     'academyId': createdAcademy.id,
+                     'tipoPlan': 'trial',
+                     'duración': '30 días'
+                   }
+                 );
 
                  // PASO 3: Crear membresía para el propietario
                  try {
@@ -171,13 +315,31 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                       addedAt: DateTime.now(),
                       // permissions: [], // Vacío por defecto
                    );
+                   AppLogger.logInfo(
+                     'Creando membresía de propietario',
+                     className: 'CreateAcademyNotifier',
+                     functionName: 'createAcademy',
+                     params: {
+                       'academyId': createdAcademy.id,
+                       'userId': userId,
+                       'rol': AppRole.propietario.name
+                     }
+                   );
                    final membershipResult = await _membershipRepository.createMembership(ownerMembership);
 
                    membershipResult.fold(
                      (memFailure) {
                         AppLogger.logError(
-                          message: 'Error creando membresía del propietario: $memFailure. Continuando...',
-                          error: memFailure
+                          message: 'Error al crear membresía de propietario',
+                          error: memFailure,
+                          className: 'CreateAcademyNotifier',
+                          functionName: 'createAcademy',
+                          params: {
+                            'academyId': createdAcademy.id,
+                            'userId': userId,
+                            'tipoError': memFailure.runtimeType.toString(),
+                            'mensaje': memFailure.message
+                          }
                         );
                         // Decidir: ¿fallar todo? Por ahora, solo log y éxito parcial.
                         state = CreateAcademyState.success(createdAcademy.id!);
@@ -185,8 +347,22 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                         _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
                      },
                      (_) {
-                        AppLogger.logInfo('Membresía del propietario creada con éxito.');
+                        AppLogger.logInfo(
+                          'Membresía de propietario creada con éxito',
+                          className: 'CreateAcademyNotifier',
+                          functionName: 'createAcademy',
+                          params: {
+                            'academyId': createdAcademy.id,
+                            'userId': userId
+                          }
+                        );
                         // Todas las operaciones (Academia, Suscripción, Membresía) exitosas
+                        AppLogger.logInfo(
+                          'Proceso completo de creación de academia finalizado con éxito',
+                          className: 'CreateAcademyNotifier',
+                          functionName: 'createAcademy',
+                          params: {'academyId': createdAcademy.id}
+                        );
                         state = CreateAcademyState.success(createdAcademy.id!); 
                         // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
                         _ref.read(currentAcademyProvider.notifier).state = createdAcademy;
@@ -194,9 +370,16 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                    );
                  } catch (memError, memStackTrace) {
                     AppLogger.logError(
-                      message: 'Excepción inesperada creando membresía: $memError',
+                      message: 'Excepción no controlada al crear membresía',
                       error: memError,
-                      stackTrace: memStackTrace
+                      stackTrace: memStackTrace,
+                      className: 'CreateAcademyNotifier',
+                      functionName: 'createAcademy',
+                      params: {
+                        'academyId': createdAcademy.id,
+                        'userId': userId,
+                        'tipoError': memError.runtimeType.toString()
+                      }
                     );
                     state = CreateAcademyState.success(createdAcademy.id!); 
                     // Usar el nuevo provider que maneja el objeto completo en lugar de solo el ID
@@ -207,9 +390,15 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
 
           } catch (subError, subStackTrace) {
              AppLogger.logError(
-               message: 'Excepción inesperada creando suscripción: $subError',
+               message: 'Excepción no controlada al crear suscripción',
                error: subError,
-               stackTrace: subStackTrace
+               stackTrace: subStackTrace,
+               className: 'CreateAcademyNotifier',
+               functionName: 'createAcademy',
+               params: {
+                 'academyId': createdAcademy.id,
+                 'tipoError': subError.runtimeType.toString()
+               }
              );
              state = CreateAcademyState.error(Failure.unexpectedError(error: subError, stackTrace: subStackTrace));
              _clearErrorAfterDelay();

@@ -91,7 +91,7 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
   
   // Métodos para manejar pasos del formulario
   void nextStep() {
-    if (state.currentStep < 4) { // 5 pasos en total (0-4)
+    if (state.currentStep < 5) { // 6 pasos en total (0-5)
       state = state.copyWith(currentStep: state.currentStep + 1);
     }
   }
@@ -103,7 +103,7 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
   }
   
   void goToStep(int step) {
-    if (step >= 0 && step <= 4) {
+    if (step >= 0 && step <= 5) {
       state = state.copyWith(currentStep: step);
     }
   }
@@ -393,7 +393,47 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
   
   // Método para resetear el formulario
   void resetForm() {
+    AppLogger.logInfo(
+      'Reseteando estado del formulario de atleta',
+      className: _className,
+      functionName: 'resetForm'
+    );
+    
+    // Primero resetear el estado
     state = const AddAthleteState();
+    
+    // Luego, intentar crear nuevos controladores
+    // Usamos Future.microtask para asegurarnos de que esto ocurra después
+    // del actual ciclo de widget building
+    Future.microtask(() {
+      try {
+        // Notificar al provider de controladores para que se reinicien
+        // Solo si el provider sigue disponible
+        if (!ref.exists(addAthleteControllersProvider)) {
+          AppLogger.logWarning(
+            'El provider de controladores ya no existe, no se pueden resetear',
+            className: _className,
+            functionName: 'resetForm'
+          );
+          return;
+        }
+        
+        ref.read(addAthleteControllersProvider.notifier).resetControllers();
+        
+        AppLogger.logInfo(
+          'Controladores reseteados correctamente',
+          className: _className,
+          functionName: 'resetForm'
+        );
+      } catch (e) {
+        AppLogger.logError(
+          message: 'Error al resetear controladores',
+          error: e,
+          className: _className,
+          functionName: 'resetForm'
+        );
+      }
+    });
   }
   
   // Método para resetear solo la imagen
@@ -454,7 +494,7 @@ class AddAthleteNotifier extends _$AddAthleteNotifier {
   // Dejar los métodos vacíos porque usaremos el StateNotifier manual
 }
 
-// Provider para los controladores del formulario
+// Definición manual del provider de controladores
 @riverpod
 class AddAthleteControllers extends _$AddAthleteControllers {
   @override
@@ -471,9 +511,9 @@ class AddAthleteControllers extends _$AddAthleteControllers {
       'emergencyContactName': TextEditingController(),
       'emergencyContactPhone': TextEditingController(),
       'position': TextEditingController(),
+      'experience': TextEditingController(),
     };
     
-    // Liberar los controladores cuando se destruye el provider
     ref.onDispose(() {
       for (final controller in controllers.values) {
         controller.dispose();
@@ -483,8 +523,41 @@ class AddAthleteControllers extends _$AddAthleteControllers {
     return controllers;
   }
   
-  // Método para formatear la fecha en el controlador
+  // Método para setear el texto de fecha
   void setDateText(DateTime date) {
-    state['birthDate']!.text = DateFormat('dd/MM/yyyy').format(date);
+    final formattedDate = DateFormat('dd/MM/yyyy').format(date);
+    state['birthDate']?.text = formattedDate;
+  }
+  
+  // Método para resetear controladores de manera segura
+  void resetControllers() {
+    AppLogger.logInfo(
+      'Reseteo seguro de controladores',
+      className: 'AddAthleteControllers',
+      functionName: 'resetControllers'
+    );
+    
+    // Necesitamos crear nuevos controladores en lugar de modificar los existentes
+    // ya que podrían haber sido eliminados
+    final newControllers = <String, TextEditingController>{};
+    
+    for (final key in state.keys) {
+      try {
+        // Solo crear un nuevo controlador si el antiguo existe
+        if (state[key] != null) {
+          newControllers[key] = TextEditingController();
+        }
+      } catch (e) {
+        AppLogger.logError(
+          message: 'Error al resetear controlador $key',
+          error: e,
+          className: 'AddAthleteControllers',
+          functionName: 'resetControllers'
+        );
+      }
+    }
+    
+    // Actualizar el estado con los nuevos controladores
+    state = newControllers;
   }
 } 

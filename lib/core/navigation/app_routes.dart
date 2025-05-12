@@ -55,11 +55,16 @@ class AppRoutes {
 
   // --- Rutas unificadas para Manager (Propietario y Colaborador) ---
   static const String managerDashboard = '/manager/dashboard';
+  static const String managerCreateAcademy = '/manager/create-academy';
   static const String managerAcademy = '/manager/academy/:academyId';
   static const String managerAcademyMembers = '/manager/academy/:academyId/members';
   static const String managerAcademyPayments = '/manager/academy/:academyId/payments';
   static const String managerProfile = '/manager/profile';
   static const String managerSettings = '/manager/settings';
+  
+  // Rutas de academia específicas dentro de manager
+  static const String managerAcademyPath = '/manager/academy/:academyId';
+  static const String managerAcademySubscriptionPlans = 'subscription-plans';
   
   // --- Rutas Relativas dentro del Shell del Propietario (`ownerRoot`) ---
   static const String ownerDashboard = 'owner_dashboard'; // Relativa a /owner
