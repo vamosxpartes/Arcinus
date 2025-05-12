@@ -73,6 +73,7 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Acceso no autorizado'),
+          centerTitle: true,
         ),
         body: const Center(
           child: Text('No tienes permisos para acceder a esta sección'),
@@ -97,15 +98,24 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
     // Color del appBar según el rol (visualmente distinguible)
     final Color appBarColor = userRole == AppRole.propietario
         ? AppTheme.bonfireRed
-        : AppTheme.embers; // Propietario: bonfireRed, Colaborador: embers
+        : AppTheme.nbaBluePrimary; // Propietario: bonfireRed, Colaborador: nbaBluePrimary
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(screenTitle),
-        backgroundColor: appBarColor,
+        title: Text(
+          screenTitle,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 18,
+            letterSpacing: -0.25,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: AppTheme.blackSwarm,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_outlined),
+            icon: const Icon(Icons.notifications_none_outlined, size: 22),
             onPressed: () {
               // Placeholder para notificaciones
               ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +124,7 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.message_outlined), // Icono de mensajes
+            icon: const Icon(Icons.message_outlined, size: 22), // Icono de mensajes
             onPressed: () {
               // Placeholder para mensajes
               ScaffoldMessenger.of(context).showSnackBar(
@@ -125,13 +135,21 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
           // Badge para mostrar el rol actual
           Padding(
             padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
-            child: Chip(
-              label: Text(
-                userRole == AppRole.propietario ? 'Propietario' : 'Colaborador',
-                style: TextStyle(fontSize: AppTheme.captionSize, color: AppTheme.magnoliaWhite),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: appBarColor,
+                borderRadius: BorderRadius.circular(12),
               ),
-              backgroundColor: appBarColor.withAlpha(178),
-              visualDensity: VisualDensity.compact,
+              child: Text(
+                userRole == AppRole.propietario ? 'Propietario' : 'Colaborador',
+                style: TextStyle(
+                  fontSize: AppTheme.captionSize,
+                  letterSpacing: 0.4,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.magnoliaWhite,
+                ),
+              ),
             ),
           ),
         ],
@@ -140,7 +158,10 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
         context: context,
         userRole: userRole,
       ),
-      body: widget.child,
+      body: Container(
+        color: AppTheme.blackSwarm,
+        child: widget.child,
+      ),
     );
   }
 } 

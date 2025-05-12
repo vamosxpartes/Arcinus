@@ -41,6 +41,7 @@ class ManagerDrawer extends ConsumerWidget {
     }
     
     return Drawer(
+      backgroundColor: AppTheme.blackSwarm,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -61,11 +62,14 @@ class ManagerDrawer extends ConsumerWidget {
     // Usar el provider que contiene el objeto completo
     final currentAcademy = ref.watch(currentAcademyProvider);
 
+    // Color del header según el rol
+    final headerColor = userRole == AppRole.propietario 
+        ? AppTheme.bonfireRed
+        : AppTheme.nbaBluePrimary;
+
     return DrawerHeader(
       decoration: BoxDecoration(
-        color: userRole == AppRole.propietario 
-              ? AppTheme.bonfireRed
-              : AppTheme.embers, // Diferente color para colaboradores
+        color: headerColor,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,10 +82,16 @@ class ManagerDrawer extends ConsumerWidget {
             },
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: AppTheme.darkGray,
-                  child: Icon(Icons.person, size: 25, color: AppTheme.magnoliaWhite),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppTheme.magnoliaWhite, width: 1.5),
+                  ),
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppTheme.darkGray,
+                    child: Icon(Icons.person, size: 22, color: AppTheme.magnoliaWhite),
+                  ),
                 ),
                 SizedBox(width: AppTheme.spacingSm),
                 Expanded(
@@ -96,17 +106,18 @@ class ManagerDrawer extends ConsumerWidget {
                             style: TextStyle(
                               color: AppTheme.magnoliaWhite,
                               fontSize: AppTheme.bodySize,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.15,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                           loading: () => Text(
                             'Cargando...',
-                            style: TextStyle(color: AppTheme.lightGray, fontSize: AppTheme.secondarySize, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppTheme.lightGray, fontSize: AppTheme.secondarySize, fontWeight: FontWeight.w600),
                           ),
                           error: (e, s) => Text(
                             authState.user?.email ?? 'Error al cargar nombre',
-                            style: TextStyle(color: AppTheme.goldTrophy, fontSize: AppTheme.secondarySize, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppTheme.goldTrophy, fontSize: AppTheme.secondarySize, fontWeight: FontWeight.w600),
                           ),
                         )
                       else
@@ -115,15 +126,18 @@ class ManagerDrawer extends ConsumerWidget {
                           style: TextStyle(
                             color: AppTheme.magnoliaWhite,
                             fontSize: AppTheme.bodySize,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.15,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       Text(
                         userRole == AppRole.propietario ? 'Propietario' : 'Colaborador',
                         style: TextStyle(
-                          color: AppTheme.lightGray,
+                          color: AppTheme.magnoliaWhite.withAlpha(170),
                           fontSize: AppTheme.secondarySize,
+                          letterSpacing: 0.25,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
@@ -140,7 +154,15 @@ class ManagerDrawer extends ConsumerWidget {
                     .map<DropdownMenuItem<String>>((AcademyModel academy) {
                   return DropdownMenuItem<String>(
                     value: academy.id,
-                    child: Text(academy.name, overflow: TextOverflow.ellipsis),
+                    child: Text(
+                      academy.name, 
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: AppTheme.secondarySize,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.25,
+                      ),
+                    ),
                   );
                 }).toList();
 
@@ -151,9 +173,16 @@ class ManagerDrawer extends ConsumerWidget {
                       value: _createNewAcademyValue,
                       child: Row(
                         children: [
-                          Icon(Icons.add_circle_outline, size: 20, color: AppTheme.bonfireRed),
+                          Icon(Icons.add_circle_outline, size: 18, color: AppTheme.bonfireRed),
                           SizedBox(width: AppTheme.spacingSm),
-                          Text('Crear Nueva Academia'),
+                          Text(
+                            'Crear Nueva Academia',
+                            style: TextStyle(
+                              fontSize: AppTheme.secondarySize,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.25,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -173,8 +202,15 @@ class ManagerDrawer extends ConsumerWidget {
                   // Si no hay academias y es propietario, mostrar botón de crear
                   if (userRole == AppRole.propietario) {
                     return ElevatedButton.icon(
-                      icon: Icon(Icons.add_circle_outline, color: AppTheme.magnoliaWhite),
-                      label: Text('Crear Academia'),
+                      icon: Icon(Icons.add_circle_outline, color: AppTheme.magnoliaWhite, size: 18),
+                      label: Text(
+                        'Crear Academia',
+                        style: TextStyle(
+                          fontSize: AppTheme.secondarySize,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.25,
+                        ),
+                      ),
                       onPressed: () {
                         Navigator.pop(context);
                         context.go('/manager/academy/create');
@@ -182,6 +218,13 @@ class ManagerDrawer extends ConsumerWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.magnoliaWhite.withAlpha(60),
                         foregroundColor: AppTheme.magnoliaWhite,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                     );
                   } else {
@@ -189,7 +232,11 @@ class ManagerDrawer extends ConsumerWidget {
                     return Center(
                       child: Text(
                         'No tienes academias asignadas',
-                        style: TextStyle(color: AppTheme.lightGray),
+                        style: TextStyle(
+                          color: AppTheme.magnoliaWhite.withAlpha(170),
+                          fontSize: AppTheme.secondarySize,
+                          letterSpacing: 0.25,
+                        ),
                       ),
                     );
                   }
@@ -199,18 +246,27 @@ class ManagerDrawer extends ConsumerWidget {
                   padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs),
                   decoration: BoxDecoration(
                     color: AppTheme.magnoliaWhite.withAlpha(40),
-                    borderRadius: BorderRadius.circular(AppTheme.inputRadius),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: currentAcademy?.id ?? (academies.isNotEmpty ? academies.first.id : null),
                       isExpanded: true,
-                      dropdownColor: userRole == AppRole.propietario
-                          ? AppTheme.bonfireRed.withAlpha(240)
-                          : AppTheme.embers.withAlpha(240),
+                      dropdownColor: headerColor.withAlpha(240),
                       icon: Icon(Icons.arrow_drop_down, color: AppTheme.magnoliaWhite),
-                      style: TextStyle(color: AppTheme.magnoliaWhite, fontSize: AppTheme.secondarySize),
-                      hint: Text('Seleccionar Academia', style: TextStyle(color: AppTheme.lightGray)),
+                      style: TextStyle(
+                        color: AppTheme.magnoliaWhite, 
+                        fontSize: AppTheme.secondarySize,
+                        letterSpacing: 0.25,
+                      ),
+                      hint: Text(
+                        'Seleccionar Academia', 
+                        style: TextStyle(
+                          color: AppTheme.magnoliaWhite.withAlpha(170),
+                          fontSize: AppTheme.secondarySize,
+                          letterSpacing: 0.25,
+                        ),
+                      ),
                       onChanged: (String? newValue) {
                         if (newValue != null) {
                           if (newValue == _createNewAcademyValue) {
@@ -235,11 +291,16 @@ class ManagerDrawer extends ConsumerWidget {
               loading: () => Center(
                 child: CircularProgressIndicator(
                   valueColor: AlwaysStoppedAnimation<Color>(AppTheme.magnoliaWhite),
+                  strokeWidth: 2,
                 ),
               ),
               error: (error, stack) => Text(
                 'Error: $error', 
-                style: TextStyle(color: AppTheme.magnoliaWhite),
+                style: TextStyle(
+                  color: AppTheme.magnoliaWhite,
+                  fontSize: AppTheme.secondarySize,
+                  letterSpacing: 0.25,
+                ),
               ),
             )
           else
@@ -256,7 +317,7 @@ class ManagerDrawer extends ConsumerWidget {
       children: [
         // --- SECCIÓN 1: FUNCIONALIDADES ACTIVAS ---
         Padding(
-          padding: EdgeInsets.only(left: AppTheme.spacingSm, top: AppTheme.spacingSm),
+          padding: EdgeInsets.only(left: AppTheme.spacingMd, top: AppTheme.spacingMd, bottom: AppTheme.spacingSm),
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -264,30 +325,40 @@ class ManagerDrawer extends ConsumerWidget {
               style: TextStyle(
                 color: AppTheme.bonfireRed,
                 fontSize: AppTheme.captionSize,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.5,
               ),
             ),
           ),
         ),
         
         // --- Dashboard ---
-        ListTile(
-          leading: Icon(Icons.dashboard, color: AppTheme.bonfireRed),
-          title: Text('Dashboard'),
-          onTap: () {
-            _navigateTo(context, AppRoutes.managerDashboard);
-          },
+        _buildDrawerItem(
+          context,
+          AppRoutes.managerDashboard,
+          Icons.dashboard,
+          'Dashboard',
+          isActive: true,
         ),
         
         // --- Miembros ---
         ListTile(
-          leading: Icon(Icons.groups, color: AppTheme.bonfireRed),
-          title: Text('Miembros'),
+          dense: true,
+          leading: Icon(Icons.groups, color: AppTheme.bonfireRed, size: 20),
+          title: Text(
+            'Miembros',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: AppTheme.magnoliaWhite,
+              fontSize: AppTheme.bodySize,
+              letterSpacing: 0.15,
+            )
+          ),
           onTap: () {
             Navigator.pop(context);
             final currentAcademy = ref.read(currentAcademyProvider);
             if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              context.go('${AppRoutes.managerAcademyMembers.replaceAll(':academyId', currentAcademy.id!)}');
+              context.go(AppRoutes.managerAcademyMembers.replaceAll(':academyId', currentAcademy.id!));
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Por favor, selecciona una academia para ver sus miembros.')),
@@ -298,8 +369,17 @@ class ManagerDrawer extends ConsumerWidget {
         
         // --- Planes de Suscripción ---
         ListTile(
-          leading: Icon(Icons.subscriptions, color: AppTheme.bonfireRed),
-          title: Text('Planes de Suscripción'),
+          dense: true,
+          leading: Icon(Icons.subscriptions, color: AppTheme.bonfireRed, size: 20),
+          title: Text(
+            'Planes de Suscripción',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: AppTheme.magnoliaWhite,
+              fontSize: AppTheme.bodySize,
+              letterSpacing: 0.15,
+            )
+          ),
           onTap: () {
             Navigator.pop(context);
             final currentAcademy = ref.read(currentAcademyProvider);
@@ -318,98 +398,106 @@ class ManagerDrawer extends ConsumerWidget {
         Divider(color: AppTheme.darkGray),
         
         Padding(
-          padding: EdgeInsets.all(AppTheme.spacingSm),
+          padding: EdgeInsets.all(AppTheme.spacingMd),
           child: Text(
             'PRÓXIMAMENTE',
             style: TextStyle(
               color: AppTheme.lightGray,
               fontSize: AppTheme.captionSize,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
         ),
         
         // --- Academia ---
-        ListTile(
-          leading: Icon(Icons.school, color: AppTheme.lightGray),
-          title: Text('Academia'),
-          enabled: false,
-          onTap: null,
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.school,
+          'Academia',
+          isActive: false,
         ),
         
         // --- Horarios ---
-        ListTile(
-          leading: Icon(Icons.calendar_today, color: AppTheme.lightGray),
-          title: Text('Horarios'),
-          enabled: false,
-          onTap: null,
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.calendar_today,
+          'Horarios',
+          isActive: false,
         ),
         
         // --- Estadísticas (solo propietarios) ---
         if (userRole == AppRole.propietario)
-          ListTile(
-            leading: Icon(Icons.bar_chart, color: AppTheme.lightGray),
-            title: Text('Estadísticas'),
-            enabled: false,
-            onTap: null,
+          _buildDrawerItem(
+            context,
+            '',
+            Icons.bar_chart,
+            'Estadísticas',
+            isActive: false,
           ),
           
         // --- Grupos ---
-        ListTile(
-          leading: Icon(Icons.groups_2, color: AppTheme.lightGray),
-          title: Text('Grupos'),
-          enabled: false,
-          onTap: null,
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.groups_2,
+          'Grupos',
+          isActive: false,
         ),
         
         // --- Entrenamientos ---
-        ListTile(
-          leading: Icon(Icons.fitness_center, color: AppTheme.lightGray),
-          title: Text('Entrenamientos'),
-          enabled: false,
-          onTap: null,
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.fitness_center,
+          'Entrenamientos',
+          isActive: false,
         ),
         
         // --- SECCIÓN 3: CUENTA Y CONFIGURACIÓN ---
         Divider(color: AppTheme.darkGray),
         
         Padding(
-          padding: EdgeInsets.all(AppTheme.spacingSm),
+          padding: EdgeInsets.all(AppTheme.spacingMd),
           child: Text(
             'MI CUENTA',
             style: TextStyle(
               color: AppTheme.bonfireRed,
               fontSize: AppTheme.captionSize,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
         ),
         
         // --- Perfil ---
-        ListTile(
-          leading: Icon(Icons.person, color: AppTheme.bonfireRed),
-          title: Text('Mi Perfil'),
-          onTap: () {
-            _navigateTo(context, AppRoutes.managerProfile);
-          },
+        _buildDrawerItem(
+          context,
+          AppRoutes.managerProfile,
+          Icons.person,
+          'Mi Perfil',
+          isActive: true,
         ),
         
         // --- Ajustes ---
-        ListTile(
-          leading: Icon(Icons.settings, color: AppTheme.bonfireRed),
-          title: Text('Configuración'),
-          onTap: () {
-            _navigateTo(context, AppRoutes.managerSettings);
-          },
+        _buildDrawerItem(
+          context,
+          AppRoutes.managerSettings,
+          Icons.settings,
+          'Configuración',
+          isActive: true,
         ),
         
         // --- Cerrar Sesión ---
-        ListTile(
-          leading: Icon(Icons.logout, color: AppTheme.bonfireRed),
-          title: Text('Cerrar Sesión'),
-          onTap: () {
-            _confirmSignOut(context, ref);
-          },
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.logout,
+          'Cerrar Sesión',
+          isActive: true,
+          onTap: () => _confirmSignOut(context, ref),
         ),
         
         // --- Pie del Drawer ---
@@ -418,10 +506,44 @@ class ManagerDrawer extends ConsumerWidget {
           alignment: Alignment.center,
           child: Text(
             'Arcinus v1.0.0',
-            style: TextStyle(color: AppTheme.lightGray, fontSize: AppTheme.captionSize),
+            style: TextStyle(
+              color: AppTheme.lightGray, 
+              fontSize: AppTheme.captionSize,
+              letterSpacing: 0.4,
+            ),
           ),
         ),
       ],
+    );
+  }
+  
+  // Widget para construir elementos del drawer de manera consistente
+  Widget _buildDrawerItem(
+    BuildContext context,
+    String route,
+    IconData icon,
+    String title, {
+    bool isActive = true,
+    VoidCallback? onTap,
+  }) {
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        icon, 
+        color: isActive ? AppTheme.bonfireRed : AppTheme.lightGray,
+        size: 20,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: isActive ? AppTheme.magnoliaWhite : AppTheme.lightGray,
+          fontSize: AppTheme.bodySize,
+          letterSpacing: 0.15,
+        ),
+      ),
+      enabled: isActive,
+      onTap: onTap ?? (isActive && route.isNotEmpty ? () => _navigateTo(context, route) : null),
     );
   }
   

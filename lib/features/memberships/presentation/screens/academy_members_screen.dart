@@ -332,14 +332,14 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: RoleUtils.getRoleColor(AppRole.atleta).withOpacity(0.3),
+                  backgroundColor: RoleUtils.getRoleColor(AppRole.atleta).withAlpha(90),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   height: 14,
                   width: 50,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.2),
+                    color: Colors.grey.withAlpha(60),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -419,7 +419,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
             ...letterUsers.map((user) => AcademyUserCard(
               user: user,
               academyId: widget.academyId,
-            )).toList(),
+            )),
           ],
         );
       },
@@ -465,7 +465,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: AppTheme.mediumGray.withOpacity(0.7),
+                      fillColor: AppTheme.mediumGray.withAlpha(170),
                     ),
                   ),
                 ),

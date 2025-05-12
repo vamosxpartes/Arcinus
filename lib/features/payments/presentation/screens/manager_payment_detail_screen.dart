@@ -290,7 +290,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withAlpha(30),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: statusColor, width: 1),
       ),
@@ -801,11 +801,11 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
     ref.read(paymentRepositoryProvider).deletePayment(currentAcademy!.id!, payment.id!).then((_) {
       // Invalidar el provider para refrescar la lista
       ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
-      
+      if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pago eliminado correctamente')),
       );
-      
+      }
       AppLogger.logInfo(
         'Pago eliminado correctamente',
         className: 'ManagerPaymentDetailScreen',
@@ -816,10 +816,11 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
         },
       );
     }).catchError((error) {
+      if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al eliminar el pago: $error')),
       );
-      
+      }
       AppLogger.logError(
         message: 'Error al eliminar pago',
         error: error,

@@ -61,7 +61,9 @@ class PasswordStrengthMeter extends StatelessWidget {
     
     // Verificar presencia de letras minúsculas y mayúsculas
     if (password.contains(RegExp(r'[a-z]')) && 
-        password.contains(RegExp(r'[A-Z]'))) strength++;
+        password.contains(RegExp(r'[A-Z]'))) {
+      strength++;
+    }
     
     // Verificar presencia de caracteres especiales
     if (password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) strength++;

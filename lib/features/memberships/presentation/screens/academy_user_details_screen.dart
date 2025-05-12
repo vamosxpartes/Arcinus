@@ -252,7 +252,7 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
+                          color: statusColor.withAlpha(30),
                         ),
                         child: Row(
                           children: [
@@ -426,7 +426,7 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
                                             borderRadius: BorderRadius.circular(2),
                                             child: LinearProgressIndicator(
                                               value: clampedProgress,
-                                              backgroundColor: Colors.grey.withOpacity(0.2),
+                                              backgroundColor: Colors.grey.withAlpha(60),
                                               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                                               minHeight: 5,
                                             ),

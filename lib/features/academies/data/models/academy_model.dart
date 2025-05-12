@@ -26,7 +26,7 @@ class AcademyModel with _$AcademyModel {
     // Referencias a la suscripción del propietario
     String? ownerSubscriptionId,
     // Lista de características heredadas del plan del propietario
-    @Default([]) @JsonKey(ignore: true) List<AppFeature> inheritedFeatures,
+    @Default([]) @JsonKey(includeFromJson: false, includeToJson: false) List<AppFeature> inheritedFeatures,
     @Default({}) Map<String, dynamic> metadata,
   }) = _AcademyModel;
 

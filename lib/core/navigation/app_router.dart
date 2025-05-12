@@ -468,7 +468,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                               final academyRepository = ref.read(academyRepositoryProvider);
                               final academyResult = await academyRepository.getAcademyById(academyId);
                               academyResult.fold(
-                                (failure) => print('Error al cargar academia: $failure'),
+                                (failure) => AppLogger.logError(
+                                  message: 'Error al cargar academia',
+                                  error: failure,
+                                  className: 'AppRouter',
+                                  functionName: 'ownerAcademyPayments',
+                                  params: {'academyId': academyId},
+                                ),
                                 (academy) {
                                   // Establecer la academia completa
                                   ref.read(currentAcademyProvider.notifier).state = academy;
@@ -524,7 +530,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                                   final academyRepository = ref.read(academyRepositoryProvider);
                                   final academyResult = await academyRepository.getAcademyById(academyId);
                                   academyResult.fold(
-                                    (failure) => print('Error al cargar academia: $failure'),
+                                    (failure) => AppLogger.logError(
+                                      message: 'Error al cargar academia',
+                                      error: failure,
+                                      className: 'AppRouter',
+                                      functionName: 'ownerAcademyAthletePayments',
+                                      params: {'academyId': academyId, 'athleteId': athleteId},
+                                    ),
                                     (academy) {
                                       // Establecer la academia completa
                                       ref.read(currentAcademyProvider.notifier).state = academy;
@@ -678,7 +690,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                           final academyRepository = ref.read(academyRepositoryProvider);
                           final academyResult = await academyRepository.getAcademyById(academyId);
                           academyResult.fold(
-                            (failure) => print('Error al cargar academia: $failure'),
+                            (failure) => AppLogger.logError(
+                              message: 'Error al cargar academia',
+                              error: failure,
+                              className: 'AppRouter',
+                              functionName: 'managerAcademyPayments',
+                              params: {'academyId': academyId},
+                            ),
                             (academy) {
                               ref.read(currentAcademyProvider.notifier).state = academy;
                             },

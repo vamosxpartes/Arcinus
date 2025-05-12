@@ -194,7 +194,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withAlpha(30),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: statusColor, width: 1),
       ),
@@ -212,7 +212,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withAlpha(30),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -521,13 +521,17 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
                   ref.read(paymentRepositoryProvider).deletePayment(academyId, payment.id!).then((_) {
                     // Invalidar el provider para refrescar la lista
                     ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Pago eliminado correctamente')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Pago eliminado correctamente')),
+                      );
+                    }
                   }).catchError((error) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error al eliminar el pago: $error')),
-                    );
+                    if (context.mounted) {  
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error al eliminar el pago: $error')),
+                      );
+                    }
                   });
                 }
               },

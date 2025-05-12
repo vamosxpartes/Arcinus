@@ -88,7 +88,7 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
                 CircleAvatar(
                   radius: 24,
                   // ignore: dead_code
-                  backgroundColor: isActive ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                  backgroundColor: isActive ? Colors.green.withAlpha(60) : Colors.orange.withAlpha(60),
                   child: Icon(
                     Icons.account_circle,
                     // ignore: dead_code

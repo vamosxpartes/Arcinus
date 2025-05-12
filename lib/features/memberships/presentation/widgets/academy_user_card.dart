@@ -15,10 +15,10 @@ class AcademyUserCard extends ConsumerWidget {
   final String academyId;
 
   const AcademyUserCard({
-    Key? key,
+    super.key,
     required this.user,
     required this.academyId,
-  }) : super(key: key);
+  });
 
   String formatDate(DateTime date) {
     final months = [
@@ -52,28 +52,37 @@ class AcademyUserCard extends ConsumerWidget {
     
     // Contenido de la tarjeta
     Widget cardContent = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
         children: [
           // Avatar
           Hero(
             tag: 'user_avatar_${user.id}',
-            child: CircleAvatar(
-              radius: 24,
-              backgroundColor: RoleUtils.getRoleColor(userRole),
-              backgroundImage: user.profileImageUrl != null
-                  ? NetworkImage(user.profileImageUrl!)
-                  : null,
-              child: user.profileImageUrl == null
-                  ? Text(
-                      user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : 'U',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    )
-                  : null,
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: RoleUtils.getRoleColor(userRole),
+                  width: 2,
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 24,
+                backgroundColor: AppTheme.darkGray,
+                backgroundImage: user.profileImageUrl != null
+                    ? NetworkImage(user.profileImageUrl!)
+                    : null,
+                child: user.profileImageUrl == null
+                    ? Text(
+                        user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : 'U',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      )
+                    : null,
+              ),
             ),
           ),
           
@@ -88,8 +97,9 @@ class AcademyUserCard extends ConsumerWidget {
                 Text(
                   user.fullName,
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.15,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -105,8 +115,9 @@ class AcademyUserCard extends ConsumerWidget {
                       child: Text(
                         groupPlaceholder,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: AppTheme.lightGray,
+                          letterSpacing: 0.4,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -119,7 +130,7 @@ class AcademyUserCard extends ConsumerWidget {
                     Text(
                       '|',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: AppTheme.lightGray,
                       ),
                     ),
@@ -130,14 +141,15 @@ class AcademyUserCard extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: RoleUtils.getRoleColor(userRole).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
+                        color: RoleUtils.getRoleColor(userRole).withAlpha(45),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         RoleUtils.getRoleName(userRole),
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
                           color: RoleUtils.getRoleColor(userRole),
                         ),
                       ),
@@ -224,10 +236,10 @@ class AcademyUserCard extends ConsumerWidget {
                           children: [
                             // Barra de progreso
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
+                              borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
                                 value: progress,
-                                backgroundColor: Colors.grey.withOpacity(0.2),
+                                backgroundColor: Colors.grey.withAlpha(45),
                                 valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                                 minHeight: 3,
                               ),
@@ -244,6 +256,7 @@ class AcademyUserCard extends ConsumerWidget {
                                     : 'Próximo: ${formatDate(nextPaymentDate)}',
                                   style: TextStyle(
                                     fontSize: 10,
+                                    letterSpacing: 0.4,
                                     color: _getTextColor(daysRemaining, isOverdue),
                                   ),
                                 ),
@@ -253,7 +266,8 @@ class AcademyUserCard extends ConsumerWidget {
                                     : '$daysRemaining días',
                                   style: TextStyle(
                                     fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.4,
                                     color: _getTextColor(daysRemaining, isOverdue),
                                   ),
                                 ),
@@ -266,9 +280,9 @@ class AcademyUserCard extends ConsumerWidget {
                     loading: () => Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
+                        borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
-                          backgroundColor: Colors.grey.withOpacity(0.1),
+                          backgroundColor: Colors.grey.withOpacity(0.15),
                           minHeight: 3,
                         ),
                       ),
@@ -292,7 +306,7 @@ class AcademyUserCard extends ConsumerWidget {
           Icon(
             Icons.chevron_right,
             color: AppTheme.lightGray,
-            size: 20,
+            size: 18,
           ),
         ],
       ),
@@ -302,20 +316,26 @@ class AcademyUserCard extends ConsumerWidget {
     final List<Widget> slideActions = [
       // Acción de ver detalles (deslizar izquierda)
       Container(
-        color: AppTheme.mediumGray,
-        child: Center(
+        decoration: BoxDecoration(
+          color: AppTheme.mediumGray,
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.info_outline, color: Colors.white),
+                const Icon(Icons.info_outline, color: Colors.white, size: 20),
                 const SizedBox(height: 4),
                 Text(
                   'Detalles',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.4,
                   ),
                 ),
               ],
@@ -329,20 +349,26 @@ class AcademyUserCard extends ConsumerWidget {
     if (isAthlete) {
       slideActions.add(
         Container(
-          color: AppTheme.embers,
-          child: Center(
+          decoration: BoxDecoration(
+            color: AppTheme.mediumGray ,
+            borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          ),
+          child: Align(
+            alignment: Alignment.centerRight,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.payments_outlined, color: Colors.white),
+                  const Icon(Icons.payments_outlined, color: Colors.white, size: 20),
                   const SizedBox(height: 4),
                   Text(
                     'Pagos',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
                     ),
                   ),
                 ],
@@ -384,9 +410,12 @@ class AcademyUserCard extends ConsumerWidget {
         return false; // No eliminar el item
       },
       child: Card(
-        elevation: 0,
+        elevation: AppTheme.elevationLow,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        ),
         child: InkWell(
           onTap: () {
             Navigator.of(context).push(
@@ -415,10 +444,10 @@ class AcademyUserCard extends ConsumerWidget {
         children: [
           // Barra gris inactiva
           ClipRRect(
-            borderRadius: BorderRadius.circular(2),
+            borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: 0.0,
-              backgroundColor: Colors.grey.withOpacity(0.2),
+              backgroundColor: Colors.grey.withOpacity(0.15),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.grey),
               minHeight: 3,
             ),
@@ -431,6 +460,7 @@ class AcademyUserCard extends ConsumerWidget {
             style: TextStyle(
               fontSize: 10,
               color: Colors.grey,
+              letterSpacing: 0.4,
             ),
           ),
         ],
@@ -451,9 +481,7 @@ class AcademyUserCard extends ConsumerWidget {
             (e) => e.name == cycleName,
             orElse: () => BillingCycle.monthly,
           )
-        : (plan.billingCycle is BillingCycle 
-            ? plan.billingCycle as BillingCycle 
-            : BillingCycle.monthly);
+        : (plan.billingCycle);
     
     // Convertir meses a días aproximados
     switch (cycle) {
@@ -464,8 +492,7 @@ class AcademyUserCard extends ConsumerWidget {
       case BillingCycle.quarterly:
         return 90; // Tres meses aproximados
       case BillingCycle.monthly:
-      default:
-        return 30; // Un mes aproximado
+      return 30; // Un mes aproximado
     }
   }
   

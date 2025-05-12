@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/memberships/domain/state/add_athlete_state.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -285,12 +284,7 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
       
       // Información de cliente para pagos/suscripciones
       if (state.subscriptionPlanId != null) {
-        // Fecha de inicio de suscripción (hoy si no se especificó otra)
-        final startDate = state.subscriptionStartDate ?? DateTime.now();
-        
-        // Obtenemos una referencia al repositorio de suscripciones
-        final subscriptionRepository = ref.read(subscriptionRepositoryProvider);
-        
+      
         // Datos de cliente base (se actualizarán completos al asignar plan)
         userData['clientData'] = {
           'subscriptionPlanId': state.subscriptionPlanId,

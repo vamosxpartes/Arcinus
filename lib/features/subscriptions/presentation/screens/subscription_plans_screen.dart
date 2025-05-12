@@ -143,7 +143,7 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: plan.isActive ? AppTheme.bonfireRed.withOpacity(0.9) : Colors.grey,
+              color: plan.isActive ? AppTheme.bonfireRed.withAlpha(220) : Colors.grey,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(4),
@@ -411,7 +411,7 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                   
                   // Agregar beneficio
                   Row(

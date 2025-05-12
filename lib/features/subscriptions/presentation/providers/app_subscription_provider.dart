@@ -68,7 +68,7 @@ Future<List<AppSubscriptionPlanModel>> availablePlans(
 /// Provider para verificar si un propietario puede crear más academias.
 @riverpod
 Future<bool> canCreateMoreAcademies(
-  CanCreateMoreAcademiesRef ref,
+  Ref ref,
   String ownerId,
 ) async {
   final appSubscriptionRepository = ref.watch(appSubscriptionRepositoryProvider);
@@ -87,7 +87,7 @@ Future<bool> canCreateMoreAcademies(
 /// Provider para verificar si una característica está disponible para una academia.
 @riverpod
 Future<bool> isFeatureAvailable(
-  IsFeatureAvailableRef ref,
+  Ref ref,
   String academyId,
   AppFeature feature,
 ) async {

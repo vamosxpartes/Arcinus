@@ -745,7 +745,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                   for (var i = 0; i < plans.length; i++) {
                     final plan = plans[i];
                     AppLogger.logInfo(
-                      'Plan[${i}]: ID=${plan.id}, Name=${plan.name}, IsActive=${plan.isActive}', // Asumiendo que plan.name y plan.isActive existen
+                      'Plan[$i]: ID=${plan.id}, Name=${plan.name}, IsActive=${plan.isActive}', // Asumiendo que plan.name y plan.isActive existen
                       className: '_SubscriptionPlanModalState',
                       functionName: 'build',
                       params: {'id': plan.id, 'name': plan.name, 'isActive': plan.isActive}
@@ -774,7 +774,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                   for (var i = 0; i < validPlansForDropdown.length; i++) {
                     final plan = validPlansForDropdown[i];
                     AppLogger.logInfo(
-                      'ValidPlan[${i}]: ID=${plan.id}, Name=${plan.name}',
+                      'ValidPlan[$i]: ID=${plan.id}, Name=${plan.name}',
                       className: '_SubscriptionPlanModalState',
                       functionName: 'build',
                       params: {'id': plan.id, 'name': plan.name}
@@ -1017,12 +1017,14 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
         );
       }
     } catch (e) {
+      if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error inesperado: $e'),
           backgroundColor: Colors.red,
         ),
       );
+      }
     } finally {
       if (mounted) {
         setState(() {

@@ -26,7 +26,7 @@ class AcademyRepositoryImpl implements AcademyRepository {
         'Iniciando creación de academia',
         className: _className,
         functionName: 'createAcademy',
-        params: {'academy': '${academy.name}'},
+        params: {'academy': academy.name},
       );
       
       final now = DateTime.now();

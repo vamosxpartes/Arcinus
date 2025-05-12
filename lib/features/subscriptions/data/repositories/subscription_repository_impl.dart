@@ -8,11 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart';
-
-// Importar provider de Firestore
-import 'package:arcinus/core/providers/firebase_providers.dart';
-
 part 'subscription_repository_impl.g.dart';
 
 /// Implementación de [SubscriptionRepository] usando Firestore.
@@ -240,7 +235,6 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 /// Provider para la implementación del repositorio de suscripciones.
 @riverpod
 SubscriptionRepository subscriptionRepository(Ref ref) {
-  final firestore = ref.watch(firestoreProvider);
   AppLogger.logInfo(
     'Creando instancia de SubscriptionRepository',
     className: 'subscription_repository',
