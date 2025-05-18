@@ -77,31 +77,31 @@ test/
 ## Checklist de Implementación
 
 ### Configuración Inicial ✅
-- [ ] Verificar dependencias de pruebas en `pubspec.yaml`
+- [x] Verificar dependencias de pruebas en `pubspec.yaml`
 - [ ] Configurar runner de pruebas en CI/CD
 - [ ] Configurar análisis de cobertura
 
 ### Pruebas Unitarias (Prioridad Alta)
 
 #### Core
-- [ ] Test de modelos base (`User`, `Academy`, etc.)
-- [ ] Test de utilidades de formato y validación
-- [ ] Test de manejadores de errores (Either)
+- [x] Test de modelos base (`User`, `Academy`, etc.)
+- [x] Test de utilidades de formato y validación
+- [x] Test de manejadores de errores (Either)
 
 #### Auth
-- [ ] Test de AuthRepository
-- [ ] Test de AuthNotifier
+- [x] Test de AuthRepository
+- [x] Test de AuthNotifier
 - [ ] Test de validaciones de login/registro
+
+#### Usuarios
+- [x] Test de UserRepository
+- [ ] Test de UserNotifier
+- [ ] Test de RolePermissions
 
 #### Academias
 - [ ] Test de AcademyRepository
 - [ ] Test de AcademyNotifier
 - [ ] Test de SportCharacteristics
-
-#### Usuarios
-- [ ] Test de UserRepository
-- [ ] Test de UserNotifier
-- [ ] Test de RolePermissions
 
 #### Pagos
 - [ ] Test de PaymentRepository
@@ -137,7 +137,7 @@ test/
 - [ ] Flujo de registro y seguimiento de pagos
 
 ### Documentación y Calidad
-- [ ] Documentar convenciones de pruebas
+- [x] Documentar convenciones de pruebas
 - [ ] Configurar análisis de cobertura en PR
 - [ ] Crear plantillas para nuevas pruebas
 
@@ -152,3 +152,59 @@ test/
 - Usar mocks para Firestore y servicios externos
 - Mantener pruebas independientes (no dependientes entre sí)
 - Cada PR debe incluir pruebas para nuevas funcionalidades 
+
+## Pruebas Implementadas
+
+### Core
+1. **TimestampConverter** (`test/unit_tests/core/utils/timestamp_converter_test.dart`) ✅
+   - Prueba la conversión correcta entre DateTime y Timestamp de Firestore.
+   - Verifica el manejo adecuado de valores nulos.
+
+2. **Failure** (`test/unit_tests/core/error/failures_test.dart`) ✅
+   - Prueba los diferentes tipos de fallos y sus propiedades.
+   - Verifica la creación correcta de cada tipo de Failure.
+   - Implementa un enfoque de prueba que verifica directamente las propiedades en lugar del getter message.
+
+3. **AppRole** (`test/unit_tests/core/auth/roles_test.dart`) ✅
+   - Prueba la conversión entre roles y sus representaciones como string.
+   - Verifica el manejo de strings inválidos o nulos.
+
+4. **User Model** (`test/unit_tests/core/models/user_model_test.dart`) ✅
+   - Prueba la creación del modelo con valores requeridos y opcionales.
+   - Verifica la correcta serialización/deserialización a/desde JSON.
+   - Prueba el funcionamiento de copyWith para modificar propiedades.
+
+### Features
+1. **AuthRepository** (`test/unit_tests/features/auth/repositories/auth_repository_test.dart`) ✅
+   - Prueba la interacción con Firebase Auth y Firestore para operaciones de autenticación.
+   - Verifica el manejo de casos de éxito y error en login, registro y cierre de sesión.
+   - Utiliza mocktail para simular las dependencias externas.
+   - Implementa el patrón AAA (Arrange-Act-Assert) para estructurar cada prueba.
+
+2. **AuthNotifier** (`test/unit_tests/features/auth/providers/auth_notifier_test.dart`) ✅
+   - Prueba la gestión del estado de autenticación con Riverpod.
+   - Verifica la correcta interacción con el AuthRepository.
+   - Comprueba que el estado cambie correctamente en respuesta a acciones de autenticación.
+   - Verifica el manejo de errores y estados de carga/autenticado/no-autenticado.
+
+3. **UserRepository** (`test/unit_tests/features/users/data/repositories/user_repository_test.dart`) ✅
+   - Prueba operaciones CRUD de usuarios en Firestore.
+   - Verifica la correcta obtención de usuarios por email e ID.
+   - Comprueba la creación y actualización de usuarios manager y cliente.
+   - Utiliza fake_cloud_firestore para simular la base de datos.
+   - Verifica manejo de errores de validación y cuando no se encuentra un usuario.
+
+### Próximos Pasos
+1. **Implementar pruebas para UserNotifier**
+   - Probar la gestión del estado de usuarios con Riverpod
+   - Verificar la interacción con UserRepository
+   - Comprobar actualizaciones de estado y manejo de errores
+
+2. **Implementar pruebas para AcademyRepository**
+   - Probar operaciones CRUD de academias
+   - Verificar asignación de usuarios a academias
+   - Comprobar la gestión de permisos y roles
+
+3. **Implementar pruebas de validaciones de formularios**
+   - Validar formularios de registro y login
+   - Verificar manejo de errores de validación 
