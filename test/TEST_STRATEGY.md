@@ -99,7 +99,7 @@ test/
 - [ ] Test de RolePermissions
 
 #### Academias
-- [ ] Test de AcademyRepository
+- [x] Test de AcademyRepository
 - [ ] Test de AcademyNotifier
 - [ ] Test de SportCharacteristics
 
@@ -201,11 +201,18 @@ test/
    - Verifica el comportamiento cuando no hay academia seleccionada.
    - Utiliza mocktail para simular las dependencias.
 
+5. **AcademyRepository** (`test/unit_tests/features/academies/data/repositories/academy_repository_test.dart`) ✅
+   - Prueba operaciones CRUD de academias en Firestore.
+   - Verifica la correcta creación, obtención y actualización de academias.
+   - Simula Firebase Storage para evitar dependencias externas.
+   - Comprueba el manejo de errores de validación y cuando no se encuentra una academia.
+   - Verifica el formateo correcto de datos como números de teléfono.
+
 ### Próximos Pasos
-1. **Implementar pruebas para AcademyRepository**
-   - Probar operaciones CRUD de academias
-   - Verificar asignación de usuarios a academias
-   - Comprobar la gestión de permisos y roles
+1. **Implementar pruebas para AcademyNotifier**
+   - Probar la gestión del estado de academias con Riverpod
+   - Verificar la creación y actualización de academias
+   - Comprobar la correcta interacción con el AcademyRepository
 
 2. **Implementar pruebas para RolePermissions**
    - Probar la validación de permisos por rol
