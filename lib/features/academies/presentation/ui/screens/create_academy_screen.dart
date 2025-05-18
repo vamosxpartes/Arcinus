@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/academies/presentation/providers/create_academy_provider.dart';
+import 'package:arcinus/features/academies/presentation/providers/state/create_academy_state.dart';
 import 'package:arcinus/features/theme/ui/loading/loading_indicator.dart'; // Usar el mismo LoadingIndicator
 import 'package:arcinus/features/theme/ui/feedback/error_display.dart'; // Usar el mismo ErrorDisplay
 import 'package:go_router/go_router.dart'; // Importar GoRouter
@@ -8,7 +9,6 @@ import 'package:arcinus/core/navigation/app_routes.dart'; // Importar rutas de l
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/theme/ux/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class CreateAcademyScreen extends ConsumerStatefulWidget {
   const CreateAcademyScreen({super.key});
@@ -18,13 +18,13 @@ class CreateAcademyScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
-  int _currentStep = 0;
+  // Ya no mantenemos el _currentStep aquí, ahora está en el estado
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  File? _logoImage;
   
+  // Arreglo de claves de formulario para cada paso
   final _formKeys = [
     GlobalKey<FormState>(),
     GlobalKey<FormState>(),
@@ -39,10 +39,26 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
       className: 'CreateAcademyScreen',
       functionName: 'initState'
     );
+    
+    // Logging de controladores inicializados
+    AppLogger.logInfo(
+      'Controladores de texto inicializados',
+      className: 'CreateAcademyScreen',
+      functionName: 'initState',
+      params: {
+        'controllers': 'descripción, teléfono, email, dirección',
+        'formKeys': '${_formKeys.length} formKeys'
+      }
+    );
   }
 
   @override
   void dispose() {
+    AppLogger.logInfo(
+      'Liberando recursos de CreateAcademyScreen',
+      className: 'CreateAcademyScreen',
+      functionName: 'dispose'
+    );
     _descriptionController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -50,102 +66,246 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
     super.dispose();
   }
 
+  // Método para seleccionar una imagen
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedImage = await picker.pickImage(source: ImageSource.gallery);
-    
-    if (pickedImage != null) {
-      setState(() {
-        _logoImage = File(pickedImage.path);
-      });
-    }
+    AppLogger.logInfo(
+      'Iniciando selección de imagen',
+      className: 'CreateAcademyScreen',
+      functionName: '_pickImage'
+    );
+    final notifier = ref.read(createAcademyProvider.notifier);
+    await notifier.selectAndUpdateLogo(ImageSource.gallery);
   }
 
-  void _nextStep() {
-    if (_formKeys[_currentStep].currentState!.validate()) {
-      if (_currentStep < 2) {
-        setState(() {
-          _currentStep++;
-        });
-      } else {
-        _submitForm();
+  // Método para avanzar al siguiente paso
+  void _nextStep(FormStep currentStep) {
+    AppLogger.logInfo(
+      'Intentando avanzar al siguiente paso',
+      className: 'CreateAcademyScreen',
+      functionName: '_nextStep',
+      params: {
+        'pasoActual': currentStep.name,
+        'formKeyValid': (_formKeys[currentStep.index].currentState?.validate() ?? false).toString()
       }
+    );
+    
+    if (_formKeys[currentStep.index].currentState!.validate()) {
+      // Actualizar la información adicional antes de navegar
+      final notifier = ref.read(createAcademyProvider.notifier);
+      
+      // Registrar los valores actuales que se van a guardar
+      AppLogger.logInfo(
+        'Guardando información antes de navegar',
+        className: 'CreateAcademyScreen',
+        functionName: '_nextStep',
+        params: {
+          'descripcion': _descriptionController.text.isEmpty ? 'vacía' : '${_descriptionController.text.length} caracteres',
+          'telefono': _phoneController.text.isEmpty ? 'vacío' : _phoneController.text,
+          'email': _emailController.text.isEmpty ? 'vacío' : _emailController.text,
+          'direccion': _addressController.text.isEmpty ? 'vacía' : '${_addressController.text.length} caracteres'
+        }
+      );
+      
+      notifier.updateAdditionalInfo(
+        description: _descriptionController.text,
+        phone: _phoneController.text,
+        email: _emailController.text,
+        address: _addressController.text,
+      );
+      
+      // Navegar al siguiente paso según el paso actual
+      switch (currentStep) {
+        case FormStep.basicInfo:
+          AppLogger.logInfo(
+            'Navegando de información básica a información de contacto',
+            className: 'CreateAcademyScreen',
+            functionName: '_nextStep'
+          );
+          notifier.navigateToStep(FormStep.contactInfo);
+          break;
+        case FormStep.contactInfo:
+          AppLogger.logInfo(
+            'Navegando de información de contacto a selección de logo',
+            className: 'CreateAcademyScreen',
+            functionName: '_nextStep'
+          );
+          notifier.navigateToStep(FormStep.logoImage);
+          break;
+        case FormStep.logoImage:
+          AppLogger.logInfo(
+            'En el último paso, iniciando envío del formulario',
+            className: 'CreateAcademyScreen',
+            functionName: '_nextStep'
+          );
+          _submitForm();
+          break;
+      }
+    } else {
+      AppLogger.logWarning(
+        'Validación fallida, no se puede avanzar al siguiente paso',
+        className: 'CreateAcademyScreen',
+        functionName: '_nextStep',
+        params: {'pasoActual': currentStep.name}
+      );
     }
   }
 
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() {
-        _currentStep--;
-      });
+  // Método para retroceder al paso anterior
+  void _previousStep(FormStep currentStep) {
+    AppLogger.logInfo(
+      'Retrocediendo al paso anterior',
+      className: 'CreateAcademyScreen',
+      functionName: '_previousStep',
+      params: {'pasoActual': currentStep.name}
+    );
+    
+    final notifier = ref.read(createAcademyProvider.notifier);
+    
+    switch (currentStep) {
+      case FormStep.basicInfo:
+        AppLogger.logInfo(
+          'Ya en el primer paso, no se puede retroceder más',
+          className: 'CreateAcademyScreen',
+          functionName: '_previousStep'
+        );
+        break;
+      case FormStep.contactInfo:
+        AppLogger.logInfo(
+          'Navegando de información de contacto a información básica',
+          className: 'CreateAcademyScreen',
+          functionName: '_previousStep'
+        );
+        notifier.navigateToStep(FormStep.basicInfo);
+        break;
+      case FormStep.logoImage:
+        AppLogger.logInfo(
+          'Navegando de selección de logo a información de contacto',
+          className: 'CreateAcademyScreen',
+          functionName: '_previousStep'
+        );
+        notifier.navigateToStep(FormStep.contactInfo);
+        break;
     }
   }
 
   void _submitForm() {
-    AppLogger.logInfo(
-      'Iniciando envío del formulario de creación',
-      className: 'CreateAcademyScreen',
-      functionName: '_submitForm',
-      params: {
-        'paso': _currentStep.toString(),
-        'nombre': ref.read(createAcademyProvider.notifier).nameController.text,
-        'deporte': ref.read(createAcademyProvider.notifier).selectedSportCode ?? 'no seleccionado',
-        'descripcion': _descriptionController.text.isEmpty ? 'vacío' : 'completo',
-        'contacto': (_emailController.text.isNotEmpty || _phoneController.text.isNotEmpty) ? 'completo' : 'vacío',
-        'tieneImagen': (_logoImage != null).toString()
-      }
-    );
-    
     final notifier = ref.read(createAcademyProvider.notifier);
-    // Actualizar el notifier con los datos adicionales
+    
+    // Actualizar por última vez la información adicional
     notifier.updateAdditionalInfo(
       description: _descriptionController.text,
       phone: _phoneController.text,
       email: _emailController.text,
       address: _addressController.text,
-      logoFile: _logoImage
     );
+    
+    AppLogger.logInfo(
+      'Iniciando envío del formulario de creación',
+      className: 'CreateAcademyScreen',
+      functionName: '_submitForm',
+      params: {
+        'paso': notifier.state.maybeMap(
+          initial: (s) => s.currentStep.index.toString(),
+          orElse: () => '2'
+        ),
+        'nombre': notifier.nameController.text,
+        'deporte': notifier.selectedSportCode ?? 'no seleccionado',
+        'descripcion': _descriptionController.text.isEmpty ? 'vacío' : 'completo',
+        'contacto': (_emailController.text.isNotEmpty || _phoneController.text.isNotEmpty) ? 'completo' : 'vacío',
+        'tieneImagen': (notifier.state.maybeMap(
+          initial: (s) => s.logoFile,
+          navigating: (s) => s.logoFile,
+          selectingImage: (s) => s.logoFile,
+          loading: (s) => s.logoFile,
+          error: (s) => s.logoFile,
+          orElse: () => null,
+        ) != null).toString()
+      }
+    );
+    
     // Crear la academia
     notifier.createAcademy();
   }
 
   @override
   Widget build(BuildContext context) {
-    final notifier = ref.read(createAcademyProvider.notifier);
     final state = ref.watch(createAcademyProvider);
-    final isLoading = state.maybeWhen(loading: () => true, orElse: () => false);
+    final notifier = ref.read(createAcademyProvider.notifier);
+    
+    // Logging del estado actual en cada reconstrucción del widget
+    AppLogger.logInfo(
+      'Construyendo UI con estado actual',
+      className: 'CreateAcademyScreen',
+      functionName: 'build',
+      params: {
+        'estadoActual': state.runtimeType.toString(),
+        'nombreAcademia': notifier.nameController.text.isEmpty ? 'vacío' : notifier.nameController.text,
+        'deporteSeleccionado': notifier.selectedSportCode ?? 'no seleccionado'
+      }
+    );
+    
+    // Determinar el paso actual desde el estado
+    final currentStep = state.maybeMap(
+      initial: (s) => s.currentStep,
+      navigating: (s) => s.currentStep,
+      selectingImage: (s) => s.currentStep,
+      loading: (s) => s.currentStep,
+      error: (s) => s.currentStep,
+      orElse: () => FormStep.basicInfo,
+    );
+    
+    // Determinar el índice del paso actual para el Stepper
+    final currentStepIndex = currentStep.index;
+    
+    // Determinar si está cargando
+    final isLoading = state.maybeMap(loading: (_) => true, orElse: () => false);
+    
+    // Determinar si está seleccionando imagen
+    final isSelectingImage = state.maybeMap(selectingImage: (_) => true, orElse: () => false);
+    
+    // Obtener el archivo de logo desde el estado
+    final logoFile = state.maybeMap(
+      initial: (s) => s.logoFile,
+      navigating: (s) => s.logoFile,
+      selectingImage: (s) => s.logoFile,
+      loading: (s) => s.logoFile,
+      error: (s) => s.logoFile,
+      orElse: () => null,
+    );
 
     // Extraer errores específicos del estado si existen
     String? nameErrorFromState;
     String? sportCodeErrorFromState;
-    state.maybeWhen(
-      error: (failure, nameError, sportCodeError) {
-        nameErrorFromState = nameError;
-        sportCodeErrorFromState = sportCodeError;
+    String? emailErrorFromState;
+    
+    state.maybeMap(
+      error: (error) {
+        nameErrorFromState = error.nameError;
+        sportCodeErrorFromState = error.sportCodeError;
+        emailErrorFromState = error.emailError;
       },
       orElse: () {},
     );
 
-    // Escuchar para mostrar errores como Snackbars (además del ErrorDisplay)
-    ref.listen(createAcademyProvider, (previous, next) {
-      next.maybeWhen(
-        error: (failure, nameError, sportCodeError) {
+    // Escuchar para mostrar errores como Snackbars y manejar navegación
+    ref.listen(createAcademyProvider, (previous, current) {
+      current.maybeMap(
+        error: (error) {
           // Comprobar si el estado anterior NO era initial o error
-          final wasNotInitialOrError = !(previous?.maybeMap(
-                initial: (_) => true,
-                error: (_) => true,
-                orElse: () => false) ?? false);
+          final wasNotError = previous?.maybeMap(
+            error: (_) => false,
+            orElse: () => true,
+          ) ?? true;
           
-          if (wasNotInitialOrError) {
+          if (wasNotError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              // Usar el mensaje del Failure
-              SnackBar(content: Text('Error: ${failure.message}')), 
+              SnackBar(content: Text('Error: ${error.failure.message}')), 
             );
           }
         },
-        success: (academyId) {
+        success: (success) {
           // La navegación debería ocurrir automáticamente por GoRouter.redirect
-          AppLogger.logInfo('Academia creada con éxito ID: $academyId. GoRouter debería redirigir.');
+          AppLogger.logInfo('Academia creada con éxito ID: ${success.academyId}. GoRouter debería redirigir.');
           
           // Redirección manual al dashboard del propietario
           AppLogger.logInfo('Forzando redirección manual a la ruta del propietario');
@@ -162,28 +322,28 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
       body: Stack(
         children: [
           Stepper(
-            currentStep: _currentStep,
-            onStepContinue: _nextStep,
-            onStepCancel: _previousStep,
+            currentStep: currentStepIndex,
+            onStepContinue: () => _nextStep(currentStep),
+            onStepCancel: () => _previousStep(currentStep),
             physics: const ClampingScrollPhysics(),
             controlsBuilder: (context, details) {
               return Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: Row(
                   children: [
-                    if (_currentStep > 0)
+                    if (currentStepIndex > 0)
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: details.onStepCancel,
+                          onPressed: isLoading || isSelectingImage ? null : details.onStepCancel,
                           child: const Text('Anterior'),
                         ),
                       ),
-                    if (_currentStep > 0)
+                    if (currentStepIndex > 0)
                       const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: isLoading ? null : details.onStepContinue,
-                        child: Text(_currentStep == 2 ? 'Crear' : 'Siguiente'),
+                        onPressed: isLoading || isSelectingImage ? null : details.onStepContinue,
+                        child: Text(currentStepIndex == 2 ? 'Crear' : 'Siguiente'),
                       ),
                     ),
                   ],
@@ -213,7 +373,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                           return null;
                         },
                         textInputAction: TextInputAction.next,
-                        enabled: !isLoading,
+                        enabled: !isLoading && !isSelectingImage,
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
@@ -232,7 +392,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                             child: Text(sport['name']!),
                           );
                         }).toList(),
-                        onChanged: isLoading ? null : (value) {
+                        onChanged: isLoading || isSelectingImage ? null : (value) {
                           notifier.selectSport(value);
                         },
                         validator: (value) {
@@ -251,12 +411,12 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                           prefixIcon: Icon(Icons.description),
                         ),
                         maxLines: 3,
-                        enabled: !isLoading,
+                        enabled: !isLoading && !isSelectingImage,
                       ),
                     ],
                   ),
                 ),
-                isActive: _currentStep >= 0,
+                isActive: currentStepIndex >= 0,
               ),
               
               // Paso 2: Información de contacto
@@ -268,10 +428,11 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                     children: [
                       TextFormField(
                         controller: _emailController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Email de contacto',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.email),
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.email),
+                          errorText: emailErrorFromState,
                         ),
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
@@ -280,7 +441,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                           }
                           return null;
                         },
-                        enabled: !isLoading,
+                        enabled: !isLoading && !isSelectingImage,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -291,7 +452,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                           prefixIcon: Icon(Icons.phone),
                         ),
                         keyboardType: TextInputType.phone,
-                        enabled: !isLoading,
+                        enabled: !isLoading && !isSelectingImage,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -302,12 +463,12 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                           prefixIcon: Icon(Icons.location_on),
                         ),
                         maxLines: 2,
-                        enabled: !isLoading,
+                        enabled: !isLoading && !isSelectingImage,
                       ),
                     ],
                   ),
                 ),
-                isActive: _currentStep >= 1,
+                isActive: currentStepIndex >= 1,
               ),
               
               // Paso 3: Imagen y vista previa
@@ -318,22 +479,22 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                   child: Column(
                     children: [
                       GestureDetector(
-                        onTap: isLoading ? null : _pickImage,
+                        onTap: isLoading || isSelectingImage ? null : _pickImage,
                         child: Container(
                           width: 150,
                           height: 150,
                           decoration: BoxDecoration(
-                            color: AppTheme.lightGray.withOpacity(0.2),
+                            color: AppTheme.lightGray.withAlpha(60),
                             borderRadius: BorderRadius.circular(75),
                             border: Border.all(
                               color: AppTheme.bonfireRed,
                               width: 2,
                             ),
                           ),
-                          child: _logoImage != null
+                          child: logoFile != null
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(75),
-                                  child: Image.file(_logoImage!, fit: BoxFit.cover),
+                                  child: Image.file(logoFile, fit: BoxFit.cover),
                                 )
                               : Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -365,15 +526,15 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                               ),
                               const Divider(),
                               ListTile(
-                                leading: _logoImage != null
+                                leading: logoFile != null
                                     ? CircleAvatar(
-                                        backgroundImage: FileImage(_logoImage!),
+                                        backgroundImage: FileImage(logoFile),
                                         radius: 20,
                                       )
                                     : CircleAvatar(
-                                        child: Icon(Icons.sports, color: AppTheme.magnoliaWhite),
                                         backgroundColor: AppTheme.bonfireRed,
                                         radius: 20,
+                                        child: Icon(Icons.sports, color: AppTheme.magnoliaWhite),
                                       ),
                                 title: Text(
                                   notifier.nameController.text.isEmpty 
@@ -422,22 +583,23 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
                     ],
                   ),
                 ),
-                isActive: _currentStep >= 2,
+                isActive: currentStepIndex >= 2,
               ),
             ],
           ),
           // Mostrar widget de error si el estado es error
-          state.maybeWhen(
-            error: (failure, nameError, sportCodeError) => Padding(
+          state.maybeMap(
+            error: (error) => Padding(
               padding: const EdgeInsets.only(top: 16.0),
-              // Pasar el mensaje del failure genérico
-              child: ErrorDisplay(error: failure.message),
+              child: ErrorDisplay(error: error.failure.message),
             ),
             orElse: () => const SizedBox.shrink(),
           ),
-          // Indicador de carga superpuesto
+          // Indicador de carga o selección de imagen
           if (isLoading)
             const LoadingIndicator(message: 'Creando academia...'),
+          if (isSelectingImage)
+            const LoadingIndicator(message: 'Seleccionando imagen...'),
         ],
       ),
     );

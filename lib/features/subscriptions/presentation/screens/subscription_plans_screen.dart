@@ -5,6 +5,7 @@ import 'package:arcinus/features/subscriptions/presentation/providers/subscripti
 import 'package:arcinus/features/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Pantalla para gestionar planes de suscripción de una academia
 class SubscriptionPlansScreen extends ConsumerStatefulWidget {
@@ -25,7 +26,25 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
   @override
   void initState() {
     super.initState();
+    AppLogger.logInfo(
+      'SubscriptionPlansScreen inicializado',
+      className: 'SubscriptionPlansScreen',
+      functionName: 'initState',
+      params: {
+        'academyId': widget.academyId,
+      },
+    );
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Establecer el título de la pantalla
+      AppLogger.logInfo(
+        'Estableciendo título en SubscriptionPlansScreen',
+        className: 'SubscriptionPlansScreen',
+        functionName: 'initState.postFrame',
+        params: {
+          'título': 'Planes de Suscripción',
+        },
+      );
       ref.read(currentScreenTitleProvider.notifier).state = 'Planes de Suscripción';
     });
   }
@@ -34,101 +53,99 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
   Widget build(BuildContext context) {
     final plansAsyncValue = ref.watch(subscriptionPlansProvider(widget.academyId));
     
-    return Scaffold(
-      body: Column(
-        children: [
-          // Filtros y controles
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                // Switch para mostrar planes inactivos
-                Row(
-                  children: [
-                    Switch(
-                      value: _showInactivePlans,
-                      onChanged: (value) {
-                        setState(() {
-                          _showInactivePlans = value;
-                        });
-                      },
-                    ),
-                    Text('Mostrar inactivos'),
-                  ],
-                ),
-                
-                const Spacer(),
-                
-                // Botón para crear nuevo plan
-                SizedBox(
-                  width: 120,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('nuevo'),
-                    onPressed: () {
-                      _showPlanForm(context);
+    return Column(
+      children: [
+        // Filtros y controles
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // Switch para mostrar planes inactivos
+              Row(
+                children: [
+                  Switch(
+                    value: _showInactivePlans,
+                    onChanged: (value) {
+                      setState(() {
+                        _showInactivePlans = value;
+                      });
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.bonfireRed,
-                      foregroundColor: Colors.white,
-                    ),
+                  ),
+                  Text('Mostrar inactivos'),
+                ],
+              ),
+              
+              const Spacer(),
+              
+              // Botón para crear nuevo plan
+              SizedBox(
+                width: 120,
+                height: 50,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('nuevo'),
+                  onPressed: () {
+                    _showPlanForm(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.bonfireRed,
+                    foregroundColor: Colors.white,
                   ),
                 ),
-              ],
-            ),
-          ),
-          
-          // Lista de planes
-          Expanded(
-            child: plansAsyncValue.when(
-              data: (plans) {
-                // Filtrar planes según el estado del switch
-                final filteredPlans = _showInactivePlans
-                    ? plans
-                    : plans.where((plan) => plan.isActive).toList();
-                
-                if (filteredPlans.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.subscriptions_outlined, size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay planes ${_showInactivePlans ? "" : "activos"} disponibles',
-                          style: const TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.add),
-                          label: const Text('Crear primer plan'),
-                          onPressed: () {
-                            _showPlanForm(context);
-                          },
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                
-                return ListView.builder(
-                  itemCount: filteredPlans.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemBuilder: (context, index) {
-                    final plan = filteredPlans[index];
-                    return _buildPlanCard(context, plan);
-                  },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error al cargar planes: $error'),
               ),
+            ],
+          ),
+        ),
+        
+        // Lista de planes
+        Expanded(
+          child: plansAsyncValue.when(
+            data: (plans) {
+              // Filtrar planes según el estado del switch
+              final filteredPlans = _showInactivePlans
+                  ? plans
+                  : plans.where((plan) => plan.isActive).toList();
+              
+              if (filteredPlans.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.subscriptions_outlined, size: 64, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No hay planes ${_showInactivePlans ? "" : "activos"} disponibles',
+                        style: const TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add),
+                        label: const Text('Crear primer plan'),
+                        onPressed: () {
+                          _showPlanForm(context);
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
+              return ListView.builder(
+                itemCount: filteredPlans.length,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemBuilder: (context, index) {
+                  final plan = filteredPlans[index];
+                  return _buildPlanCard(context, plan);
+                },
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text('Error al cargar planes: $error'),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
   

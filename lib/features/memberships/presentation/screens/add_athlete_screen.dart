@@ -1,17 +1,17 @@
-import 'package:arcinus/features/memberships/domain/state/add_athlete_state.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
+import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/providers/add_athlete_providers.dart';
 import 'package:arcinus/features/memberships/presentation/providers/academy_providers.dart';
-import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
-import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
-import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
-import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/features/memberships/domain/state/add_athlete_state.dart';
+import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 // Cambiar a StatefulWidget para gestionar los controllers localmente
 class AddAthleteScreen extends ConsumerStatefulWidget {
@@ -128,9 +128,6 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
       final key = entry.key;
       final controller = entry.value;
       
-      // Verificar que el controller existe y está en el mapa
-      if (controller == null) continue;
-      
       try {
         if (controller.text.isNotEmpty) {
           switch(key) {
@@ -191,9 +188,6 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
       for (final entry in _localControllers.entries) {
         final key = entry.key;
         final controller = entry.value;
-        
-        // Verificar que el controller existe
-        if (controller == null) continue;
         
         try {
           switch(key) {

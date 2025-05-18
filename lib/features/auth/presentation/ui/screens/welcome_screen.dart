@@ -16,6 +16,7 @@ class WelcomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       body: SafeArea(
@@ -31,8 +32,8 @@ class WelcomeScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image.asset(
-                      AppAssets.logoBlack,
-                      height: 120,
+                      AppAssets.logoWhite,
+                      height: size.height * 0.2,
                     ),
                     const SizedBox(height: 24),
                     Text(

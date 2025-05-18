@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/core/auth/roles.dart';
 
 /// Pantalla para iniciar sesión utilizando correo electrónico y contraseña.
 ///
@@ -31,12 +32,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ),
   });
 
+  void _showTestCredentialsDialog() {
+    final testAccounts = [
+      {
+        'name': 'Propietario de Academia',
+        'email': 'propietario@test.com',
+        'password': 'propietario123',
+        'role': AppRole.propietario,
+        'color': Colors.red.shade400,
+        'icon': Icons.business,
+      },
+      {
+        'name': 'Colaborador',
+        'email': 'colaborador@test.com',
+        'password': 'colaborador123',
+        'role': AppRole.colaborador,
+        'color': Colors.orange.shade400,
+        'icon': Icons.badge,
+      },
+      {
+        'name': 'Atleta',
+        'email': 'atleta@test.com',
+        'password': 'atleta123',
+        'role': AppRole.atleta,
+        'color': Colors.green.shade400,
+        'icon': Icons.sports,
+      },
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cuentas de prueba'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: testAccounts.length,
+            itemBuilder: (context, index) {
+              final account = testAccounts[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: account['color'] as Color,
+                    child: Icon(
+                      account['icon'] as IconData,
+                      color: Colors.white,
+                    ),
+                  ),
+                  title: Text(account['name'] as String),
+                  subtitle: Text(account['email'] as String),
+                  onTap: () {
+                    _formGroup.control('email').value = account['email'];
+                    _formGroup.control('password').value = account['password'];
+                    Navigator.pop(context);
+                    
+                    // Mostrar confirmación
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Credenciales de ${account['name']} cargadas'),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     // Observar el estado de autenticación para mostrar errores
     final authState = ref.watch(authStateNotifierProvider);
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       // AppBar opcional, se puede quitar si el diseño no lo requiere
@@ -49,10 +130,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           children: [
             // Logo Arcinus
             Padding(
-              padding: const EdgeInsets.only(bottom: 48), // Mayor espacio inferior
+              padding: EdgeInsets.symmetric(vertical: size.height * 0.1), // Mayor espacio inferior
               child: Image.asset(
-                AppAssets.logoBlack, // Usar el logo correcto desde AppAssets
-                height: 120, // Ajustar tamaño según sea necesario
+                AppAssets.logoWhite, // Usar el logo correcto desde AppAssets
+                height: size.height * 0.2, // Ajustar tamaño según sea necesario
                 // Considerar añadir color para visibilidad en tema oscuro si es necesario
                 // color: theme.brightness == Brightness.dark ? Colors.white : null,
               ),
@@ -166,7 +247,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 children: [
                   Text('¿No tienes una cuenta?', style: textTheme.bodyMedium),
                   SizedBox(
-                    width: 100, // Ancho fijo para el botón
+                    width: size.width * 0.2, // Ancho fijo para el botón
                     child: TextButton(
                       onPressed: () {
                         // Navegar a la pantalla de registro
@@ -176,6 +257,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            
+            // Opción para usar credenciales de prueba
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: TextButton.icon(
+                onPressed: _showTestCredentialsDialog,
+                icon: const Icon(Icons.admin_panel_settings),
+                label: const Text('Usar cuenta de prueba'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[400],
+                ),
               ),
             ),
           ],

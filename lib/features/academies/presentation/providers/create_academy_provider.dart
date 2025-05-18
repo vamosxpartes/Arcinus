@@ -19,6 +19,7 @@ import 'package:arcinus/core/auth/roles.dart'; // Needed for AppRole
 import 'package:arcinus/features/memberships/data/models/membership_model.dart'; // Importar MembershipModel
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'dart:io'; // Para File
+import 'package:image_picker/image_picker.dart'; // Para ImageSource
 
 /// Provider for managing the state of academy creation.
 final createAcademyProvider = StateNotifierProvider.autoDispose<
@@ -48,9 +49,6 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
   final nameController = TextEditingController();
   String? selectedSportCode;
   
-  // Flag para permitir pre-validación desde pantallas externas
-  bool _isFormPreValidated = false;
-  
   // Campos adicionales
   String description = '';
   String phone = '';
@@ -58,9 +56,257 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
   String address = '';
   File? logoFile;
 
+  // Método para navegar entre pasos
+  void navigateToStep(FormStep step) {
+    final currentStep = state.maybeMap(
+      initial: (s) => s.currentStep,
+      navigating: (s) => s.currentStep,
+      selectingImage: (s) => s.currentStep,
+      loading: (s) => s.currentStep,
+      error: (s) => s.currentStep,
+      orElse: () => FormStep.basicInfo,
+    );
+    
+    final currentLogo = state.maybeMap(
+      initial: (s) => s.logoFile,
+      navigating: (s) => s.logoFile,
+      selectingImage: (s) => s.logoFile,
+      loading: (s) => s.logoFile,
+      error: (s) => s.logoFile,
+      orElse: () => null,
+    );
+
+    final currentImageStatus = state.maybeMap(
+      initial: (s) => s.imageStatus,
+      navigating: (s) => s.imageStatus,
+      selectingImage: (s) => s.imageStatus,
+      loading: (s) => s.imageStatus,
+      error: (s) => s.imageStatus,
+      orElse: () => ImageUploadStatus.notStarted,
+    );
+    
+    final formIsValid = state.maybeMap(
+      initial: (s) => s.formIsValid,
+      navigating: (s) => s.formIsValid,
+      selectingImage: (s) => s.formIsValid,
+      loading: (s) => s.formIsValid,
+      error: (s) => s.formIsValid,
+      orElse: () => false,
+    );
+
+    // Validar el paso actual antes de permitir la navegación
+    if (step.index > currentStep.index) {
+      AppLogger.logInfo(
+        'Intentando avanzar del paso ${currentStep.name} al paso ${step.name}',
+        className: 'CreateAcademyNotifier',
+        functionName: 'navigateToStep',
+        params: {
+          'requiereValidación': 'sí',
+          'estadoImagenActual': currentImageStatus.name,
+          'tieneImagen': (currentLogo != null).toString(),
+          'formularioVálido': formIsValid.toString()
+        }
+      );
+      
+      final isStepValid = _validateCurrentStep(currentStep);
+      if (!isStepValid) {
+        AppLogger.logWarning(
+          'Navegación bloqueada: el paso actual no es válido',
+          className: 'CreateAcademyNotifier',
+          functionName: 'navigateToStep',
+          params: {'pasoActual': currentStep.name, 'pasoDestino': step.name}
+        );
+        return; // No permitir avanzar si el paso actual no es válido
+      }
+    } else {
+      AppLogger.logInfo(
+        'Navegando hacia atrás o al mismo paso',
+        className: 'CreateAcademyNotifier',
+        functionName: 'navigateToStep',
+        params: {
+          'pasoActual': currentStep.name,
+          'pasoDestino': step.name,
+          'dirección': step.index < currentStep.index ? 'atrás' : 'mismo'
+        }
+      );
+    }
+
+    AppLogger.logInfo(
+      'Navegando de paso ${currentStep.name} a ${step.name}',
+      className: 'CreateAcademyNotifier',
+      functionName: 'navigateToStep'
+    );
+
+    state = CreateAcademyState.navigating(
+      currentStep: step,
+      previousStep: currentStep,
+      imageStatus: currentImageStatus,
+      logoFile: currentLogo,
+      formIsValid: formIsValid,
+    );
+    
+    // Después de un breve delay, actualizar a estado initial con el nuevo paso
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        AppLogger.logInfo(
+          'Completando navegación al paso ${step.name}',
+          className: 'CreateAcademyNotifier',
+          functionName: 'navigateToStep'
+        );
+        
+        state = CreateAcademyState.initial(
+          currentStep: step,
+          imageStatus: currentImageStatus,
+          logoFile: currentLogo,
+          formIsValid: formIsValid,
+        );
+      }
+    });
+  }
+
+  // Método para validar el paso actual
+  bool _validateCurrentStep(FormStep step) {
+    AppLogger.logInfo(
+      'Validando paso actual',
+      className: 'CreateAcademyNotifier',
+      functionName: '_validateCurrentStep',
+      params: {'paso': step.name}
+    );
+    
+    switch (step) {
+      case FormStep.basicInfo:
+        // Validar nombre y deporte
+        if (nameController.text.trim().isEmpty) {
+          AppLogger.logWarning(
+            'Validación fallida: Campo nombre vacío',
+            className: 'CreateAcademyNotifier',
+            functionName: '_validateCurrentStep'
+          );
+          state = CreateAcademyState.error(
+            Failure.validationError(message: 'Por favor corrige los errores'),
+            nameError: 'Ingresa el nombre de la academia',
+            currentStep: step,
+            logoFile: logoFile,
+          );
+          _clearErrorAfterDelay();
+          return false;
+        }
+        
+        if (selectedSportCode == null) {
+          AppLogger.logWarning(
+            'Validación fallida: Deporte no seleccionado',
+            className: 'CreateAcademyNotifier',
+            functionName: '_validateCurrentStep'
+          );
+          state = CreateAcademyState.error(
+            Failure.validationError(message: 'Por favor corrige los errores'),
+            sportCodeError: 'Debes seleccionar un deporte',
+            currentStep: step,
+            logoFile: logoFile,
+          );
+          _clearErrorAfterDelay();
+          return false;
+        }
+        
+        AppLogger.logInfo(
+          'Validación exitosa del paso de información básica',
+          className: 'CreateAcademyNotifier',
+          functionName: '_validateCurrentStep',
+          params: {
+            'nombre': nameController.text,
+            'deporte': selectedSportCode
+          }
+        );
+        
+        return true;
+        
+      case FormStep.contactInfo:
+        // Validar email si se proporcionó
+        if (email.isNotEmpty && !email.contains('@')) {
+          AppLogger.logWarning(
+            'Validación fallida: Email inválido',
+            className: 'CreateAcademyNotifier',
+            functionName: '_validateCurrentStep'
+          );
+          state = CreateAcademyState.error(
+            Failure.validationError(message: 'Por favor corrige los errores'),
+            emailError: 'Introduce un email válido',
+            currentStep: step,
+            logoFile: logoFile,
+          );
+          _clearErrorAfterDelay();
+          return false;
+        }
+        
+        AppLogger.logInfo(
+          'Validación exitosa del paso de información de contacto',
+          className: 'CreateAcademyNotifier',
+          functionName: '_validateCurrentStep',
+          params: {
+            'email': email.isEmpty ? 'no proporcionado' : email,
+            'teléfono': phone.isEmpty ? 'no proporcionado' : phone,
+            'dirección': address.isEmpty ? 'no proporcionada' : 'proporcionada'
+          }
+        );
+        
+        return true;
+        
+      case FormStep.logoImage:
+        // No se requiere validación especial para la imagen
+        AppLogger.logInfo(
+          'Validación exitosa del paso de imagen',
+          className: 'CreateAcademyNotifier',
+          functionName: '_validateCurrentStep',
+          params: {
+            'tieneImagen': (logoFile != null).toString()
+          }
+        );
+        
+        return true;
+    }
+  }
+
+  // Método para validar todos los pasos
+  bool _validateAllSteps() {
+    AppLogger.logInfo(
+      'Iniciando validación de todos los pasos',
+      className: 'CreateAcademyNotifier',
+      functionName: '_validateAllSteps'
+    );
+    
+    // Validar cada paso secuencialmente
+    if (!_validateCurrentStep(FormStep.basicInfo)) {
+      AppLogger.logWarning(
+        'Validación completa fallida en paso de información básica',
+        className: 'CreateAcademyNotifier',
+        functionName: '_validateAllSteps'
+      );
+      navigateToStep(FormStep.basicInfo);
+      return false;
+    }
+    
+    if (!_validateCurrentStep(FormStep.contactInfo)) {
+      AppLogger.logWarning(
+        'Validación completa fallida en paso de información de contacto',
+        className: 'CreateAcademyNotifier',
+        functionName: '_validateAllSteps'
+      );
+      navigateToStep(FormStep.contactInfo);
+      return false;
+    }
+    
+    // No se requiere validación especial para la imagen
+    AppLogger.logInfo(
+      'Validación completa exitosa de todos los pasos',
+      className: 'CreateAcademyNotifier',
+      functionName: '_validateAllSteps'
+    );
+    
+    return true;
+  }
+
   /// Establece si el formulario está pre-validado externamente
   void setFormPreValidated(bool validated) {
-    _isFormPreValidated = validated;
     AppLogger.logInfo(
       'Formulario configurado como pre-validado',
       className: 'CreateAcademyNotifier',
@@ -96,93 +342,114 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
     if (phone != null) this.phone = phone;
     if (email != null) this.email = email;
     if (address != null) this.address = address;
-    if (logoFile != null) this.logoFile = logoFile;
+    if (logoFile != null) {
+      this.logoFile = logoFile;
+      
+      // Actualizar el estado para reflejar que se ha seleccionado una imagen
+      final currentStep = state.maybeMap(
+        initial: (s) => s.currentStep,
+        navigating: (s) => s.currentStep,
+        selectingImage: (s) => s.currentStep,
+        loading: (s) => s.currentStep,
+        error: (s) => s.currentStep,
+        orElse: () => FormStep.logoImage,
+      );
+      
+      state = CreateAcademyState.initial(
+        currentStep: currentStep,
+        imageStatus: ImageUploadStatus.selected,
+        logoFile: logoFile,
+      );
+    }
+  }
+
+  /// Inicia el proceso de selección de imagen
+  Future<void> selectAndUpdateLogo(ImageSource source) async {
+    final currentStep = state.maybeMap(
+      initial: (s) => s.currentStep,
+      navigating: (s) => s.currentStep,
+      selectingImage: (s) => s.currentStep,
+      loading: (s) => s.currentStep,
+      error: (s) => s.currentStep,
+      orElse: () => FormStep.logoImage,
+    );
+    
+    // Cambiar a estado de selección de imagen
+    AppLogger.logInfo(
+      'Iniciando proceso de selección de imagen',
+      className: 'CreateAcademyNotifier',
+      functionName: 'selectAndUpdateLogo',
+      params: {
+        'fuente': source.name,
+        'pasoActual': currentStep.name
+      }
+    );
+    
+    state = CreateAcademyState.selectingImage(
+      currentStep: currentStep,
+    );
+
+    try {
+      final picker = ImagePicker();
+      final pickedImage = await picker.pickImage(source: source);
+      
+      if (pickedImage != null) {
+        logoFile = File(pickedImage.path);
+        
+        AppLogger.logInfo(
+          'Imagen seleccionada con éxito',
+          className: 'CreateAcademyNotifier',
+          functionName: 'selectAndUpdateLogo',
+          params: {'path': pickedImage.path}
+        );
+        
+        // Actualizar el estado con la imagen seleccionada
+        state = CreateAcademyState.initial(
+          currentStep: currentStep,
+          imageStatus: ImageUploadStatus.selected,
+          logoFile: logoFile,
+        );
+      } else {
+        // El usuario canceló la selección
+        AppLogger.logInfo(
+          'Selección de imagen cancelada por el usuario',
+          className: 'CreateAcademyNotifier',
+          functionName: 'selectAndUpdateLogo'
+        );
+        
+        state = CreateAcademyState.initial(
+          currentStep: currentStep,
+          imageStatus: logoFile != null ? ImageUploadStatus.selected : ImageUploadStatus.notStarted,
+          logoFile: logoFile,
+        );
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logError(
+        message: 'Error al seleccionar imagen',
+        error: e,
+        stackTrace: stackTrace,
+        className: 'CreateAcademyNotifier',
+        functionName: 'selectAndUpdateLogo'
+      );
+      
+      state = CreateAcademyState.error(
+        Failure.unexpectedError(error: e, stackTrace: stackTrace),
+        currentStep: currentStep,
+        imageStatus: ImageUploadStatus.error,
+        logoFile: logoFile,
+      );
+      _clearErrorAfterDelay();
+    }
   }
 
   /// Intenta crear la academia validando el formulario y el deporte seleccionado.
   Future<void> createAcademy() async {
-    // 1. Validar formulario - usar pre-validación si está habilitada
-    final formKeyValid = formKey.currentState?.validate() ?? false;
-    final isFormValid = formKeyValid || _isFormPreValidated;
-    
-    if (_isFormPreValidated) {
-      AppLogger.logInfo(
-        'Usando validación externa del formulario',
-        className: 'CreateAcademyNotifier',
-        functionName: 'createAcademy',
-        params: {'formKeyValid': formKeyValid.toString(), 'preValidated': _isFormPreValidated.toString()}
-      );
-    }
-    
-    String? nameValidationError;
-    if (!isFormValid) {
-      // Capturar el error específico del nombre si es el caso
-      if (nameController.text.trim().isEmpty) {
-          nameValidationError = 'Ingresa el nombre de la academia';
-          AppLogger.logWarning(
-            'Validación fallida: Campo nombre vacío',
-            className: 'CreateAcademyNotifier',
-            functionName: 'createAcademy',
-            params: {'nombreActual': nameController.text}
-          );
-      } else {
-          AppLogger.logWarning(
-            'Validación fallida: Formulario con errores desconocidos',
-            className: 'CreateAcademyNotifier',
-            functionName: 'createAcademy'
-          );
-      }
-      // No retornar aún, verificar deporte también
-    } else {
-      AppLogger.logInfo(
-        'Validación de nombre correcta',
-        className: 'CreateAcademyNotifier',
-        functionName: 'createAcademy',
-        params: {'nombre': nameController.text.trim()}
-      );
-    }
-
-    // 2. Validar selección de deporte
-    String? sportValidationError;
-    if (selectedSportCode == null) {
-      sportValidationError = 'Debes seleccionar un deporte';
-      AppLogger.logWarning(
-        'Validación fallida: Deporte no seleccionado',
-        className: 'CreateAcademyNotifier',
-        functionName: 'createAcademy'
-      );
-    } else {
-      AppLogger.logInfo(
-        'Validación de deporte correcta',
-        className: 'CreateAcademyNotifier',
-        functionName: 'createAcademy',
-        params: {'deporte': selectedSportCode}
-      );
-    }
-
-    // Si hay algún error de validación, actualizar estado y retornar
-    if (!isFormValid || sportValidationError != null) {
-       AppLogger.logWarning(
-         'Formulario inválido - No se puede crear academia',
-         className: 'CreateAcademyNotifier',
-         functionName: 'createAcademy',
-         params: {
-           'erroresNombre': nameValidationError ?? 'Ninguno',
-           'erroresDeporte': sportValidationError ?? 'Ninguno',
-           'formularioValido': isFormValid.toString()
-         }
-       );
-       
-       state = CreateAcademyState.error(
-         Failure.validationError(message: 'Por favor corrige los errores'),
-         nameError: nameValidationError,
-         sportCodeError: sportValidationError,
-       );
-      _clearErrorAfterDelay(); // Limpiar estado de error después de un tiempo
+    // Validar todos los pasos antes de crear la academia
+    if (!_validateAllSteps()) {
       return;
     }
 
-    // 3. Obtener User ID
+    // Obtener User ID
     final user = _firebaseAuth.currentUser;
     if (user == null) {
       AppLogger.logError(
@@ -190,16 +457,21 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
         className: 'CreateAcademyNotifier',
         functionName: 'createAcademy'
       );
-      state = const CreateAcademyState.error(
+      state = CreateAcademyState.error(
         Failure.authError(code: 'unauthenticated'),
+        currentStep: FormStep.basicInfo,
       );
       _clearErrorAfterDelay();
       return;
     }
     final userId = user.uid;
 
-    // 4. Iniciar estado de carga
-    state = const CreateAcademyState.loading();
+    // Iniciar estado de carga
+    state = CreateAcademyState.loading(
+      currentStep: FormStep.logoImage,
+      logoFile: logoFile,
+    );
+    
     AppLogger.logInfo(
       'Iniciando creación de academia',
       className: 'CreateAcademyNotifier',
@@ -212,7 +484,7 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
       }
     );
 
-    // 5. Intentar crear con llamada real al repositorio
+    // Intentar crear con llamada real al repositorio
     try {
       final academyToCreateModel = AcademyModel(
         ownerId: userId,
@@ -244,7 +516,11 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
               'mensaje': failure.message
             }
           );
-          state = CreateAcademyState.error(failure);
+          state = CreateAcademyState.error(
+            failure,
+            currentStep: FormStep.logoImage,
+            logoFile: logoFile,
+          );
           _clearErrorAfterDelay();
         },
         (createdAcademy) async {
@@ -290,7 +566,10 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                    }
                  );
                  // Si falla la suscripción, revertir estado a error.
-                 state = CreateAcademyState.error(subFailure);
+                 state = CreateAcademyState.error(
+                   subFailure,
+                   currentStep: FormStep.logoImage,
+                 );
                  _clearErrorAfterDelay();
                  // Opcional: Podríamos intentar eliminar la academia creada aquí, pero es complejo.
               },
@@ -400,7 +679,10 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
                  'tipoError': subError.runtimeType.toString()
                }
              );
-             state = CreateAcademyState.error(Failure.unexpectedError(error: subError, stackTrace: subStackTrace));
+             state = CreateAcademyState.error(
+               Failure.unexpectedError(error: subError, stackTrace: subStackTrace),
+               currentStep: FormStep.logoImage,
+             );
              _clearErrorAfterDelay();
           }
         },
@@ -412,7 +694,10 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
         error: e,
         stackTrace: stackTrace
       );
-      state = CreateAcademyState.error(Failure.unexpectedError(error: e, stackTrace: stackTrace));
+      state = CreateAcademyState.error(
+        Failure.unexpectedError(error: e, stackTrace: stackTrace),
+        currentStep: FormStep.logoImage,
+      );
       _clearErrorAfterDelay();
     }
   }
@@ -420,8 +705,24 @@ class CreateAcademyNotifier extends StateNotifier<CreateAcademyState> {
   /// Limpia el estado de error después de 3 segundos si aún es un error.
   void _clearErrorAfterDelay() {
     Future.delayed(const Duration(seconds: 3), () {
-      if (state.maybeWhen(error: (failure, nameError, sportCodeError) => true, orElse: () => false)) {
-        state = const CreateAcademyState.initial();
+      if (mounted && state.maybeMap(
+        error: (_) => true,
+        orElse: () => false
+      )) {
+        final currentStep = state.maybeMap(
+          error: (s) => s.currentStep,
+          orElse: () => FormStep.basicInfo,
+        );
+        
+        final logoFile = state.maybeMap(
+          error: (s) => s.logoFile,
+          orElse: () => null,
+        );
+        
+        state = CreateAcademyState.initial(
+          currentStep: currentStep,
+          logoFile: logoFile,
+        );
       }
     });
   }

@@ -29,5 +29,6 @@ class AppAssets {
   // Ejemplo: static const String remoteConfigDefaults = '$_config/remote_config_defaults.json';
 
   // --- OTROS ASSETS (Como Lottie, Rive, etc.) ---
+  static const String logoWhite = '$_icons/Logo_white.png'; // Usado en pubspec
 
 }

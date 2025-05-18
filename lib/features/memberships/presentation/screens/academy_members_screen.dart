@@ -38,14 +38,9 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
     });
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Establecer el título de la pantalla
       ref.read(currentScreenTitleProvider.notifier).state = 'Miembros';
     });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   void _clearSearch() {
@@ -440,99 +435,97 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
       usersAsyncValue = ref.watch(academyUsersProvider(widget.academyId));
     }
     
-    return Scaffold(
-      body: Column(
-        children: [
-          // Barra de búsqueda
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar miembro...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: _searchTerm.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: _clearSearch,
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: AppTheme.mediumGray.withAlpha(170),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _showAddOptionsDialog,
-                    style: ElevatedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: EdgeInsets.zero,
-                      backgroundColor: AppTheme.embers,
-                    ),
-                    child: const Icon(Icons.add, size: 28),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Contenido principal
-          Expanded(
-            child: usersAsyncValue.when(
-              data: (users) {
-                if (users.isEmpty) {
-                  if (_searchTerm.isNotEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('No se encontraron resultados para "$_searchTerm"'),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
+    return Column(
+      children: [
+        // Barra de búsqueda
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar miembro...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchTerm.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
                             onPressed: _clearSearch,
-                            child: const Text('Limpiar búsqueda'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  return const Center(child: Text('No hay miembros en esta academia'));
-                }
-                
-                return CustomScrollView(
-                  slivers: [
-                    // Scroll horizontal de avatares (solo si no hay búsqueda activa)
-                    if (_searchTerm.isEmpty)
-                      SliverToBoxAdapter(
-                        child: _buildAvatarList(users),
-                      ),
-                      
-                    // Lista alfabética
-                    SliverToBoxAdapter(
-                      child: _buildAlphabeticalList(users),
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
+                      borderSide: BorderSide.none,
                     ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error al cargar usuarios: $error'),
+                    filled: true,
+                    fillColor: AppTheme.mediumGray.withAlpha(170),
+                  ),
+                ),
               ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _showAddOptionsDialog,
+                  style: ElevatedButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: EdgeInsets.zero,
+                    backgroundColor: AppTheme.embers,
+                  ),
+                  child: const Icon(Icons.add, size: 28),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Contenido principal
+        Expanded(
+          child: usersAsyncValue.when(
+            data: (users) {
+              if (users.isEmpty) {
+                if (_searchTerm.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('No se encontraron resultados para "$_searchTerm"'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _clearSearch,
+                          child: const Text('Limpiar búsqueda'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const Center(child: Text('No hay miembros en esta academia'));
+              }
+              
+              return CustomScrollView(
+                slivers: [
+                  // Scroll horizontal de avatares (solo si no hay búsqueda activa)
+                  if (_searchTerm.isEmpty)
+                    SliverToBoxAdapter(
+                      child: _buildAvatarList(users),
+                    ),
+                    
+                  // Lista alfabética
+                  SliverToBoxAdapter(
+                    child: _buildAlphabeticalList(users),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => Center(
+              child: Text('Error al cargar usuarios: $error'),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 } 

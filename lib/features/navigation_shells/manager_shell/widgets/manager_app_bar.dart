@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Un AppBar reutilizable para las pantallas de gestión (ManagerShell).
 ///
@@ -31,6 +32,19 @@ class ManagerAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    AppLogger.logInfo(
+      'Construyendo ManagerAppBar',
+      className: 'ManagerAppBar',
+      functionName: 'build',
+      params: {
+        'title': title,
+        'backgroundColor': backgroundColor.toString(),
+        'customActions': actions != null ? 'presentes' : 'usando default',
+        'iconColor': iconColor.toString(),
+        'titleColor': titleColor.toString(),
+      },
+    );
+
     final defaultActions = [
       IconButton(
         icon: const Icon(Icons.notifications_none_outlined, size: 22),
