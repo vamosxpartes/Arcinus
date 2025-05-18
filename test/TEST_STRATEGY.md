@@ -96,7 +96,7 @@ test/
 #### Usuarios
 - [x] Test de UserRepository
 - [x] Test de ClientUserProvider
-- [ ] Test de RolePermissions
+- [x] Test de RolePermissions
 
 #### Academias
 - [x] Test de AcademyRepository
@@ -214,12 +214,19 @@ test/
    - Comprueba el manejo de errores y valores nulos.
    - Verifica la verificación de características disponibles según el plan.
    - Utiliza mocktail para simular las dependencias de AcademyRepository y AppSubscriptionRepository.
+   
+7. **RolePermissions** (`test/unit_tests/core/auth/app_permissions_test.dart`) ✅
+   - Prueba la validación de permisos por rol usando una clase de prueba independiente del provider.
+   - Verifica el acceso según roles: superAdmin, propietario, colaborador, atleta y padre.
+   - Comprueba el manejo de permisos para colaboradores con y sin membresías.
+   - Valida el comportamiento con usuarios no autenticados.
+   - Implementa pruebas exhaustivas para consultar permisos específicos y obtener listas de permisos.
 
 ### Próximos Pasos
-1. **Implementar pruebas para RolePermissions**
-   - Probar la validación de permisos por rol
-   - Verificar la gestión de acceso a funcionalidades
-   - Comprobar la restricción de operaciones según rol
+1. **Implementar pruebas para SportCharacteristics**
+   - Probar las características específicas de cada deporte
+   - Verificar el correcto mapeo de posiciones y habilidades
+   - Comprobar la integración con el sistema de academias
 
 3. **Implementar pruebas para validaciones de formularios**
    - Validar formularios de registro y login
