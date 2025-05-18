@@ -95,7 +95,7 @@ test/
 
 #### Usuarios
 - [x] Test de UserRepository
-- [ ] Test de UserNotifier
+- [x] Test de ClientUserProvider
 - [ ] Test de RolePermissions
 
 #### Academias
@@ -194,17 +194,24 @@ test/
    - Utiliza fake_cloud_firestore para simular la base de datos.
    - Verifica manejo de errores de validación y cuando no se encuentra un usuario.
 
-### Próximos Pasos
-1. **Implementar pruebas para UserNotifier**
-   - Probar la gestión del estado de usuarios con Riverpod
-   - Verificar la interacción con UserRepository
-   - Comprobar actualizaciones de estado y manejo de errores
+4. **ClientUserProvider** (`test/unit_tests/features/users/presentation/providers/client_user_provider_test.dart`) ✅
+   - Prueba los tres providers asociados: clientUserProvider, clientUsersByRoleProvider y clientUsersByPaymentStatusProvider.
+   - Verifica la correcta interacción con el ClientUserRepository.
+   - Comprueba el manejo de casos de éxito y error al obtener usuarios.
+   - Verifica el comportamiento cuando no hay academia seleccionada.
+   - Utiliza mocktail para simular las dependencias.
 
-2. **Implementar pruebas para AcademyRepository**
+### Próximos Pasos
+1. **Implementar pruebas para AcademyRepository**
    - Probar operaciones CRUD de academias
    - Verificar asignación de usuarios a academias
    - Comprobar la gestión de permisos y roles
 
-3. **Implementar pruebas de validaciones de formularios**
+2. **Implementar pruebas para RolePermissions**
+   - Probar la validación de permisos por rol
+   - Verificar la gestión de acceso a funcionalidades
+   - Comprobar la restricción de operaciones según rol
+
+3. **Implementar pruebas para validaciones de formularios**
    - Validar formularios de registro y login
    - Verificar manejo de errores de validación 
