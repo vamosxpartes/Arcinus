@@ -8,7 +8,7 @@ import 'package:arcinus/features/auth/presentation/providers/user_profile_provid
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/navigation/app_routes.dart';
 
 const String _createNewAcademyValue = '__CREATE_NEW_ACADEMY__';

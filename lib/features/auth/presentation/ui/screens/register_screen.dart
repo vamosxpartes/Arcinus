@@ -6,7 +6,7 @@ import 'package:arcinus/features/auth/presentation/ui/widgets/password_strength_
 import 'package:arcinus/features/auth/presentation/ui/widgets/profile_image_picker.dart';
 import 'package:arcinus/features/auth/presentation/ui/widgets/smart_error_text.dart';
 import 'package:arcinus/features/auth/presentation/providers/registration_form_provider.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

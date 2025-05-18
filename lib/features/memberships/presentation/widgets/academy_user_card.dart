@@ -1,6 +1,6 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';

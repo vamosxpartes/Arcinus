@@ -6,7 +6,7 @@ import 'package:arcinus/features/payments/data/repositories/payment_repository_i
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart' as subscriptions;
 import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';

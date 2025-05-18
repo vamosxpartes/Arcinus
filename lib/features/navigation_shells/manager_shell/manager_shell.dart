@@ -5,7 +5,7 @@ import 'package:arcinus/features/navigation_shells/manager_shell/widgets/manager
 import 'package:arcinus/features/navigation_shells/manager_shell/widgets/manager_app_bar.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 
 // Provider para manejar el título de la pantalla actual
 final currentScreenTitleProvider = StateProvider<String>((ref) => 'Arcinus');

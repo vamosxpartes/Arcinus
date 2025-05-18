@@ -3,8 +3,8 @@ import 'package:arcinus/features/academies/presentation/providers/edit_academy_p
 import 'package:arcinus/features/academies/presentation/providers/state/edit_academy_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
-import 'package:arcinus/features/theme/ui/loading/loading_indicator.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ui/loading/loading_indicator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 

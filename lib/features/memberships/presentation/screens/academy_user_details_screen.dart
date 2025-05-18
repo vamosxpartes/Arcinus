@@ -5,7 +5,7 @@ import 'package:arcinus/features/memberships/presentation/providers/academy_user
 import 'package:arcinus/features/memberships/presentation/screens/edit_athlete_screen.dart';
 import 'package:arcinus/features/memberships/presentation/widgets/permission_widget.dart';
 import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:flutter/material.dart';

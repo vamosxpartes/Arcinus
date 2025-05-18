@@ -2,7 +2,7 @@ import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.d
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart';
 import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';

@@ -1,5 +1,5 @@
-import 'package:arcinus/features/theme/ui/widgets/adaptive_logo.dart';
-import 'package:arcinus/features/theme/ux/arcinus_colors.dart';
+import 'package:arcinus/core/theme/ui/widgets/adaptive_logo.dart';
+import 'package:arcinus/core/theme/ux/arcinus_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';

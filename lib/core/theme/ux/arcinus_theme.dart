@@ -1,5 +1,5 @@
-import 'package:arcinus/features/theme/ux/arcinus_colors.dart';
-import 'package:arcinus/features/theme/ux/arcinus_text_styles.dart';
+import 'package:arcinus/core/theme/ux/arcinus_colors.dart';
+import 'package:arcinus/core/theme/ux/arcinus_text_styles.dart';
 import 'package:flutter/material.dart';
 
 /// Centralized theme configuration for the Arcinus app.

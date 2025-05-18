@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Un AppBar reutilizable para las pantallas de gestión (ManagerShell).

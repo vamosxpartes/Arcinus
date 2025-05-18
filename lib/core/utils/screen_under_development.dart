@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 
 /// Una pantalla genérica para indicar que una sección está en desarrollo.
 class ScreenUnderDevelopment extends StatelessWidget {

@@ -5,8 +5,8 @@ import 'package:arcinus/features/memberships/presentation/providers/academy_memb
 import 'package:arcinus/features/memberships/presentation/widgets/academy_user_card.dart';
 import 'package:arcinus/features/memberships/presentation/utils/role_utils.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
-import 'package:arcinus/features/utils/screens/screen_under_development.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/utils/screen_under_development.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

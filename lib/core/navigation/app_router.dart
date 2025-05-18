@@ -10,9 +10,9 @@ import 'package:arcinus/features/auth/presentation/ui/screens/member_access_scre
 import 'package:arcinus/features/auth/presentation/ui/screens/register_screen.dart';
 import 'package:arcinus/features/auth/presentation/ui/screens/welcome_screen.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_state.dart';
-import 'package:arcinus/features/splash/presentation/screens/splash_screen.dart';
-import 'package:arcinus/features/utils/screens/screen_under_development.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/splash/presentation/screens/splash_screen.dart';
+import 'package:arcinus/core/utils/screen_under_development.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +22,7 @@ import 'package:arcinus/features/academies/presentation/screens/edit_academy_scr
 import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_members_screen.dart';
 import 'package:arcinus/features/memberships/presentation/screens/edit_permissions_screen.dart';
-import 'package:arcinus/features/theme/ui/feedback/error_display.dart';
+import 'package:arcinus/core/theme/ui/feedback/error_display.dart';
 import 'package:arcinus/features/payments/presentation/screens/payments_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';

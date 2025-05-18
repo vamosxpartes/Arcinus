@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 
 /// Un widget de barra de pestañas personalizado que se parece a segmentos redondeados.
 class CustomSegmentedTabbar extends StatefulWidget {

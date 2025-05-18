@@ -7,7 +7,7 @@ import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_stats_provider.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/academies/presentation/ui/widgets/custom_segmented_tabbar.dart'; // Importar el nuevo widget
 
 /// Pantalla que muestra los detalles de una academia deportiva.

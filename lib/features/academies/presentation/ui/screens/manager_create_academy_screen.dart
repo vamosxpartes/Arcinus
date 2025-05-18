@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/academies/presentation/providers/create_academy_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/state/create_academy_state.dart';
-import 'package:arcinus/features/theme/ui/loading/loading_indicator.dart';
-import 'package:arcinus/features/theme/ui/feedback/error_display.dart';
+import 'package:arcinus/core/theme/ui/loading/loading_indicator.dart';
+import 'package:arcinus/core/theme/ui/feedback/error_display.dart';
 import 'package:go_router/go_router.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/features/theme/ux/app_theme.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ManagerCreateAcademyScreen extends ConsumerStatefulWidget {
