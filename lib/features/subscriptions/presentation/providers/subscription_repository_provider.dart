@@ -1,10 +1,11 @@
-import 'package:arcinus/features/subscriptions/data/repositories/subscription_repository_impl.dart';
+// import 'package:arcinus/features/subscriptions/data/repositories/subscription_repository_impl.dart';
 import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository.dart';// Necesario para el tipo
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // Asumiendo que tienes un provider global para Firestore
 import 'package:arcinus/core/providers/firebase_providers.dart'; // Usar el provider centralizado
+import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart'; // Nueva importación
 
 part 'subscription_repository_provider.g.dart';
 
@@ -17,5 +18,5 @@ SubscriptionRepository subscriptionRepository(Ref ref) {
   final firestore = ref.watch(firestoreProvider);
 
   // Devolver la implementación concreta con el nombre correcto
-  return SubscriptionRepositoryImpl(firestore);
+  return SubscriptionRepositoryImpl(firestore: firestore);
 }

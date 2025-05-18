@@ -91,7 +91,7 @@ test/
 #### Auth
 - [x] Test de AuthRepository
 - [x] Test de AuthNotifier
-- [ ] Test de validaciones de login/registro
+- [x] Test de validaciones de login/registro
 
 #### Usuarios
 - [x] Test de UserRepository
@@ -101,11 +101,11 @@ test/
 #### Academias
 - [x] Test de AcademyRepository
 - [x] Test de AcademyNotifier
-- [ ] Test de SportCharacteristics
+- [x] Test de SportCharacteristics
 
 #### Pagos
-- [ ] Test de PaymentRepository
-- [ ] Test de PaymentNotifier
+- [x] Test de PaymentRepository
+- [x] Test de PaymentNotifier
 
 ### Pruebas de Widgets (Prioridad Media)
 
@@ -113,10 +113,10 @@ test/
 - [ ] Test de formularios reutilizables
 - [ ] Test de cards y listados
 - [ ] Test de diálogos y modales
-- [ ] Test de navegación (GoRouter)
+- [x] Test de navegación (GoRouter)
 
 #### Auth UI
-- [ ] Test de pantalla de login
+- [x] Test de pantalla de login
 - [ ] Test de pantalla de registro
 - [ ] Test de recuperación de contraseña
 
@@ -222,12 +222,86 @@ test/
    - Valida el comportamiento con usuarios no autenticados.
    - Implementa pruebas exhaustivas para consultar permisos específicos y obtener listas de permisos.
 
-### Próximos Pasos
-1. **Implementar pruebas para SportCharacteristics**
-   - Probar las características específicas de cada deporte
-   - Verificar el correcto mapeo de posiciones y habilidades
-   - Comprobar la integración con el sistema de academias
+8. **PermissionProvider** (`test/unit_tests/features/memberships/presentation/providers/permission_provider_test.dart`) ✅
+   - Prueba la verificación de permisos basada en el rol del usuario y la academia.
+   - Verifica acceso completo para superAdmin y propietario.
+   - Comprueba permisos específicos para colaboradores según sus membresías.
+   - Valida que atletas y padres no tengan acceso a funcionalidades administrativas.
+   - Implementa pruebas para ambos providers: hasPermissionProvider y userPermissionsProvider.
 
-3. **Implementar pruebas para validaciones de formularios**
-   - Validar formularios de registro y login
-   - Verificar manejo de errores de validación 
+9. **SportCharacteristics** (`test/unit_tests/features/academies/domain/sport_characteristics_test.dart`) ✅
+   - Prueba las características específicas de cada deporte.
+   - Verifica el correcto mapeo de posiciones y habilidades.
+   - Comprueba la obtención de características según el deporte seleccionado.
+
+10. **PaymentRepository** (`test/unit_tests/features/payments/data/repositories/payment_repository_test.dart`) ✅
+   - Prueba operaciones de gestión de pagos en Firestore.
+   - Verifica el correcto registro, obtención y eliminación de pagos.
+   - Comprueba el filtrado de pagos por atleta y rango de fechas.
+   - Verifica el manejo de errores de servidor y validación.
+
+11. **PaymentNotifier** (`test/unit_tests/features/payments/presentation/providers/payment_notifier_test.dart`) ✅
+   - Prueba la gestión del estado de pagos con Riverpod utilizando AsyncNotifier.
+   - Verifica la correcta interacción con el PaymentRepository.
+   - Comprueba el manejo de formularios de pago y su estado.
+   - Verifica el flujo completo de registro y eliminación de pagos.
+
+### Próximos Pasos
+1. **Implementar pruebas de Widgets**
+   - Pruebas para componentes UI comunes
+   - Pruebas para pantallas principales
+   - Pruebas de navegación
+
+2. **Implementar pruebas de Integración**
+   - Flujos completos de usuario
+   - Escenarios de uso real
+   - Pruebas end-to-end
+
+## Pruebas de Widgets Implementadas
+1. **PasswordStrengthMeter** (`test/widget_tests/common/components/password_strength_meter_test.dart`) ✅
+   - Prueba el componente que muestra la fortaleza de contraseñas
+   - Verifica que se muestre correctamente según diferentes entradas
+   - Comprueba los colores y textos para diferentes niveles de fortaleza
+   - Verifica la barra de progreso y su valor correspondiente
+   - Valida el comportamiento cuando la contraseña está vacía
+
+2. **LoginScreen** (`test/widget_tests/features/auth/ui/screens/login_screen_test.dart`) ✅
+   - Prueba la renderización básica de la pantalla de inicio de sesión
+   - Verifica que los elementos UI principales se muestren correctamente
+   - Valida la visualización del diálogo de cuentas de prueba
+   - Verifica el proceso de validación de formularios
+   - Implementa pruebas para interacción con Riverpod y manejo de estado
+
+3. **AppRouter** (`test/widget_tests/common/navigation/app_router_test.dart`) ✅
+   - Prueba la navegación y redirección basada en autenticación
+   - Verifica que usuarios no autenticados sean redirigidos a la pantalla de bienvenida
+   - Comprueba que las rutas públicas sean accesibles sin autenticación
+   - Enfocado en pruebas de redirección para rutas protegidas
+   - Limitado a pruebas de pantallas accesibles sin autenticación debido a desafíos técnicos
+
+## Desafíos y Próximos Pasos
+
+### Desafíos Actuales
+1. **Testeo de Widgets con Riverpod**: 
+   - La versión actual de Riverpod utiliza generación de código, lo que dificulta los mocks directos
+   - Hemos desarrollado un enfoque consistente para hacer override de providers en pruebas
+   - Se han implementado MockNotifiers para simular el comportamiento de los providers generados
+
+2. **Pruebas de GoRouter**:
+   - La implementación de pruebas para GoRouter presenta desafíos debido a la forma en que se accede al estado de navegación
+   - El uso de GoRouterState.of(context) en pruebas genera errores ya que no es accesible en el entorno de pruebas
+   - Encontramos que es mejor verificar el resultado de la navegación comprobando widgets específicos que aparecen en pantalla
+   - Las pruebas se enfocan en verificar redirecciones a pantallas accesibles sin autenticación (WelcomeScreen, LoginScreen)
+   - Queda pendiente investigar maneras de probar shells anidados y rutas protegidas más complejas
+
+### Próximos Pasos
+1. **Continuar implementación de widget tests**:
+   - Implementar pruebas para el formulario de registro
+   - Añadir pruebas para componentes compartidos (cards, listados)
+   - Probar las pantallas principales de cada rol
+   - Investigar técnicas avanzadas para testear widgets en rutas protegidas
+
+2. **Implementar pruebas de integración**:
+   - Iniciar con flujos básicos end-to-end
+   - Utilizar integration_test package de Flutter
+   - Implementar escenarios de uso real que combinen múltiples pantallas y acciones

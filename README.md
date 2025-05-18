@@ -28,7 +28,6 @@ El proyecto se encuentra en fase de planeacion de desarrollo con los siguientes 
 *   17. [x] **Gestión usuarios** (Vinculación Academia, Roles Iniciales)
 *   18. [x] **Implementación Roles y Permisos** (Lógica App para MVP)
 *   19. [x] **Sistema de pagos interno** (Registro Manual de Pagos Atletas)
-    - TODO: Implementar permisos específicos para gestión de pagos
 *   20. [ ] **Pruebas** (Cobertura Funcionalidades MVP)
 *   21. [ ] **Configuración CI/CD** (Builds y Despliegues Automatizados Básicos)
 *   22. [ ] **Build Flavors/Environments** (Dev/Prod si es necesario)

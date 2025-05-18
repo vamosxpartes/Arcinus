@@ -60,7 +60,7 @@ dev_dependencies:
   json_serializable: ^6.7.1
 
   # Testing
-  mocktail: ^1.0.3
+  mocktail: ^1.0.4
   riverpod_generator: ^2.3.9
 
 flutter:

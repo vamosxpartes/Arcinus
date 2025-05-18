@@ -378,7 +378,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
                     horizontalInterval: 20,
                     getDrawingHorizontalLine: (value) {
                       return FlLine(
-                        color: AppTheme.lightGray.withOpacity(0.2),
+                        color: AppTheme.lightGray.withAlpha(60),
                         strokeWidth: 1,
                       );
                     },
@@ -444,7 +444,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
                       }),
                       isCurved: true,
                       gradient: LinearGradient(
-                        colors: [color.withOpacity(0.5), color],
+                        colors: [color.withAlpha(125), color],
                       ),
                       barWidth: 3,
                       isStrokeCapRound: true,
@@ -455,8 +455,8 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
                         show: true,
                         gradient: LinearGradient(
                           colors: [
-                            color.withOpacity(0.2),
-                            color.withOpacity(0),
+                            color.withAlpha(60),
+                            color.withAlpha(0),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -540,7 +540,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
       children: [
         Icon(
           icon,
-          color: AppTheme.magnoliaWhite.withOpacity(0.7),
+          color: AppTheme.magnoliaWhite.withAlpha(178),
           size: 20,
         ),
         const SizedBox(width: 8),
@@ -548,7 +548,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
           child: Text(
             title,
             style: TextStyle(
-              color: AppTheme.magnoliaWhite.withOpacity(0.7),
+              color: AppTheme.magnoliaWhite.withAlpha(178),
               fontSize: 14,
             ),
           ),

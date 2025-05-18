@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/features/academies/data/repositories/academy_stats_repository.dart';
 
 /// Modelo para datos mensuales utilizado en gráficos y análisis de tendencias
 class MonthlyData {
@@ -75,83 +76,141 @@ class AcademyStats {
   });
 }
 
+/// Provider para el repositorio de estadísticas 
+final academyStatsRepositoryProvider = Provider<AcademyStatsRepository>((ref) {
+  return AcademyStatsRepository();
+});
+
 /// Provider que obtiene estadísticas para una academia específica
 final academyStatsProvider = FutureProvider.family<AcademyStats?, String>((ref, academyId) async {
   try {
-    // TODO: Implementar la lógica real para obtener estadísticas de la base de datos
-    // Por ahora, devolvemos datos de ejemplo para propósitos de demostración
+    final repository = ref.watch(academyStatsRepositoryProvider);
     
-    // Simular retraso de red
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Primero, asegurarse que existen datos de series temporales para los últimos 6 meses
+    final generateResult = await repository.generateTimeSeriesData(academyId);
     
-    AppLogger.logInfo(
-      'Cargando estadísticas para academia',
-      className: 'academyStatsProvider',
-      params: {'academyId': academyId},
-    );
-    
-    // Generar datos históricos de ejemplo para los últimos 6 meses
-    final now = DateTime.now();
-    final memberHistory = <MonthlyData>[];
-    final revenueHistory = <MonthlyData>[];
-    final attendanceHistory = <MonthlyData>[];
-    
-    // Nombres de meses abreviados en español
-    final monthNames = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
-    
-    // Generar datos para los últimos 6 meses
-    for (var i = 5; i >= 0; i--) {
-      final date = DateTime(now.year, now.month - i, 1);
-      final monthLabel = '${monthNames[date.month - 1]} ${date.year}';
-      
-      // Base + variación aleatoria para simular cambios
-      final baseMembers = 35 + i;
-      final baseRevenue = 3000.0 + (i * 100);
-      final baseAttendance = 70.0 + (i * 1.5);
-      
-      memberHistory.add(MonthlyData(
-        month: date.month,
-        year: date.year,
-        value: baseMembers.toDouble(),
-        label: monthLabel,
-      ));
-      
-      revenueHistory.add(MonthlyData(
-        month: date.month,
-        year: date.year,
-        value: baseRevenue,
-        label: monthLabel,
-      ));
-      
-      attendanceHistory.add(MonthlyData(
-        month: date.month,
-        year: date.year,
-        value: baseAttendance,
-        label: monthLabel,
-      ));
+    // Si hubo error al generar los datos y no es un "not found", propagamos el error
+    if (generateResult.isLeft()) {
+      generateResult.fold(
+        (failure) => AppLogger.logError(
+          message: 'Error al generar datos de series temporales',
+          error: failure,
+          className: 'academyStatsProvider',
+          params: {'academyId': academyId},
+        ),
+        (_) => null,
+      );
     }
     
-    // Calcular tasas de crecimiento y retención basadas en datos históricos
-    final currentMembers = memberHistory.last.value;
-    final previousMembers = memberHistory[memberHistory.length - 2].value;
-    final growthRate = ((currentMembers - previousMembers) / previousMembers) * 100;
+    // Obtener estadísticas actuales
+    final statsResult = await repository.getAcademyStats(academyId);
     
-    // Datos de ejemplo
-    return AcademyStats(
-      totalMembers: 42,
-      monthlyRevenue: 3500.0,
-      attendanceRate: 78.5,
-      totalTeams: 5,
-      totalStaff: 3,
-      retentionRate: 85.0,
-      growthRate: growthRate,
-      projectedAnnualRevenue: 3500.0 * 12,
-      memberHistory: memberHistory,
-      revenueHistory: revenueHistory,
-      attendanceHistory: attendanceHistory,
+    if (statsResult.isLeft()) {
+      // Si no hay estadísticas, registramos el error pero continuamos para intentar obtener datos históricos
+      AppLogger.logInfo(
+        'No se encontraron estadísticas actuales para la academia, usando datos históricos',
+        className: 'academyStatsProvider',
+        params: {'academyId': academyId},
+      );
+    }
+    
+    // Calcular fechas para los últimos 6 meses
+    final now = DateTime.now();
+    final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+    
+    // Obtener datos históricos de los últimos 6 meses
+    final timeSeriesResult = await repository.getTimeSeriesData(
+      academyId,
+      startDate: sixMonthsAgo,
+      endDate: now,
+    );
+    
+    if (timeSeriesResult.isLeft()) {
+      // Si no hay datos históricos y tampoco estadísticas actuales, retornamos null
+      if (statsResult.isLeft()) {
+        AppLogger.logError(
+          message: 'No se encontraron datos de estadísticas ni históricos para la academia',
+          className: 'academyStatsProvider',
+          params: {'academyId': academyId},
+        );
+        return null;
+      }
+      
+      // Si hay estadísticas actuales pero no datos históricos, creamos un objeto con solo estadísticas actuales
+      return statsResult.fold(
+        (_) => null, // No debería llegar aquí por la comprobación anterior
+        (stats) => AcademyStats(
+          totalMembers: stats.totalMembers,
+          monthlyRevenue: stats.monthlyRevenue,
+          attendanceRate: stats.attendanceRate,
+          totalTeams: stats.totalTeams,
+          totalStaff: stats.totalStaff,
+          retentionRate: stats.retentionRate,
+          growthRate: stats.growthRate,
+          projectedAnnualRevenue: stats.projectedAnnualRevenue,
+        ),
+      );
+    }
+    
+    // Si tenemos datos históricos, construir las listas de MonthlyData
+    final List<MonthlyData> memberHistory = [];
+    final List<MonthlyData> revenueHistory = [];
+    final List<MonthlyData> attendanceHistory = [];
+    
+    timeSeriesResult.fold(
+      (_) => null, // No debería llegar aquí por la comprobación anterior
+      (timeSeriesList) {
+        memberHistory.addAll(repository.convertToMonthlyData(timeSeriesList, 'members'));
+        revenueHistory.addAll(repository.convertToMonthlyData(timeSeriesList, 'revenue'));
+        attendanceHistory.addAll(repository.convertToMonthlyData(timeSeriesList, 'attendance'));
+      },
+    );
+    
+    // Calcular tasas de crecimiento y retención basadas en datos históricos
+    double? growthRate;
+    if (memberHistory.length >= 2) {
+      final currentMembers = memberHistory.last.value;
+      final previousMembers = memberHistory[memberHistory.length - 2].value;
+      growthRate = ((currentMembers - previousMembers) / previousMembers) * 100;
+    }
+    
+    // Si hay estadísticas actuales, usarlas; si no, usar los datos más recientes del histórico
+    return statsResult.fold(
+      (_) {
+        // No hay estadísticas actuales, usamos el último dato histórico
+        if (memberHistory.isEmpty) return null;
+        
+        final latestMemberCount = memberHistory.last.value.toInt();
+        final latestRevenue = revenueHistory.isNotEmpty ? revenueHistory.last.value : null;
+        final latestAttendance = attendanceHistory.isNotEmpty ? attendanceHistory.last.value : null;
+        
+        return AcademyStats(
+          totalMembers: latestMemberCount,
+          monthlyRevenue: latestRevenue,
+          attendanceRate: latestAttendance,
+          growthRate: growthRate,
+          projectedAnnualRevenue: latestRevenue != null ? latestRevenue * 12 : null,
+          memberHistory: memberHistory,
+          revenueHistory: revenueHistory,
+          attendanceHistory: attendanceHistory,
+        );
+      },
+      (stats) {
+        // Hay estadísticas actuales, las combinamos con los datos históricos
+        return AcademyStats(
+          totalMembers: stats.totalMembers,
+          monthlyRevenue: stats.monthlyRevenue,
+          attendanceRate: stats.attendanceRate,
+          totalTeams: stats.totalTeams,
+          totalStaff: stats.totalStaff,
+          retentionRate: stats.retentionRate,
+          growthRate: growthRate ?? stats.growthRate,
+          projectedAnnualRevenue: stats.projectedAnnualRevenue,
+          memberHistory: memberHistory,
+          revenueHistory: revenueHistory,
+          attendanceHistory: attendanceHistory,
+        );
+      },
     );
   } catch (e, s) {
     AppLogger.logError(
@@ -180,7 +239,10 @@ final filteredStatsProvider = Provider.family<AcademyStats?, String>((ref, acade
   
   final stats = statsAsync.value!;
   
-  // En una implementación real, filtrarías los datos según el período
-  // Por ahora, usamos los mismos datos para todos los períodos
+  // Aquí podrías filtrar las historias según el período seleccionado
+  // Por ejemplo, si es year, mostrar datos mensuales del último año
+  // Si es quarter, mostrar datos de los últimos 3 meses, etc.
+  
+  // Por ahora, simplemente retornamos los datos tal cual
   return stats;
 }); 

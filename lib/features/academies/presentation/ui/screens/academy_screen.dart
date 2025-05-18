@@ -2,7 +2,6 @@ import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart'; // Import GoRouter
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
@@ -25,19 +24,20 @@ class AcademyScreen extends ConsumerStatefulWidget {
   ConsumerState<AcademyScreen> createState() => _AcademyScreenState();
 }
 
-class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTickerProviderStateMixin {
+class _AcademyScreenState extends ConsumerState<AcademyScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Color _primaryColor = AppTheme.blackSwarm;
   String? _academyName;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Cargar datos de la academia
     _loadAcademy();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Configurar un título inicial mientras se carga la academia
       ref.read(currentScreenTitleProvider.notifier).state = 'Academia';
@@ -50,11 +50,11 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
       if (academy != null && mounted) {
         setState(() {
           _academyName = academy.name;
-          
+
           // Nota: Si AcademyModel no tiene primaryColor, usar el color por defecto
           _primaryColor = AppTheme.blackSwarm;
         });
-        
+
         // Actualizar el título de la pantalla con el nombre de la academia
         ref.read(currentScreenTitleProvider.notifier).state = academy.name;
       }
@@ -64,7 +64,7 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Verificar si el nombre de la academia ya está cargado
     if (_academyName != null) {
       // Actualizar el título de la pantalla
@@ -81,23 +81,21 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final academyAsync = ref.watch(academyProvider(widget.academyId));
-    
+
     return academyAsync.when(
       data: (academy) {
         if (academy == null) {
-          return const Center(
-            child: Text('Academia no encontrada'),
-          );
+          return const Center(child: Text('Academia no encontrada'));
         }
-        
+
         // El provider de academia actual y el color primario se manejan aquí
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-              ref.read(currentAcademyProvider.notifier).state = academy;
+            ref.read(currentAcademyProvider.notifier).state = academy;
           }
         });
         _primaryColor = AppTheme.embers; // O color de la academia si existe
-        
+
         // Devolvemos el CustomScrollView que antes estaba en el body
         return _buildAcademyDetails(academy);
       },
@@ -108,34 +106,32 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
           error: error,
           stackTrace: stack,
         );
-        return Center(
-          child: Text('Error al cargar la academia: $error'),
-        );
+        return Center(child: Text('Error al cargar la academia: $error'));
       },
     );
   }
-  
+
   Widget _buildAcademyDetails(AcademyModel academy) {
     final stats = ref.watch(academyStatsProvider(academy.id!));
-    
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Container(
             height: 200, // Altura similar al SliverAppBar anterior
-            decoration: BoxDecoration(
-              color: _primaryColor,
-            ),
+            decoration: BoxDecoration(color: _primaryColor),
             child: Stack(
-              children: [                
-                
+              children: [
                 // Nombre de la academia (más grande, centrado)
-                Positioned( // Posicionar el título donde estaba el title del FlexibleSpaceBar
+                Positioned(
+                  // Posicionar el título donde estaba el title del FlexibleSpaceBar
                   bottom: 16, // Ajustar posición vertical
                   left: 16, // Ajustar posición horizontal
                   right: 16, // Asegurar que pueda centrarse si es necesario
                   child: Align(
-                    alignment: Alignment.bottomLeft, // Alineación similar a FlexibleSpaceBar
+                    alignment:
+                        Alignment
+                            .bottomLeft, // Alineación similar a FlexibleSpaceBar
                     child: Text(
                       academy.name,
                       style: TextStyle(
@@ -143,7 +139,8 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                         shadows: [
-                          Shadow( // Sombra ligera para legibilidad
+                          Shadow(
+                            // Sombra ligera para legibilidad
                             offset: Offset(0, 1),
                             blurRadius: 2.0,
                             color: Colors.black.withAlpha(125),
@@ -163,22 +160,24 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: AppTheme.magnoliaWhite,
-                    child: academy.logoUrl != null
-                        ? ClipOval(
-                            child: Image.network(
-                              academy.logoUrl,
-                              width: 90,
-                              height: 90,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => 
-                                Icon(Icons.sports, size: 40, color: _primaryColor),
+                    child: ClipOval(
+                      child: Image.network(
+                        academy.logoUrl,
+                        width: 90,
+                        height: 90,
+                        fit: BoxFit.cover,
+                        errorBuilder:
+                            (context, error, stackTrace) => Icon(
+                              Icons.sports,
+                              size: 40,
+                              color: _primaryColor,
                             ),
-                          )
-                        : Icon(Icons.sports, size: 40, color: _primaryColor),
+                      ),
+                    ),
                   ),
                 ),
-                
-                // Posición o estatus 
+
+                // Posición o estatus
                 Positioned(
                   right: 20,
                   bottom: 20, // Ajustar top considerando el AppBar transparente
@@ -202,82 +201,143 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
             ),
           ),
         ),
-        
+
         // Sección de estadísticas y barra de pestañas personalizada
         SliverToBoxAdapter(
           child: Container(
-            color: _primaryColor, // Mantiene el color de fondo de la sección de stats
-            padding: EdgeInsets.only(bottom: 0), // Sin padding inferior aquí, se maneja en CustomSegmentedTabbar
+            color:
+                _primaryColor, // Mantiene el color de fondo de la sección de stats
+            padding: EdgeInsets.only(
+              bottom: 0,
+            ), // Sin padding inferior aquí, se maneja en CustomSegmentedTabbar
             child: Column(
               children: [
                 // Estadísticas principales (sin cambios)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16), // Añadir padding vertical para stats
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ), // Añadir padding vertical para stats
                   child: stats.when(
-                    data: (academyStats) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatColumn(
-                          'MIEMBROS', 
-                          '${academyStats?.totalMembers ?? 0}', 
-                          'activos',
-                          isDynamic: academyStats != null,
-                          trend: academyStats?.growthRate,
+                    data:
+                        (academyStats) => Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatColumn(
+                              'MIEMBROS',
+                              '${academyStats?.totalMembers ?? 0}',
+                              'activos',
+                              isDynamic: academyStats != null,
+                              trend: academyStats?.growthRate,
+                            ),
+                            _buildStatColumn(
+                              'INGRESOS',
+                              '\$${academyStats?.monthlyRevenue?.toStringAsFixed(0) ?? '0'}',
+                              'mensual',
+                              isDynamic: academyStats != null,
+                              trend:
+                                  academyStats?.revenueHistory.isNotEmpty ==
+                                          true
+                                      ? ((academyStats!
+                                                      .revenueHistory
+                                                      .last
+                                                      .value -
+                                                  academyStats
+                                                      .revenueHistory[academyStats
+                                                              .revenueHistory
+                                                              .length -
+                                                          2]
+                                                      .value) /
+                                              academyStats
+                                                  .revenueHistory[academyStats
+                                                          .revenueHistory
+                                                          .length -
+                                                      2]
+                                                  .value) *
+                                          100
+                                      : null,
+                            ),
+                            _buildStatColumn(
+                              'ASISTENCIA',
+                              '${academyStats?.attendanceRate?.toStringAsFixed(0) ?? '0'}%',
+                              'promedio',
+                              isDynamic: academyStats != null,
+                            ),
+                          ],
                         ),
-                        _buildStatColumn(
-                          'INGRESOS', 
-                          '\$${academyStats?.monthlyRevenue?.toStringAsFixed(0) ?? '0'}', 
-                          'mensual',
-                          isDynamic: academyStats != null,
-                          trend: academyStats?.revenueHistory.isNotEmpty == true ? 
-                            ((academyStats!.revenueHistory.last.value - 
-                              academyStats.revenueHistory[academyStats.revenueHistory.length - 2].value) / 
-                              academyStats.revenueHistory[academyStats.revenueHistory.length - 2].value) * 100 : 
-                            null,
+                    loading:
+                        () => Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatColumn(
+                              'MIEMBROS',
+                              '...',
+                              '',
+                              isDynamic: false,
+                            ),
+                            _buildStatColumn(
+                              'INGRESOS',
+                              '...',
+                              '',
+                              isDynamic: false,
+                            ),
+                            _buildStatColumn(
+                              'ASISTENCIA',
+                              '...',
+                              '',
+                              isDynamic: false,
+                            ),
+                          ],
                         ),
-                        _buildStatColumn(
-                          'ASISTENCIA', 
-                          '${academyStats?.attendanceRate?.toStringAsFixed(0) ?? '0'}%', 
-                          'promedio',
-                          isDynamic: academyStats != null,
+                    error:
+                        (error, stack) => Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatColumn(
+                              'MIEMBROS',
+                              '0',
+                              '',
+                              isDynamic: false,
+                            ),
+                            _buildStatColumn(
+                              'INGRESOS',
+                              '\$0',
+                              '',
+                              isDynamic: false,
+                            ),
+                            _buildStatColumn(
+                              'ASISTENCIA',
+                              '0%',
+                              '',
+                              isDynamic: false,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    loading: () => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatColumn('MIEMBROS', '...', '', isDynamic: false),
-                        _buildStatColumn('INGRESOS', '...', '', isDynamic: false),
-                        _buildStatColumn('ASISTENCIA', '...', '', isDynamic: false),
-                      ],
-                    ),
-                    error: (error, stack) => Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatColumn('MIEMBROS', '0', '', isDynamic: false),
-                        _buildStatColumn('INGRESOS', '\$0', '', isDynamic: false),
-                        _buildStatColumn('ASISTENCIA', '0%', '', isDynamic: false),
-                      ],
-                    ),
                   ),
                 ),
-                
+
                 // Usar el nuevo CustomSegmentedTabbar
                 CustomSegmentedTabbar(
                   controller: _tabController,
                   tabs: const ['RESUMEN', 'HORARIOS', 'EQUIPOS'],
-                  selectedColor: AppTheme.blackSwarm, // Negro cuando está seleccionado
-                  unselectedColor: AppTheme.mediumGray, // Gris medio cuando no está seleccionado
+                  selectedColor:
+                      AppTheme.blackSwarm, // Negro cuando está seleccionado
+                  unselectedColor:
+                      AppTheme
+                          .mediumGray, // Gris medio cuando no está seleccionado
                   selectedTextColor: AppTheme.magnoliaWhite, // Texto blanco
                   unselectedTextColor: AppTheme.lightGray, // Texto gris claro
                   borderRadius: 8.0, // Bordes ligeramente redondeados
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), // Ajustar padding interno
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 12,
+                  ), // Ajustar padding interno
                 ),
               ],
             ),
           ),
         ),
-        
+
         // Contenido de pestañas (TabBarView sin cambios)
         SliverFillRemaining(
           child: Container(
@@ -295,8 +355,14 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
       ],
     );
   }
-  
-  Widget _buildStatColumn(String title, String value, String subtitle, {bool isDynamic = true, double? trend}) {
+
+  Widget _buildStatColumn(
+    String title,
+    String value,
+    String subtitle, {
+    bool isDynamic = true,
+    double? trend,
+  }) {
     return Column(
       children: [
         Text(
@@ -314,7 +380,10 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
             Text(
               value,
               style: TextStyle(
-                color: isDynamic ? AppTheme.magnoliaWhite : AppTheme.magnoliaWhite.withAlpha(150),
+                color:
+                    isDynamic
+                        ? AppTheme.magnoliaWhite
+                        : AppTheme.magnoliaWhite.withAlpha(150),
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
@@ -341,7 +410,7 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
       ],
     );
   }
-  
+
   Widget _buildSummaryTab(AcademyModel academy) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -373,9 +442,9 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
                 ),
               ),
             ),
-            
+
           SizedBox(height: 16),
-          
+
           // Tarjeta de información de contacto
           Card(
             color: AppTheme.mediumGray,
@@ -400,21 +469,30 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
                   ListTile(
                     leading: Icon(Icons.email, color: _primaryColor),
                     title: Text('Email'),
-                    subtitle: Text(academy.email, style: TextStyle(color: AppTheme.lightGray)),
+                    subtitle: Text(
+                      academy.email,
+                      style: TextStyle(color: AppTheme.lightGray),
+                    ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
                   ListTile(
                     leading: Icon(Icons.phone, color: _primaryColor),
                     title: Text('Teléfono'),
-                    subtitle: Text(academy.phone, style: TextStyle(color: AppTheme.lightGray)),
+                    subtitle: Text(
+                      academy.phone,
+                      style: TextStyle(color: AppTheme.lightGray),
+                    ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
                   ListTile(
                     leading: Icon(Icons.location_on, color: _primaryColor),
                     title: Text('Dirección'),
-                    subtitle: Text(academy.address, style: TextStyle(color: AppTheme.lightGray)),
+                    subtitle: Text(
+                      academy.address,
+                      style: TextStyle(color: AppTheme.lightGray),
+                    ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -426,18 +504,14 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen> with SingleTicker
       ),
     );
   }
-  
+
   Widget _buildScheduleTab(AcademyModel academy) {
     // Implementar vista de horarios
-    return Center(
-      child: Text('Próximamente: Horarios de la academia'),
-    );
+    return Center(child: Text('Próximamente: Horarios de la academia'));
   }
-  
+
   Widget _buildTeamsTab(AcademyModel academy) {
     // Implementar vista de equipos
-    return Center(
-      child: Text('Próximamente: Equipos de la academia'),
-    );
+    return Center(child: Text('Próximamente: Equipos de la academia'));
   }
-} 
+}

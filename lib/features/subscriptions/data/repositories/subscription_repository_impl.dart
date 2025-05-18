@@ -9,6 +9,8 @@ import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart';
+// Importar la implementación del dominio con un alias
+import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart' as domain_repo;
 
 part 'subscription_repository_impl.g.dart';
 
@@ -408,5 +410,6 @@ SubscriptionRepository subscriptionRepository(Ref ref) {
   
   // Crear una instancia directamente en lugar de usar otro provider
   final firestore = ref.watch(firestoreProvider);
-  return SubscriptionRepositoryImpl(firestore);
+  // Usar la implementación del dominio con el alias
+  return domain_repo.SubscriptionRepositoryImpl(firestore: firestore);
 }

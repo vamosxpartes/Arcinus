@@ -190,6 +190,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
 
   void _submitForm() {
     final notifier = ref.read(createAcademyProvider.notifier);
+    final currentState = ref.read(createAcademyProvider);
     
     // Actualizar por última vez la información adicional
     notifier.updateAdditionalInfo(
@@ -204,7 +205,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
       className: 'CreateAcademyScreen',
       functionName: '_submitForm',
       params: {
-        'paso': notifier.state.maybeMap(
+        'paso': currentState.maybeMap(
           initial: (s) => s.currentStep.index.toString(),
           orElse: () => '2'
         ),
@@ -212,7 +213,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
         'deporte': notifier.selectedSportCode ?? 'no seleccionado',
         'descripcion': _descriptionController.text.isEmpty ? 'vacío' : 'completo',
         'contacto': (_emailController.text.isNotEmpty || _phoneController.text.isNotEmpty) ? 'completo' : 'vacío',
-        'tieneImagen': (notifier.state.maybeMap(
+        'tieneImagen': (currentState.maybeMap(
           initial: (s) => s.logoFile,
           navigating: (s) => s.logoFile,
           selectingImage: (s) => s.logoFile,

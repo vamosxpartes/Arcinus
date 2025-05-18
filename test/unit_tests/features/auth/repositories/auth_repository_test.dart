@@ -14,8 +14,14 @@ class MockIdTokenResult extends Mock implements firebase_auth.IdTokenResult {}
 
 /// Mocks para Firestore
 class MockFirestore extends Mock implements FirebaseFirestore {}
-class MockCollectionReference extends Mock implements CollectionReference<Map<String, dynamic>> {}
+// Forma segura de hacer mock de clases selladas en Firebase
+// ignore: subtype_of_sealed_class
+abstract class _CollectionReference<T> implements CollectionReference<T> {}
+// ignore: subtype_of_sealed_class
+class MockCollectionReference extends Mock implements _CollectionReference<Map<String, dynamic>> {}
+// ignore: subtype_of_sealed_class
 class MockDocumentReference extends Mock implements DocumentReference<Map<String, dynamic>> {}
+// ignore: subtype_of_sealed_class
 class MockDocumentSnapshot extends Mock implements DocumentSnapshot<Map<String, dynamic>> {}
 
 /// Pruebas unitarias para el AuthRepository (implementación con Firebase).

@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Provider para obtener la caja de Hive para el registro
-final registrationBoxProvider = Provider<Box?>((ref) {
+final registrationBoxProvider = Provider<Box<dynamic>?>((ref) {
   return null; // Se inicializará más adelante
 });
 
@@ -113,7 +113,7 @@ final registrationFormProvider =
 /// Notificador para gestionar el estado del formulario de registro
 class RegistrationFormNotifier extends StateNotifier<RegistrationData> {
   /// Box de Hive para persistencia
-  final Box? _box;
+  final Box<dynamic>? _box;
   
   /// Clave para almacenar los datos en Hive
   static const _storageKey = 'form_data';

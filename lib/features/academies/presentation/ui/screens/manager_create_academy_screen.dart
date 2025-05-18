@@ -184,6 +184,7 @@ class _ManagerCreateAcademyScreenState extends ConsumerState<ManagerCreateAcadem
 
   void _submitForm() {
     final notifier = ref.read(createAcademyProvider.notifier);
+    final currentState = ref.read(createAcademyProvider);
     
     // Verificar que el formulario actual es válido
     final isFormValid = _formKeys[FormStep.logoImage.index].currentState?.validate() ?? false;
@@ -194,7 +195,7 @@ class _ManagerCreateAcademyScreenState extends ConsumerState<ManagerCreateAcadem
       functionName: '_submitForm',
       params: {
         'formValid': isFormValid.toString(),
-        'paso': notifier.state.maybeMap(
+        'paso': currentState.maybeMap(
           initial: (s) => s.currentStep.name,
           orElse: () => 'desconocido'
         ),
@@ -218,7 +219,7 @@ class _ManagerCreateAcademyScreenState extends ConsumerState<ManagerCreateAcadem
       className: 'ManagerCreateAcademyScreen',
       functionName: '_submitForm',
       params: {
-        'paso': notifier.state.maybeMap(
+        'paso': currentState.maybeMap(
           initial: (s) => s.currentStep.index.toString(),
           orElse: () => '2'
         ),
@@ -226,7 +227,7 @@ class _ManagerCreateAcademyScreenState extends ConsumerState<ManagerCreateAcadem
         'deporte': notifier.selectedSportCode ?? 'no seleccionado',
         'descripcion': _descriptionController.text.isEmpty ? 'vacío' : 'completo',
         'contacto': (_emailController.text.isNotEmpty || _phoneController.text.isNotEmpty) ? 'completo' : 'vacío',
-        'tieneImagen': (notifier.state.maybeMap(
+        'tieneImagen': (currentState.maybeMap(
           initial: (s) => s.logoFile,
           navigating: (s) => s.logoFile,
           selectingImage: (s) => s.logoFile,
@@ -506,7 +507,7 @@ class _ManagerCreateAcademyScreenState extends ConsumerState<ManagerCreateAcadem
                           width: 150,
                           height: 150,
                           decoration: BoxDecoration(
-                            color: AppTheme.lightGray.withOpacity(0.2),
+                            color: AppTheme.lightGray.withAlpha(60),
                             borderRadius: BorderRadius.circular(75),
                             border: Border.all(
                               color: AppTheme.bonfireRed,
@@ -554,9 +555,9 @@ class _ManagerCreateAcademyScreenState extends ConsumerState<ManagerCreateAcadem
                                         radius: 20,
                                       )
                                     : CircleAvatar(
-                                        child: Icon(Icons.sports, color: AppTheme.magnoliaWhite),
                                         backgroundColor: AppTheme.bonfireRed,
                                         radius: 20,
+                                        child: Icon(Icons.sports, color: AppTheme.magnoliaWhite),
                                       ),
                                 title: Text(
                                   notifier.nameController.text.isEmpty 

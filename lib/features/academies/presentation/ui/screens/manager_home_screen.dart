@@ -94,9 +94,9 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
         color: AppTheme.embers,
         onRefresh: () async {
           // Recargar datos
-          ref.refresh(appAnnouncementsProvider);
+          ref.invalidate(appAnnouncementsProvider);
           if (currentAcademy != null) {
-            ref.refresh(academyStatsProvider(currentAcademy.id!));
+            ref.invalidate(academyStatsProvider(currentAcademy.id!));
           }
         },
         child: SingleChildScrollView(
@@ -169,7 +169,7 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
                             : 'No has seleccionado una academia',
                         style: TextStyle(
                           fontSize: 16,
-                          color: AppTheme.magnoliaWhite.withOpacity(0.8),
+                          color: AppTheme.magnoliaWhite.withAlpha(200),
                         ),
                       ),
                     ],
@@ -431,7 +431,7 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: priorityColor.withOpacity(0.3),
+          color: priorityColor.withAlpha(75),
           width: 1,
         ),
       ),
@@ -446,7 +446,7 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: priorityColor.withOpacity(0.2),
+                    color: priorityColor.withAlpha(50),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
@@ -473,7 +473,7 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
                         dateStr,
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.magnoliaWhite.withOpacity(0.6),
+                          color: AppTheme.magnoliaWhite.withAlpha(150),
                         ),
                       ),
                     ],
@@ -485,7 +485,7 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
             Text(
               announcement.description,
               style: TextStyle(
-                color: AppTheme.magnoliaWhite.withOpacity(0.8),
+                color: AppTheme.magnoliaWhite.withAlpha(200),
                 fontSize: 14,
               ),
             ),

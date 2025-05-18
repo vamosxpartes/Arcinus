@@ -61,7 +61,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // Conectividad para registro en modo offline
   final _connectivityProvider = StreamProvider<bool>((ref) {
     return Connectivity().onConnectivityChanged.map((result) {
-      return result != ConnectivityResult.none;
+      return !result.contains(ConnectivityResult.none);
     });
   });
 

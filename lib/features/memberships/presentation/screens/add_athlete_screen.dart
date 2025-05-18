@@ -78,9 +78,7 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
     
     // Limpiar controllers de forma segura
     for (final controller in _localControllers.values) {
-      if (controller.hasListeners) {
-        controller.dispose();
-      }
+      controller.dispose();
     }
     _localControllers.clear();
     
@@ -100,9 +98,7 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
     setState(() {
       // Eliminar y volver a crear controladores
       for (final controller in _localControllers.values) {
-        if (controller.hasListeners) {
-          controller.dispose();
-        }
+        controller.dispose();
       }
       _localControllers.clear();
       
