@@ -8,7 +8,7 @@ El proyecto se encuentra en fase de planeacion de desarrollo con los siguientes 
 
 **Inicial (Fundamentos y Configuración)**
 *   1.  [x] **Tema centralizado** (UI/UX Base: Colores, Tipografía, Modos)
-*   2.  [ ] **Wireframes** (Revisión y Aprobación Flujos Principales)
+*   2.  [x] **Wireframes** (Revisión y Aprobación Flujos Principales)
 *   3.  [x] **Estructura del Proyecto** (Organización de Carpetas/Módulos)
 *   4.  [x] **Configuración de Linting/Estilo de Código** (Análisis Estático)
 *   5.  [x] **Estrategia de Manejo de Estado** (Riverpod + Annotations Setup)
