@@ -100,7 +100,7 @@ test/
 
 #### Academias
 - [x] Test de AcademyRepository
-- [ ] Test de AcademyNotifier
+- [x] Test de AcademyNotifier
 - [ ] Test de SportCharacteristics
 
 #### Pagos
@@ -208,13 +208,15 @@ test/
    - Comprueba el manejo de errores de validación y cuando no se encuentra una academia.
    - Verifica el formateo correcto de datos como números de teléfono.
 
-### Próximos Pasos
-1. **Implementar pruebas para AcademyNotifier**
-   - Probar la gestión del estado de academias con Riverpod
-   - Verificar la creación y actualización de academias
-   - Comprobar la correcta interacción con el AcademyRepository
+6. **AcademyNotifier** (`test/unit_tests/features/academies/presentation/providers/academy_notifier_test.dart`) ✅
+   - Prueba la gestión del estado de academias con Riverpod utilizando el AsyncNotifier.
+   - Verifica la obtención correcta de datos de academia y sus suscripciones.
+   - Comprueba el manejo de errores y valores nulos.
+   - Verifica la verificación de características disponibles según el plan.
+   - Utiliza mocktail para simular las dependencias de AcademyRepository y AppSubscriptionRepository.
 
-2. **Implementar pruebas para RolePermissions**
+### Próximos Pasos
+1. **Implementar pruebas para RolePermissions**
    - Probar la validación de permisos por rol
    - Verificar la gestión de acceso a funcionalidades
    - Comprobar la restricción de operaciones según rol
