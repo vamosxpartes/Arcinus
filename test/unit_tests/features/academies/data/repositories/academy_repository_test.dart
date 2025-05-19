@@ -5,7 +5,6 @@ import 'package:arcinus/features/academies/domain/repositories/academy_repositor
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fpdart/fpdart.dart';
 import 'package:mocktail/mocktail.dart';
 
 // Mock de Firebase Storage
