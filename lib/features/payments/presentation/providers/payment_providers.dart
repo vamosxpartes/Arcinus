@@ -40,7 +40,7 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       className: 'AcademyPaymentsNotifier',
       functionName: 'build',
     );
-    
+
     // El método build ahora devuelve directamente la Future que carga los datos
     // No se retorna un PaymentsState aquí, Riverpod maneja el AsyncValue
     return _fetchPayments();
@@ -49,7 +49,7 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
   /// Método privado para obtener los pagos
   Future<List<PaymentModel>> _fetchPayments() async {
     final currentAcademy = ref.read(currentAcademyProvider);
-    
+
     AppLogger.logInfo(
       'Obteniendo pagos',
       className: 'AcademyPaymentsNotifier',
@@ -59,7 +59,7 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
         'academiaId': currentAcademy?.id,
       },
     );
-    
+
     if (currentAcademy == null || currentAcademy.id == null) {
       const errorMsg = 'No se pudo determinar la academia actual';
       AppLogger.logError(
@@ -69,7 +69,7 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       );
       throw const Failure.serverError(message: errorMsg);
     }
-    
+
     final paymentRepo = ref.read(paymentRepositoryProvider);
     AppLogger.logInfo(
       'Consultando repositorio de pagos',
@@ -77,9 +77,9 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       functionName: '_fetchPayments',
       params: {'academiaId': currentAcademy.id},
     );
-    
+
     final result = await paymentRepo.getPaymentsByAcademy(currentAcademy.id!);
-    
+
     return result.fold(
       (failure) {
         AppLogger.logError(
@@ -102,7 +102,7 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       },
     );
   }
-  
+
   /// Carga/recarga los pagos invalidando el estado del provider.
   Future<void> refreshPayments() async {
     AppLogger.logInfo(
@@ -137,29 +137,26 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
         'fecha': paymentDate.toString(),
       },
     );
-    
+
     // Ya no se modifica el state aquí directamente para indicar carga
     // El estado AsyncValue se manejará automáticamente por la recarga
-    
+
     final currentAcademy = ref.read(currentAcademyProvider);
     final userId = ref.read(authStateNotifierProvider).user?.id;
-    
+
     if (currentAcademy == null || currentAcademy.id == null || userId == null) {
       const errorMsg = 'Error al obtener información necesaria';
       AppLogger.logError(
         message: errorMsg,
         className: 'AcademyPaymentsNotifier',
         functionName: 'registerPayment',
-        params: {
-          'academiaId': currentAcademy?.id,
-          'userId': userId,
-        },
+        params: {'academiaId': currentAcademy?.id, 'userId': userId},
       );
       // Lanzar un error o manejarlo de forma apropiada
       // En un AsyncNotifier, esto pondría el estado en AsyncError
       throw const Failure.serverError(message: errorMsg);
     }
-    
+
     final payment = PaymentModel(
       academyId: currentAcademy.id!,
       athleteId: athleteId,
@@ -172,17 +169,19 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       createdAt: DateTime.now(),
       receiptUrl: receiptUrl,
     );
-    
+
     AppLogger.logInfo(
       'Creando modelo de pago',
       className: 'AcademyPaymentsNotifier',
       functionName: 'registerPayment',
-      params: {'payment': '${payment.concept} - ${payment.amount} ${payment.currency}'},
+      params: {
+        'payment': '${payment.concept} - ${payment.amount} ${payment.currency}',
+      },
     );
-    
+
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final result = await paymentRepo.registerPayment(payment);
-    
+
     await result.fold(
       (failure) async {
         AppLogger.logError(
@@ -217,12 +216,12 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       functionName: 'deletePayment',
       params: {'paymentId': paymentId},
     );
-    
+
     // Ya no se modifica el state aquí directamente para indicar carga
-    
+
     final paymentRepo = ref.read(paymentRepositoryProvider);
     final currentAcademy = ref.read(currentAcademyProvider);
-    
+
     if (currentAcademy == null || currentAcademy.id == null) {
       const errorMsg = 'No se pudo determinar la academia actual';
       AppLogger.logError(
@@ -233,9 +232,12 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       );
       throw const Failure.serverError(message: errorMsg);
     }
-    
-    final result = await paymentRepo.deletePayment(currentAcademy.id!, paymentId);
-    
+
+    final result = await paymentRepo.deletePayment(
+      currentAcademy.id!,
+      paymentId,
+    );
+
     await result.fold(
       (failure) async {
         AppLogger.logError(
@@ -243,10 +245,7 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
           error: failure,
           className: 'AcademyPaymentsNotifier',
           functionName: 'deletePayment',
-          params: {
-            'paymentId': paymentId,
-            'failure': failure.toString(),
-          },
+          params: {'paymentId': paymentId, 'failure': failure.toString()},
         );
         // Lanzar excepción en caso de error
         throw failure;
@@ -283,17 +282,14 @@ class AthletePaymentsNotifier extends _$AthletePaymentsNotifier {
   /// Carga los pagos de un atleta específico
   Future<List<PaymentModel>> _fetchAthletePayments(String athleteId) async {
     final currentAcademy = ref.read(currentAcademyProvider);
-    
+
     AppLogger.logInfo(
       'Obteniendo pagos del atleta',
       className: 'AthletePaymentsNotifier',
       functionName: '_fetchAthletePayments',
-      params: {
-        'athleteId': athleteId,
-        'academiaId': currentAcademy?.id,
-      },
+      params: {'athleteId': athleteId, 'academiaId': currentAcademy?.id},
     );
-    
+
     if (currentAcademy == null || currentAcademy.id == null) {
       const errorMsg = 'No se pudo determinar la academia actual';
       AppLogger.logError(
@@ -304,10 +300,13 @@ class AthletePaymentsNotifier extends _$AthletePaymentsNotifier {
       );
       throw const Failure.serverError(message: errorMsg);
     }
-    
+
     final paymentRepo = ref.read(paymentRepositoryProvider);
-    final result = await paymentRepo.getPaymentsByAthlete(currentAcademy.id!, athleteId);
-    
+    final result = await paymentRepo.getPaymentsByAthlete(
+      currentAcademy.id!,
+      athleteId,
+    );
+
     return result.fold(
       (failure) {
         AppLogger.logError(
@@ -315,10 +314,7 @@ class AthletePaymentsNotifier extends _$AthletePaymentsNotifier {
           error: failure,
           className: 'AthletePaymentsNotifier',
           functionName: '_fetchAthletePayments',
-          params: {
-            'athleteId': athleteId,
-            'failure': failure.toString(),
-          },
+          params: {'athleteId': athleteId, 'failure': failure.toString()},
         );
         throw failure;
       },
@@ -327,16 +323,13 @@ class AthletePaymentsNotifier extends _$AthletePaymentsNotifier {
           'Pagos del atleta obtenidos exitosamente',
           className: 'AthletePaymentsNotifier',
           functionName: '_fetchAthletePayments',
-          params: {
-            'athleteId': athleteId,
-            'cantidadPagos': payments.length,
-          },
+          params: {'athleteId': athleteId, 'cantidadPagos': payments.length},
         );
         return payments;
       },
     );
   }
-  
+
   /// Recarga los pagos del atleta.
   Future<void> refreshAthletePayments(String athleteId) async {
     AppLogger.logInfo(
@@ -384,20 +377,22 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
         'fecha': paymentDate.toString(),
       },
     );
-    
+
     state = state.copyWith(isSubmitting: true, failure: null, isSuccess: false);
-    
+
     try {
       // Llamar directamente al método del Notifier de pagos de academia
-      await ref.read(academyPaymentsNotifierProvider.notifier).registerPayment(
-        athleteId: athleteId,
-        amount: amount,
-        currency: currency,
-        paymentDate: paymentDate,
-        concept: concept,
-        notes: notes,
-        receiptUrl: receiptUrl,
-      );
+      await ref
+          .read(academyPaymentsNotifierProvider.notifier)
+          .registerPayment(
+            athleteId: athleteId,
+            amount: amount,
+            currency: currency,
+            paymentDate: paymentDate,
+            concept: concept,
+            notes: notes,
+            receiptUrl: receiptUrl,
+          );
       // Si la llamada anterior no lanzó excepción, fue exitosa
       AppLogger.logInfo(
         'Pago registrado exitosamente desde formulario',
@@ -414,7 +409,11 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
         functionName: 'submitPayment',
         params: {'failure': failure.toString()},
       );
-      state = state.copyWith(isSubmitting: false, failure: failure, isSuccess: false);
+      state = state.copyWith(
+        isSubmitting: false,
+        failure: failure,
+        isSuccess: false,
+      );
     } catch (e) {
       // Capturar otros posibles errores
       AppLogger.logError(
@@ -424,9 +423,9 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
         functionName: 'submitPayment',
       );
       state = state.copyWith(
-        isSubmitting: false, 
-        failure: Failure.unexpectedError(error: e), 
-        isSuccess: false
+        isSubmitting: false,
+        failure: Failure.unexpectedError(error: e),
+        isSuccess: false,
       );
     }
   }
@@ -440,4 +439,4 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
     );
     state = const PaymentFormState();
   }
-} 
+}

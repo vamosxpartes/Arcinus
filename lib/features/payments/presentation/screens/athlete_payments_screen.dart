@@ -4,7 +4,8 @@ import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.d
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/data/repositories/payment_repository_impl.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
-import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart' as subscriptions;
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart'
+    as subscriptions;
 import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
@@ -20,19 +21,20 @@ import 'package:arcinus/core/utils/app_logger.dart';
 class AthletePaymentsScreen extends ConsumerStatefulWidget {
   /// ID del atleta cuyos pagos se mostrarán
   final String athleteId;
-  
+
   /// Nombre del atleta (opcional)
   final String? athleteName;
 
   /// Constructor
   const AthletePaymentsScreen({
-    super.key, 
+    super.key,
     required this.athleteId,
     this.athleteName,
   });
 
   @override
-  ConsumerState<AthletePaymentsScreen> createState() => _AthletePaymentsScreenState();
+  ConsumerState<AthletePaymentsScreen> createState() =>
+      _AthletePaymentsScreenState();
 }
 
 class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
@@ -41,16 +43,19 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
     super.initState();
     // Actualizar el título en el OwnerShell
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final title = widget.athleteName != null 
-          ? 'Pagos de ${widget.athleteName}'
-          : 'Pagos del atleta';
+      final title =
+          widget.athleteName != null
+              ? 'Pagos de ${widget.athleteName}'
+              : 'Pagos del atleta';
       ref.read(currentScreenTitleProvider.notifier).state = title;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.athleteId));
+    final paymentsAsyncValue = ref.watch(
+      athletePaymentsNotifierProvider(widget.athleteId),
+    );
     final currentAcademy = ref.watch(currentAcademyProvider);
 
     return Scaffold(
@@ -58,10 +63,13 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
         children: [
           // Información del atleta
           _buildAthleteInfo(),
-          
+
           // Botones de filtro y actualización
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -81,14 +89,17 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                     IconButton(
                       icon: const Icon(Icons.refresh),
                       tooltip: 'Actualizar pagos',
-                      onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.athleteId)),
+                      onPressed:
+                          () => ref.invalidate(
+                            athletePaymentsNotifierProvider(widget.athleteId),
+                          ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Lista de pagos
           Expanded(
             child: paymentsAsyncValue.when(
@@ -107,7 +118,8 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
             FloatingActionButton(
               heroTag: 'subscriptionPlan',
               backgroundColor: Colors.orange,
-              onPressed: () => _showSubscriptionPlanModal(context, currentAcademy.id!),
+              onPressed:
+                  () => _showSubscriptionPlanModal(context, currentAcademy.id!),
               child: const Icon(Icons.card_membership),
             ),
           const SizedBox(height: 16),
@@ -117,14 +129,18 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
             onPressed: () {
               // Navegar a registrar pago con el ID del atleta pre-seleccionado
               final currentAcademy = ref.read(currentAcademyProvider);
-              if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
+              if (currentAcademy != null &&
+                  currentAcademy.id != null &&
+                  currentAcademy.id!.isNotEmpty) {
                 context.push(
                   '/owner/academy/${currentAcademy.id}/payments/register',
                   extra: {'preselectedAthleteId': widget.athleteId},
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No se pudo determinar la academia actual')),
+                  const SnackBar(
+                    content: Text('No se pudo determinar la academia actual'),
+                  ),
                 );
               }
             },
@@ -172,7 +188,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                   ],
                 ),
                 // Información de suscripción
-                if (academyId.isNotEmpty) 
+                if (academyId.isNotEmpty)
                   _buildSubscriptionBadge(context, academyId),
               ],
             ),
@@ -189,7 +205,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
     return Consumer(
       builder: (context, ref, child) {
         final clientUserAsync = ref.watch(clientUserProvider(widget.athleteId));
-        
+
         return clientUserAsync.when(
           data: (clientUser) {
             if (clientUser == null) {
@@ -202,11 +218,11 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                 ),
               );
             }
-            
+
             // Color basado en el estado de pago
             Color chipColor;
             IconData chipIcon;
-            
+
             switch (clientUser.paymentStatus) {
               case PaymentStatus.active:
                 chipColor = Colors.green;
@@ -223,32 +239,35 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                 chipIcon = Icons.cancel;
                 break;
             }
-            
+
             return InkWell(
               onTap: () => _showSubscriptionPlanModal(context, academyId),
               child: Chip(
                 avatar: Icon(chipIcon, color: Colors.white, size: 16),
                 label: Text(
-                  clientUser.subscriptionPlan?.name ?? clientUser.paymentStatus.displayName,
+                  clientUser.subscriptionPlan?.name ??
+                      clientUser.paymentStatus.displayName,
                   style: const TextStyle(color: Colors.white),
                 ),
                 backgroundColor: chipColor,
               ),
             );
           },
-          loading: () => const SizedBox(
-            width: 24, 
-            height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          error: (_, __) => InkWell(
-            onTap: () => _showSubscriptionPlanModal(context, academyId),
-            child: const Chip(
-              label: Text('Error'),
-              backgroundColor: Colors.red,
-              labelStyle: TextStyle(color: Colors.white),
-            ),
-          ),
+          loading:
+              () => const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+          error:
+              (_, __) => InkWell(
+                onTap: () => _showSubscriptionPlanModal(context, academyId),
+                child: const Chip(
+                  label: Text('Error'),
+                  backgroundColor: Colors.red,
+                  labelStyle: TextStyle(color: Colors.white),
+                ),
+              ),
         );
       },
     );
@@ -272,42 +291,54 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
   Widget _buildPaymentSummary() {
     return Consumer(
       builder: (context, ref, child) {
-        final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.athleteId));
-        
+        final paymentsAsyncValue = ref.watch(
+          athletePaymentsNotifierProvider(widget.athleteId),
+        );
+
         return paymentsAsyncValue.when(
           data: (payments) {
-            final totalPaid = payments.fold<double>(0, (sum, payment) => sum + payment.amount);
-            final lastPayment = payments.isNotEmpty 
-              ? payments.reduce((a, b) => a.paymentDate.isAfter(b.paymentDate) ? a : b) 
-              : null;
-            
+            final totalPaid = payments.fold<double>(
+              0,
+              (sum, payment) => sum + payment.amount,
+            );
+            final lastPayment =
+                payments.isNotEmpty
+                    ? payments.reduce(
+                      (a, b) => a.paymentDate.isAfter(b.paymentDate) ? a : b,
+                    )
+                    : null;
+
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildInfoColumn(
-                  'Total Pagado', 
-                  NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(totalPaid)
+                  'Total Pagado',
+                  NumberFormat.currency(
+                    symbol: '\$',
+                    decimalDigits: 2,
+                  ).format(totalPaid),
                 ),
                 _buildInfoColumn(
-                  'Último Pago', 
-                  lastPayment != null 
-                    ? DateFormat('dd/MM/yyyy').format(lastPayment.paymentDate)
-                    : 'Ninguno'
+                  'Último Pago',
+                  lastPayment != null
+                      ? DateFormat('dd/MM/yyyy').format(lastPayment.paymentDate)
+                      : 'Ninguno',
                 ),
                 _buildInfoColumn(
-                  'Cantidad de Pagos', 
-                  payments.length.toString()
+                  'Cantidad de Pagos',
+                  payments.length.toString(),
                 ),
               ],
             );
           },
-          loading: () => const Center(
-            child: SizedBox(
-              height: 50,
-              width: 50,
-              child: CircularProgressIndicator(),
-            ),
-          ),
+          loading:
+              () => const Center(
+                child: SizedBox(
+                  height: 50,
+                  width: 50,
+                  child: CircularProgressIndicator(),
+                ),
+              ),
           error: (_, __) => const Text('Error al cargar el resumen de pagos'),
         );
       },
@@ -327,10 +358,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ],
     );
@@ -370,7 +398,7 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
           children: [
             Expanded(
               child: Text(
-                payment.concept ?? 'Pago', 
+                payment.concept ?? 'Pago',
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -422,8 +450,12 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
         onTap: () {
           // Navegar a detalles del pago
           final currentAcademy = ref.read(currentAcademyProvider);
-          if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-            context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}');
+          if (currentAcademy != null &&
+              currentAcademy.id != null &&
+              payment.id != null) {
+            context.push(
+              '/owner/academy/${currentAcademy.id}/payments/${payment.id}',
+            );
           }
         },
       ),
@@ -458,8 +490,12 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                   Navigator.pop(context);
                   // Navegar a detalles del pago
                   final currentAcademy = ref.read(currentAcademyProvider);
-                  if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-                    context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}');
+                  if (currentAcademy != null &&
+                      currentAcademy.id != null &&
+                      payment.id != null) {
+                    context.push(
+                      '/owner/academy/${currentAcademy.id}/payments/${payment.id}',
+                    );
                   }
                 },
               ),
@@ -470,14 +506,21 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                   Navigator.pop(context);
                   // Navegar a editar pago
                   final currentAcademy = ref.read(currentAcademyProvider);
-                  if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-                    context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}/edit');
+                  if (currentAcademy != null &&
+                      currentAcademy.id != null &&
+                      payment.id != null) {
+                    context.push(
+                      '/owner/academy/${currentAcademy.id}/payments/${payment.id}/edit',
+                    );
                   }
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
-                title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                title: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.red),
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _confirmDeletePayment(context, payment);
@@ -499,7 +542,9 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Eliminar pago'),
-          content: const Text('¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.'),
+          content: const Text(
+            '¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -512,24 +557,39 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
                 Navigator.pop(context);
                 // Eliminar pago y actualizar la lista
                 if (payment.id != null && academyId != null) {
-                  ref.read(paymentRepositoryProvider).deletePayment(academyId, payment.id!).then((_) {
-                    // Invalidar el provider para refrescar la lista
-                    ref.invalidate(athletePaymentsNotifierProvider(widget.athleteId));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pago eliminado correctamente')),
-                      );
-                    }
-                  }).catchError((error) {
-                    if (context.mounted) {  
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al eliminar el pago: $error')),
-                      );
-                    }
-                  });
+                  ref
+                      .read(paymentRepositoryProvider)
+                      .deletePayment(academyId, payment.id!)
+                      .then((_) {
+                        // Invalidar el provider para refrescar la lista
+                        ref.invalidate(
+                          athletePaymentsNotifierProvider(widget.athleteId),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pago eliminado correctamente'),
+                            ),
+                          );
+                        }
+                      })
+                      .catchError((error) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Error al eliminar el pago: $error',
+                              ),
+                            ),
+                          );
+                        }
+                      });
                 }
               },
-              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Eliminar',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -538,17 +598,14 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
   }
 
   Widget _buildErrorWidget(BuildContext context, Object error) {
-    final failure = error is Failure ? error : Failure.unexpectedError(error: error);
-  
+    final failure =
+        error is Failure ? error : Failure.unexpectedError(error: error);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 60,
-          ),
+          const Icon(Icons.error_outline, color: Colors.red, size: 60),
           const SizedBox(height: 16),
           Text(
             failure.maybeWhen(
@@ -557,7 +614,10 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
               authError: (code, message) => message,
               validationError: (message) => message,
               cacheError: (message) => message,
-              unexpectedError: (err, _) => err?.toString() ?? 'Ocurrió un error inesperado al cargar los pagos',
+              unexpectedError:
+                  (err, _) =>
+                      err?.toString() ??
+                      'Ocurrió un error inesperado al cargar los pagos',
               orElse: () => 'Ocurrió un error inesperado al cargar los pagos',
             ),
             textAlign: TextAlign.center,
@@ -565,7 +625,10 @@ class _AthletePaymentsScreenState extends ConsumerState<AthletePaymentsScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.athleteId)),
+            onPressed:
+                () => ref.invalidate(
+                  athletePaymentsNotifierProvider(widget.athleteId),
+                ),
             child: const Text('Intentar de nuevo'),
           ),
         ],
@@ -585,10 +648,12 @@ class _SubscriptionPlanModal extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_SubscriptionPlanModal> createState() => _SubscriptionPlanModalState();
+  ConsumerState<_SubscriptionPlanModal> createState() =>
+      _SubscriptionPlanModalState();
 }
 
-class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> {
+class _SubscriptionPlanModalState
+    extends ConsumerState<_SubscriptionPlanModal> {
   String? _selectedPlanId;
   DateTime _startDate = DateTime.now();
   bool _isSubmitting = false;
@@ -600,7 +665,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
     super.initState();
     // La carga inicial del plan se hará durante el primer build en didChangeDependencies
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -614,7 +679,9 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
     final clientUserAsync = ref.read(clientUserProvider(widget.athleteId));
     clientUserAsync.when(
       data: (clientUser) {
-        if (clientUser != null && clientUser.subscriptionPlanId != null && mounted) {
+        if (clientUser != null &&
+            clientUser.subscriptionPlanId != null &&
+            mounted) {
           setState(() {
             _selectedPlanId = clientUser.subscriptionPlanId;
           });
@@ -632,16 +699,16 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
   // Método para refrescar los planes de suscripción
   Future<void> _refreshSubscriptionPlans() async {
     if (_isRefreshing) return;
-    
+
     setState(() {
       _isRefreshing = true;
     });
-    
+
     try {
       // Invalidar los providers para forzar la recarga
       ref.invalidate(activeSubscriptionPlansProvider(widget.academyId));
       ref.invalidate(clientUserProvider(widget.athleteId));
-      
+
       // Esperar un momento para que la UI refleje el estado de carga
       await Future.delayed(const Duration(milliseconds: 300));
     } catch (e) {
@@ -664,7 +731,9 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
 
   @override
   Widget build(BuildContext context) {
-    final plansAsyncValue = ref.watch(activeSubscriptionPlansProvider(widget.academyId));
+    final plansAsyncValue = ref.watch(
+      activeSubscriptionPlansProvider(widget.academyId),
+    );
     final clientUserAsync = ref.watch(clientUserProvider(widget.athleteId));
 
     return Container(
@@ -697,15 +766,19 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                     children: [
                       // Botón para actualizar los planes
                       IconButton(
-                        icon: _isRefreshing 
-                          ? const SizedBox(
-                              width: 20, 
-                              height: 20, 
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.refresh),
+                        icon:
+                            _isRefreshing
+                                ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(Icons.refresh),
                         tooltip: 'Actualizar planes',
-                        onPressed: _isRefreshing ? null : _refreshSubscriptionPlans,
+                        onPressed:
+                            _isRefreshing ? null : _refreshSubscriptionPlans,
                       ),
                       // Botón para cerrar el modal
                       IconButton(
@@ -718,11 +791,12 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
               ),
               const Divider(),
               const SizedBox(height: 8),
-          
+
               // Plan actual
               clientUserAsync.when(
                 data: (clientUser) {
-                  if (clientUser == null || clientUser.subscriptionPlan == null) {
+                  if (clientUser == null ||
+                      clientUser.subscriptionPlan == null) {
                     return const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Text(
@@ -731,7 +805,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                       ),
                     );
                   }
-          
+
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     color: Colors.blue[50],
@@ -742,7 +816,11 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.info, color: Colors.blue, size: 20),
+                              const Icon(
+                                Icons.info,
+                                color: Colors.blue,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Plan Actual: ${clientUser.subscriptionPlan!.name}',
@@ -765,25 +843,25 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                               'Próximo pago: ${DateFormat('dd/MM/yyyy').format(clientUser.nextPaymentDate!)}',
                             ),
                           if (clientUser.remainingDays != null)
-                            Text(
-                              'Días restantes: ${clientUser.remainingDays}',
-                            ),
+                            Text('Días restantes: ${clientUser.remainingDays}'),
                         ],
                       ),
                     ),
                   );
                 },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                error: (error, _) => Text('Error al cargar información: $error'),
+                loading:
+                    () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                error:
+                    (error, _) => Text('Error al cargar información: $error'),
               ),
-          
+
               const SizedBox(height: 16),
-          
+
               // Lista de planes disponibles
               plansAsyncValue.when(
                 data: (plans) {
@@ -791,7 +869,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                     'Modal recibió ${plans.length} planes del provider.',
                     className: '_SubscriptionPlanModalState',
                     functionName: 'build',
-                    params: {'count': plans.length}
+                    params: {'count': plans.length},
                   );
                   for (var i = 0; i < plans.length; i++) {
                     final plan = plans[i];
@@ -799,7 +877,11 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                       'Plan[$i]: ID=${plan.id}, Name=${plan.name}, IsActive=${plan.isActive}', // Asumiendo que plan.name y plan.isActive existen
                       className: '_SubscriptionPlanModalState',
                       functionName: 'build',
-                      params: {'id': plan.id, 'name': plan.name, 'isActive': plan.isActive}
+                      params: {
+                        'id': plan.id,
+                        'name': plan.name,
+                        'isActive': plan.isActive,
+                      },
                     );
                   }
 
@@ -814,13 +896,15 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                   }
 
                   // 1. Filter plans to only include those with non-null IDs for the dropdown options
-                  final List<subscriptions.SubscriptionPlanModel> validPlansForDropdown = plans.where((p) => p.id != null).toList();
+                  final List<subscriptions.SubscriptionPlanModel>
+                  validPlansForDropdown =
+                      plans.where((p) => p.id != null).toList();
 
                   AppLogger.logInfo(
                     'Después de filtrar por ID no nulo, validPlansForDropdown tiene ${validPlansForDropdown.length} planes.',
                     className: '_SubscriptionPlanModalState',
                     functionName: 'build',
-                    params: {'count': validPlansForDropdown.length}
+                    params: {'count': validPlansForDropdown.length},
                   );
                   for (var i = 0; i < validPlansForDropdown.length; i++) {
                     final plan = validPlansForDropdown[i];
@@ -828,17 +912,20 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                       'ValidPlan[$i]: ID=${plan.id}, Name=${plan.name}',
                       className: '_SubscriptionPlanModalState',
                       functionName: 'build',
-                      params: {'id': plan.id, 'name': plan.name}
+                      params: {'id': plan.id, 'name': plan.name},
                     );
                   }
 
                   // (La lógica del microtask para _selectedPlanId se mantiene, pero la determinación
                   // del valor para el DropdownButton será más específica)
                   // Esta lógica de planExists se usa para el setState en microtask, puede seguir usando 'plans' originales
-                  final bool planExistsInOriginalPlans = _selectedPlanId == null || plans.any((plan) => plan.id == _selectedPlanId);
+                  final bool planExistsInOriginalPlans =
+                      _selectedPlanId == null ||
+                      plans.any((plan) => plan.id == _selectedPlanId);
                   if (!planExistsInOriginalPlans && mounted) {
                     Future.microtask(() {
-                      if (mounted) { // Añadir comprobación de mounted por si acaso
+                      if (mounted) {
+                        // Añadir comprobación de mounted por si acaso
                         setState(() {
                           _selectedPlanId = null;
                         });
@@ -849,9 +936,12 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                   // 2. Determine the value for the DropdownButton.
                   // Debe ser null o uno de los IDs de validPlansForDropdown.
                   String? dropdownWidgetValue = _selectedPlanId;
-                  if (_selectedPlanId != null) { // Si _selectedPlanId no es null
+                  if (_selectedPlanId != null) {
+                    // Si _selectedPlanId no es null
                     // Comprobar si está presente en los IDs de los planes válidos (que tienen IDs no nulos)
-                    if (!validPlansForDropdown.any((p) => p.id == _selectedPlanId)) {
+                    if (!validPlansForDropdown.any(
+                      (p) => p.id == _selectedPlanId,
+                    )) {
                       // Si no está (p.ej., era el ID de un plan con ID nulo, o un ID no existente),
                       // entonces establece el dropdown a "Sin Plan" (null).
                       dropdownWidgetValue = null;
@@ -875,7 +965,8 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: DropdownButton<String?>(
-                          value: dropdownWidgetValue, // Usar el valor determinado
+                          value:
+                              dropdownWidgetValue, // Usar el valor determinado
                           hint: const Text('Seleccionar Plan'),
                           isExpanded: true,
                           underline: const SizedBox(),
@@ -895,15 +986,15 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                               DropdownMenuItem<String?>(
                                 value: plan.id, // plan.id aquí no será null
                                 child: Text(
-                                  '${plan.name} - ${plan.amount} ${plan.currency} / ${plan.billingCycle.displayName}'
+                                  '${plan.name} - ${plan.amount} ${plan.currency} / ${plan.billingCycle.displayName}',
                                 ),
                               ),
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Selector de fecha de inicio
                       if (_selectedPlanId != null) ...[
                         const Text(
@@ -916,8 +1007,12 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                             final picked = await showDatePicker(
                               context: context,
                               initialDate: _startDate,
-                              firstDate: DateTime.now().subtract(const Duration(days: 7)),
-                              lastDate: DateTime.now().add(const Duration(days: 30)),
+                              firstDate: DateTime.now().subtract(
+                                const Duration(days: 7),
+                              ),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 30),
+                              ),
                             );
                             if (picked != null) {
                               setState(() {
@@ -926,7 +1021,10 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                             }
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 15,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey),
                               borderRadius: BorderRadius.circular(8),
@@ -934,7 +1032,9 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(DateFormat('dd/MM/yyyy').format(_startDate)),
+                                Text(
+                                  DateFormat('dd/MM/yyyy').format(_startDate),
+                                ),
                                 const Icon(Icons.calendar_today),
                               ],
                             ),
@@ -944,20 +1044,22 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                     ],
                   );
                 },
-                loading: () => const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                error: (error, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Text('Error al cargar planes: $error'),
-                ),
+                loading:
+                    () => const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                error:
+                    (error, _) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text('Error al cargar planes: $error'),
+                    ),
               ),
-          
+
               const SizedBox(height: 24),
-          
+
               // Botones de acción
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -974,13 +1076,16 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
                     width: 100,
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _savePlan,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Guardar'),
+                      child:
+                          _isSubmitting
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Text('Guardar'),
                     ),
                   ),
                 ],
@@ -996,10 +1101,10 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
     setState(() {
       _isSubmitting = true;
     });
-    
+
     try {
       final repository = ref.read(clientUserRepositoryProvider);
-      
+
       if (_selectedPlanId == null) {
         // Desactivar plan: actualizar datos de cliente para marcar como inactivo
         final clientData = {
@@ -1008,13 +1113,13 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
           'nextPaymentDate': null,
           'remainingDays': null,
         };
-        
+
         final result = await repository.updateClientUser(
-          widget.academyId, 
-          widget.athleteId, 
+          widget.academyId,
+          widget.athleteId,
           clientData,
         );
-        
+
         result.fold(
           (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1044,7 +1149,7 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
           _selectedPlanId!,
           _startDate,
         );
-        
+
         result.fold(
           (failure) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -1069,12 +1174,12 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
       }
     } catch (e) {
       if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error inesperado: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error inesperado: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -1084,4 +1189,4 @@ class _SubscriptionPlanModalState extends ConsumerState<_SubscriptionPlanModal> 
       }
     }
   }
-} 
+}

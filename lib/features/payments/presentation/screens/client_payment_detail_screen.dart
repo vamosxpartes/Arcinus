@@ -9,35 +9,42 @@ import 'package:intl/intl.dart';
 class ClientPaymentDetailScreen extends ConsumerStatefulWidget {
   /// ID del usuario cliente cuyos pagos se mostrarán
   final String userId;
-  
+
   /// Nombre del usuario (opcional)
   final String? userName;
 
   /// Constructor
   const ClientPaymentDetailScreen({
-    super.key, 
+    super.key,
     required this.userId,
     this.userName,
   });
 
   @override
-  ConsumerState<ClientPaymentDetailScreen> createState() => _ClientPaymentDetailScreenState();
+  ConsumerState<ClientPaymentDetailScreen> createState() =>
+      _ClientPaymentDetailScreenState();
 }
 
-class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailScreen> {
+class _ClientPaymentDetailScreenState
+    extends ConsumerState<ClientPaymentDetailScreen> {
   @override
   Widget build(BuildContext context) {
-    final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.userId));
+    final paymentsAsyncValue = ref.watch(
+      athletePaymentsNotifierProvider(widget.userId),
+    );
 
     return Scaffold(
       body: Column(
         children: [
           // Información de suscripción y estado
           _buildSubscriptionCard(),
-          
+
           // Botones de filtro y actualización
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -48,12 +55,15 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
                 IconButton(
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Actualizar pagos',
-                  onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
+                  onPressed:
+                      () => ref.invalidate(
+                        athletePaymentsNotifierProvider(widget.userId),
+                      ),
                 ),
               ],
             ),
           ),
-          
+
           // Lista de pagos
           Expanded(
             child: paymentsAsyncValue.when(
@@ -75,7 +85,7 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
     final nextPaymentDate = DateTime.now().add(const Duration(days: 15));
     final daysLeft = 15;
     final isActive = true;
-    
+
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Padding(
@@ -88,11 +98,11 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
                 CircleAvatar(
                   radius: 24,
                   // ignore: dead_code
-                  backgroundColor: isActive ? Colors.green.withAlpha(60) : Colors.orange.withAlpha(60),
+                  backgroundColor:
+                      Colors.green.withAlpha(60),
                   child: Icon(
                     Icons.account_circle,
-                    // ignore: dead_code
-                    color: isActive ? Colors.green : Colors.orange,
+                    color: Colors.green,
                     size: 28,
                   ),
                 ),
@@ -129,11 +139,8 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
               'Próximo Pago:',
               DateFormat('dd/MM/yyyy').format(nextPaymentDate),
             ),
-            _buildInfoRow(
-              'Días Restantes:',
-              '$daysLeft días',
-            ),
-            
+            _buildInfoRow('Días Restantes:', '$daysLeft días'),
+
             // Botón de acción según estado
             Align(
               alignment: Alignment.centerRight,
@@ -163,18 +170,8 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.grey,
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(label, style: const TextStyle(color: Colors.grey)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -189,10 +186,7 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
           children: [
             Icon(Icons.payment_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text(
-              'No tienes pagos registrados',
-              style: TextStyle(fontSize: 16),
-            ),
+            Text('No tienes pagos registrados', style: TextStyle(fontSize: 16)),
             SizedBox(height: 8),
             Text(
               'Tus pagos aparecerán aquí cuando los realices',
@@ -287,44 +281,54 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
   void _showPaymentDetails(BuildContext context, PaymentModel payment) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Detalles del Pago'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Concepto', payment.concept ?? 'Pago'),
-              _buildDetailRow('Monto', NumberFormat.currency(
-                symbol: _getCurrencySymbol(payment.currency),
-                decimalDigits: 2,
-              ).format(payment.amount)),
-              _buildDetailRow('Fecha', DateFormat('dd/MM/yyyy').format(payment.paymentDate)),
-              _buildDetailRow('Método', 'No especificado'),
-              if (payment.notes != null && payment.notes!.isNotEmpty)
-                _buildDetailRow('Notas', payment.notes!),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Detalles del Pago'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildDetailRow('Concepto', payment.concept ?? 'Pago'),
+                  _buildDetailRow(
+                    'Monto',
+                    NumberFormat.currency(
+                      symbol: _getCurrencySymbol(payment.currency),
+                      decimalDigits: 2,
+                    ).format(payment.amount),
+                  ),
+                  _buildDetailRow(
+                    'Fecha',
+                    DateFormat('dd/MM/yyyy').format(payment.paymentDate),
+                  ),
+                  _buildDetailRow('Método', 'No especificado'),
+                  if (payment.notes != null && payment.notes!.isNotEmpty)
+                    _buildDetailRow('Notas', payment.notes!),
+                  if (payment.receiptUrl != null &&
+                      payment.receiptUrl!.isNotEmpty)
+                    _buildDetailRow('Comprobante', 'Disponible'),
+                ],
+              ),
+            ),
+            actions: [
               if (payment.receiptUrl != null && payment.receiptUrl!.isNotEmpty)
-                _buildDetailRow('Comprobante', 'Disponible'),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Próximamente: Ver comprobante'),
+                      ),
+                    );
+                  },
+                  child: const Text('Ver Comprobante'),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cerrar'),
+              ),
             ],
           ),
-        ),
-        actions: [
-          if (payment.receiptUrl != null && payment.receiptUrl!.isNotEmpty)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Próximamente: Ver comprobante')),
-                );
-              },
-              child: const Text('Ver Comprobante'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -343,12 +347,7 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-            ),
-          ),
+          Text(value, style: const TextStyle(fontSize: 16)),
         ],
       ),
     );
@@ -370,17 +369,14 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
 
   // Widget de error
   Widget _buildErrorWidget(BuildContext context, Object error) {
-    final failure = error is Failure ? error : Failure.unexpectedError(error: error);
-  
+    final failure =
+        error is Failure ? error : Failure.unexpectedError(error: error);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 60,
-          ),
+          const Icon(Icons.error_outline, color: Colors.red, size: 60),
           const SizedBox(height: 16),
           Text(
             failure.maybeWhen(
@@ -389,7 +385,10 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
               authError: (code, message) => message,
               validationError: (message) => message,
               cacheError: (message) => message,
-              unexpectedError: (err, _) => err?.toString() ?? 'Ocurrió un error inesperado al cargar los pagos',
+              unexpectedError:
+                  (err, _) =>
+                      err?.toString() ??
+                      'Ocurrió un error inesperado al cargar los pagos',
               orElse: () => 'Ocurrió un error inesperado al cargar los pagos',
             ),
             textAlign: TextAlign.center,
@@ -397,11 +396,14 @@ class _ClientPaymentDetailScreenState extends ConsumerState<ClientPaymentDetailS
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
+            onPressed:
+                () => ref.invalidate(
+                  athletePaymentsNotifierProvider(widget.userId),
+                ),
             child: const Text('Intentar de nuevo'),
           ),
         ],
       ),
     );
   }
-} 
+}

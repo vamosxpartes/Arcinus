@@ -393,33 +393,6 @@ class ManagerDrawer extends ConsumerWidget {
           },
         ),
         
-        // --- Planes de Suscripción ---
-        ListTile(
-          dense: true,
-          leading: Icon(Icons.subscriptions, color: AppTheme.bonfireRed, size: 20),
-          title: Text(
-            'Planes',
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: AppTheme.magnoliaWhite,
-              fontSize: AppTheme.bodySize,
-              letterSpacing: 0.15,
-            )
-          ),
-          onTap: () {
-            Navigator.pop(context);
-            final currentAcademy = ref.read(currentAcademyProvider);
-            if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              // Utilizamos una ruta temporal ya que la definitiva deberá agregarse en el router
-              context.go('/manager/academy/${currentAcademy.id}/subscription-plans');
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Por favor, selecciona una academia primero')),
-              );
-            }
-          },
-        ),
-        
         // --- SECCIÓN 2: FUNCIONALIDADES EN DESARROLLO ---
         Divider(color: AppTheme.darkGray),
         

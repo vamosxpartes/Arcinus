@@ -14,50 +14,49 @@ class PaymentModel with _$PaymentModel {
     String? id, // ID del documento de pago en Firestore
     required String academyId,
     required String athleteId, // ID del usuario atleta
-    
     /// Plan de suscripción relacionado con este pago
     String? subscriptionPlanId,
-    
+
     /// Monto del pago (puede ser parcial o completo según el plan)
-    required double amount, 
-    
+    required double amount,
+
     /// Moneda (ej: MXN, USD)
     required String currency,
-    
+
     /// Concepto del pago (ej: "Mensualidad Octubre")
     String? concept,
-    
+
     /// Fecha en que se realizó el pago
     required DateTime paymentDate,
-    
+
     /// Notas adicionales sobre el pago
     String? notes,
-    
+
     /// ID del usuario que registró el pago
     required String registeredBy,
-    
+
     /// Fecha de registro en el sistema
     required DateTime createdAt,
-    
+
     /// URL a un comprobante (opcional)
     String? receiptUrl,
-    
+
     /// Indica si es un pago parcial
     @Default(false) bool isPartialPayment,
-    
+
     /// Monto total del plan (útil para pagos parciales)
     double? totalPlanAmount,
-    
+
     /// Fecha de inicio del período que cubre este pago
     DateTime? periodStartDate,
-    
+
     /// Fecha de fin del período que cubre este pago
     DateTime? periodEndDate,
-    
+
     /// Para soft delete
     @Default(false) bool isDeleted,
   }) = _PaymentModel;
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) =>
       _$PaymentModelFromJson(json);
-} 
+}

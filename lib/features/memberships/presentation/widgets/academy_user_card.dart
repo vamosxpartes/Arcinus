@@ -93,16 +93,87 @@ class AcademyUserCard extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nombre del usuario
-                Text(
-                  user.fullName,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.15,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // Nombre del usuario y estado de pago para atletas
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        user.fullName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.15,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    
+                    // Indicador de estado de pago para atletas
+                    if (isAthlete && clientUserAsyncValue != null)
+                      clientUserAsyncValue.when(
+                        data: (clientUser) {
+                          if (clientUser == null) {
+                            return const SizedBox.shrink();
+                          }
+                          
+                          // Determinar color y etiqueta según estado de pago
+                          Color statusColor;
+                          String statusText;
+                          IconData statusIcon;
+                          
+                          switch (clientUser.paymentStatus) {
+                            case PaymentStatus.active:
+                              statusColor = AppTheme.courtGreen;
+                              statusText = 'Activo';
+                              statusIcon = Icons.check_circle;
+                              break;
+                            case PaymentStatus.overdue:
+                              statusColor = AppTheme.bonfireRed;
+                              statusText = 'En mora';
+                              statusIcon = Icons.warning_amber;
+                              break;
+                            case PaymentStatus.inactive:
+                            // ignore: unreachable_switch_default
+                            default:
+                              statusColor = Colors.grey;
+                              statusText = 'Inactivo';
+                              statusIcon = Icons.cancel;
+                              break;
+                          }
+                          
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: statusColor.withAlpha(30),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: statusColor.withAlpha(100), width: 1),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  statusIcon,
+                                  color: statusColor,
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  statusText,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: statusColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
+                  ],
                 ),
                 
                 const SizedBox(height: 2),

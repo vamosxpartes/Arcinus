@@ -11,29 +11,29 @@ class AddAthleteState with _$AddAthleteState {
     String? lastName,
     DateTime? birthDate,
     String? phoneNumber,
-    
+
     // Paso 2: Información física
     double? heightCm,
     double? weightKg,
-    
+
     // Paso 3: Información de salud
     String? allergies,
     String? medicalConditions,
     String? emergencyContactName,
     String? emergencyContactPhone,
-    
+
     // Paso 4: Información deportiva
     String? position,
     String? experience,
     String? specialization,
-    
+
     // Paso 5: Imagen de perfil
     File? profileImage,
-    
+
     // Paso 6: Plan de suscripción
     String? subscriptionPlanId,
     DateTime? subscriptionStartDate,
-    
+
     // Estado general del formulario
     @Default(0) int currentStep,
     @Default(false) bool isSubmitting,
@@ -41,32 +41,30 @@ class AddAthleteState with _$AddAthleteState {
     @Default(false) bool isError,
     String? errorMessage,
   }) = _AddAthleteState;
-  
+
   const AddAthleteState._();
-  
+
   // Validadores
-  bool get isPersonalInfoValid => 
-      firstName != null && 
-      firstName!.isNotEmpty && 
-      lastName != null && 
+  bool get isPersonalInfoValid =>
+      firstName != null &&
+      firstName!.isNotEmpty &&
+      lastName != null &&
       lastName!.isNotEmpty &&
       birthDate != null;
-  
+
   bool get isPhysicalInfoValid => true; // Opcional, siempre válido
-  
+
   bool get isHealthInfoValid => true; // Opcional, siempre válido
-  
+
   bool get isSportsInfoValid => true; // Opcional, siempre válido
-  
+
   bool get isImageValid => true; // Opcional, siempre válido
-  
+
   bool get isSubscriptionValid => true; // Opcional, siempre válido
-  
-  bool get canSubmit => 
-      isPersonalInfoValid && 
-      !isSubmitting &&
-      !isError;
-  
+
+  bool get canSubmit =>
+      isPersonalInfoValid && !isSubmitting && !isError;
+
   bool get isStepValid {
     switch (currentStep) {
       case 0:
@@ -85,4 +83,4 @@ class AddAthleteState with _$AddAthleteState {
         return false;
     }
   }
-} 
+}

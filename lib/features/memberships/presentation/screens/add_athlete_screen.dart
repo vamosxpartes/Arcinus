@@ -115,6 +115,7 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
     if (!mounted || _isDisposed) return;
     
     final notifier = ref.read(addAthleteProvider.notifier);
+    final state = ref.read(addAthleteProvider);
     
     // Solo sincronizar si ya se inicializaron los controllers
     if (!_isInitialized) return;
@@ -171,6 +172,14 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
         );
       }
     }
+    
+    // Asegurarnos de que el plan de suscripción también se sincronice
+    // Los planes de suscripción no tienen controllers, se seleccionan directamente en los dropdowns
+    AppLogger.logInfo(
+      'Sincronizando plan de suscripción: ${state.subscriptionPlanId}',
+      className: 'AddAthleteScreen',
+      functionName: '_syncToProvider'
+    );
   }
   
   // Método para sincronizar datos de prueba a los controllers locales
@@ -376,10 +385,10 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                 // Validar el paso actual
                 bool isCurrentFormValid = formKeys[addAthleteState.currentStep].currentState?.validate() ?? false;
                 
+                // Sincronizar datos de los controllers al provider en cada paso
+                _syncToProvider();
+                
                 if (isLastStep) {
-                  // Sincronizar datos de los controllers al provider
-                  _syncToProvider();
-                  
                   // Enviar formulario
                   addAthleteNotifier.submitForm(academyId, userId);
                 } else if (isCurrentFormValid) {
@@ -466,7 +475,11 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                   }
                   return null;
                 },
-                onChanged: (value) => addAthleteNotifier.updateFirstName(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                  // El valor se sincronizará cuando sea necesario mediante _syncToProvider
+                },
+                onEditingComplete: () => addAthleteNotifier.updateFirstName(_localControllers['firstName']!.text),
               ),
               const SizedBox(height: 10),
               TextFormField(
@@ -478,7 +491,11 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                   }
                   return null;
                 },
-                onChanged: (value) => addAthleteNotifier.updateLastName(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                  // El valor se sincronizará cuando sea necesario mediante _syncToProvider
+                },
+                onEditingComplete: () => addAthleteNotifier.updateLastName(_localControllers['lastName']!.text),
               ),
               const SizedBox(height: 10),
               TextFormField(
@@ -508,7 +525,11 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                 controller: _localControllers['phoneNumber'],
                 decoration: const InputDecoration(labelText: 'Número de Teléfono (Contacto)'),
                 keyboardType: TextInputType.phone,
-                onChanged: (value) => addAthleteNotifier.updatePhoneNumber(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                  // El valor se sincronizará cuando sea necesario mediante _syncToProvider
+                },
+                onEditingComplete: () => addAthleteNotifier.updatePhoneNumber(_localControllers['phoneNumber']!.text),
               ),
             ],
           ),
@@ -528,14 +549,20 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                 controller: _localControllers['heightCm'],
                 decoration: const InputDecoration(labelText: 'Altura (cm)'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => addAthleteNotifier.updateHeight(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () => addAthleteNotifier.updateHeight(_localControllers['heightCm']!.text),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _localControllers['weightKg'],
                 decoration: const InputDecoration(labelText: 'Peso (kg)'),
                 keyboardType: TextInputType.number,
-                onChanged: (value) => addAthleteNotifier.updateWeight(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () => addAthleteNotifier.updateWeight(_localControllers['weightKg']!.text),
               ),
             ],
           ),
@@ -555,27 +582,39 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                 controller: _localControllers['allergies'],
                 decoration: const InputDecoration(labelText: 'Alergias Conocidas'),
                 maxLines: 2,
-                onChanged: (value) => addAthleteNotifier.updateAllergies(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () => addAthleteNotifier.updateAllergies(_localControllers['allergies']!.text),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _localControllers['medicalConditions'],
                 decoration: const InputDecoration(labelText: 'Condiciones Médicas Relevantes'),
                 maxLines: 2,
-                onChanged: (value) => addAthleteNotifier.updateMedicalConditions(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () => addAthleteNotifier.updateMedicalConditions(_localControllers['medicalConditions']!.text),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _localControllers['emergencyContactName'],
                 decoration: const InputDecoration(labelText: 'Contacto de Emergencia (Nombre)'),
-                onChanged: (value) => addAthleteNotifier.updateEmergencyContactName(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () => addAthleteNotifier.updateEmergencyContactName(_localControllers['emergencyContactName']!.text),
               ),
               const SizedBox(height: 10),
               TextFormField(
                 controller: _localControllers['emergencyContactPhone'],
                 decoration: const InputDecoration(labelText: 'Contacto de Emergencia (Teléfono)'),
                 keyboardType: TextInputType.phone,
-                onChanged: (value) => addAthleteNotifier.updateEmergencyContactPhone(value),
+                onChanged: (value) {
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () => addAthleteNotifier.updateEmergencyContactPhone(_localControllers['emergencyContactPhone']!.text),
               ),
             ],
           ),
@@ -601,7 +640,10 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                         return TextFormField(
                           controller: _localControllers['position'],
                           decoration: const InputDecoration(labelText: 'Posición Principal'),
-                          onChanged: (value) => addAthleteNotifier.updatePosition(value),
+                          onChanged: (value) {
+                            // No actualizar el estado directamente para prevenir rebuild
+                          },
+                          onEditingComplete: () => addAthleteNotifier.updatePosition(_localControllers['position']!.text),
                         );
                       } else {
                         return DropdownButtonFormField<String>(
@@ -633,7 +675,10 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                         labelText: 'Posición Principal',
                         helperText: 'Error cargando posiciones',
                       ),
-                      onChanged: (value) => addAthleteNotifier.updatePosition(value),
+                      onChanged: (value) {
+                        // No actualizar el estado directamente para prevenir rebuild
+                      },
+                      onEditingComplete: () => addAthleteNotifier.updatePosition(_localControllers['position']!.text),
                     ),
                   );
                 },
@@ -646,7 +691,10 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                 decoration: const InputDecoration(labelText: 'Experiencia (años)'),
                 keyboardType: TextInputType.number,
                 onChanged: (value) {
-                  (addAthleteNotifier as dynamic).updateExperience(value);
+                  // No actualizar el estado directamente para prevenir rebuild
+                },
+                onEditingComplete: () {
+                  (addAthleteNotifier as dynamic).updateExperience(_localControllers['experience']!.text);
                 },
               ),
               
@@ -883,28 +931,38 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                   children: [
                     // Selector de planes
                     DropdownButtonFormField<String>(
+                      isExpanded: true, // Permitir que el dropdown use todo el espacio disponible
                       decoration: const InputDecoration(
                         labelText: 'Seleccionar plan',
                         border: OutlineInputBorder(),
+                        isDense: true, // Reducir altura del campo
                       ),
-                      hint: const Text('Seleccionar un plan (opcional)'),
-                      value: null,
+                      hint: const Text(
+                        'Seleccionar un plan (opcional)',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      value: ref.watch(addAthleteProvider).subscriptionPlanId,
                       onChanged: (planId) {
-                        if (planId != null) {
-                          // Usar método dinámico para actualizar
-                          addAthleteNotifier.updateSubscriptionPlan(planId);
-                        }
+                        // Usar método dinámico para actualizar
+                        addAthleteNotifier.updateSubscriptionPlan(planId);
                       },
                       items: [
                         // Opción para no seleccionar plan
                         const DropdownMenuItem<String>(
                           value: null,
-                          child: Text('No asignar plan'),
+                          child: Text(
+                            'No asignar plan',
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         // Opciones de planes disponibles
                         ...plans.map((plan) => DropdownMenuItem<String>(
                           value: plan.id,
-                          child: Text('${plan.name} - ${plan.amount} ${plan.currency} / ${plan.billingCycle.displayName}'),
+                          child: Text(
+                            '${plan.name} - ${plan.amount} ${plan.currency} / ${plan.billingCycle.displayName}',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         )),
                       ],
                     ),

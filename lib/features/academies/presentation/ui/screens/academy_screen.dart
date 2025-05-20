@@ -8,6 +8,8 @@ import 'package:arcinus/features/academies/presentation/providers/current_academ
 import 'package:arcinus/features/academies/presentation/providers/academy_stats_provider.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/academies/presentation/ui/widgets/custom_segmented_tabbar.dart'; // Importar el nuevo widget
+import 'package:arcinus/features/subscriptions/presentation/screens/subscription_plans_screen.dart';
+import 'package:arcinus/features/payments/presentation/screens/payment_config_screen.dart';
 
 /// Pantalla que muestra los detalles de una academia deportiva.
 ///
@@ -319,7 +321,7 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
                 // Usar el nuevo CustomSegmentedTabbar
                 CustomSegmentedTabbar(
                   controller: _tabController,
-                  tabs: const ['RESUMEN', 'HORARIOS', 'EQUIPOS'],
+                  tabs: const ['RESUMEN', 'PLANES', 'PAGOS'],
                   selectedColor:
                       AppTheme.blackSwarm, // Negro cuando está seleccionado
                   unselectedColor:
@@ -346,8 +348,8 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
               controller: _tabController,
               children: [
                 _buildSummaryTab(academy),
-                _buildScheduleTab(academy),
-                _buildTeamsTab(academy),
+                _buildPlansTab(academy),
+                _buildPaymentConfigTab(academy),
               ],
             ),
           ),
@@ -505,13 +507,19 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
     );
   }
 
-  Widget _buildScheduleTab(AcademyModel academy) {
-    // Implementar vista de horarios
-    return Center(child: Text('Próximamente: Horarios de la academia'));
+  Widget _buildPlansTab(AcademyModel academy) {
+    if (academy.id == null) {
+      return const Center(child: Text('ID de academia no válido'));
+    }
+    
+    return SubscriptionPlansScreen(academyId: academy.id!);
   }
 
-  Widget _buildTeamsTab(AcademyModel academy) {
-    // Implementar vista de equipos
-    return Center(child: Text('Próximamente: Equipos de la academia'));
+  Widget _buildPaymentConfigTab(AcademyModel academy) {
+    if (academy.id == null) {
+      return const Center(child: Text('ID de academia no válido'));
+    }
+    
+    return PaymentConfigScreen(academyId: academy.id!);
   }
 }

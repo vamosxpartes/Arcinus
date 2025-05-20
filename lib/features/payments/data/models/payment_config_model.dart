@@ -1,27 +1,28 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:arcinus/core/utils/timestamp_converter.dart';
 
 part 'payment_config_model.freezed.dart';
 part 'payment_config_model.g.dart';
 
-/// Enum que define el modo de facturación para los pagos
+/// Modos de facturación para pagos
 enum BillingMode {
-  /// Pago por adelantado (antes del periodo)
+  /// Pago por adelantado (se paga al inicio del período)
   advance,
-  
-  /// Pago durante el periodo (mes actual)
+
+  /// Pago del mes en curso (se paga durante el período)
   current,
-  
-  /// Pago después del periodo (mes vencido)
-  arrears
+
+  /// Pago mes vencido (se paga al final del período)
+  arrears,
 }
 
-/// Extensión para funcionalidades adicionales de BillingMode
+/// Extensión para obtener el nombre legible del modo de facturación
 extension BillingModeExtension on BillingMode {
   /// Convierte el enum a string para almacenar en Firestore
   String toJson() => name;
-  
+
   /// Nombre para mostrar al usuario
   String get displayName {
     switch (this) {
@@ -43,63 +44,56 @@ BillingMode _billingModeFromJson(String json) {
   );
 }
 
-/// Modelo para la configuración de pagos de una academia
+/// Modelo que representa la configuración de pagos de una academia
 @freezed
 class PaymentConfigModel with _$PaymentConfigModel {
   @JsonSerializable(explicitToJson: true, converters: [TimestampConverter()])
   const factory PaymentConfigModel({
-    @JsonKey(includeFromJson: true, includeToJson: false)
-    String? id,
+    @JsonKey(includeFromJson: true, includeToJson: false) String? id,
     required String academyId,
-    
-    /// Modo de facturación (adelantado, actual, vencido)
+
+    /// Modo de facturación (advance, current, arrears)
     @JsonKey(fromJson: _billingModeFromJson)
-    @Default(BillingMode.current) BillingMode billingMode,
-    
+    @Default(BillingMode.advance)
+    BillingMode billingMode,
+
     /// Permite pagos parciales (abonos)
     @Default(false) bool allowPartialPayments,
-    
+
     /// Días de gracia después de la fecha de vencimiento
     @Default(0) int gracePeriodDays,
-    
+
     /// Aplica descuento por pronto pago
     @Default(false) bool earlyPaymentDiscount,
-    
+
     /// Porcentaje de descuento por pronto pago
     @Default(0.0) double earlyPaymentDiscountPercent,
-    
+
     /// Días antes para considerar como pronto pago
     @Default(0) int earlyPaymentDays,
-    
+
     /// Aplica recargo por pago tardío
     @Default(false) bool lateFeeEnabled,
-    
+
     /// Porcentaje de recargo por pago tardío
     @Default(0.0) double lateFeePercent,
-    
+
     /// Permite renovación automática de planes
     @Default(false) bool autoRenewal,
-    
-    /// Días de anticipación para notificar vencimiento
-    @Default(3) int expirationNotificationDays,
-    
+
     /// Fecha de creación
-    required DateTime createdAt,
-    
+    DateTime? createdAt,
+
     /// Fecha de última actualización
     DateTime? updatedAt,
   }) = _PaymentConfigModel;
 
+  /// Crea una instancia de [PaymentConfigModel] a partir de un JSON
   factory PaymentConfigModel.fromJson(Map<String, dynamic> json) =>
       _$PaymentConfigModelFromJson(json);
-      
+
   /// Constructor para crear una configuración predeterminada
-  factory PaymentConfigModel.defaultConfig({
-    required String academyId,
-  }) {
-    return PaymentConfigModel(
-      academyId: academyId,
-      createdAt: DateTime.now(),
-    );
+  factory PaymentConfigModel.defaultConfig({required String academyId}) {
+    return PaymentConfigModel(academyId: academyId, createdAt: DateTime.now());
   }
-} 
+}

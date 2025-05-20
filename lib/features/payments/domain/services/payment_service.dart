@@ -1,6 +1,7 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
-import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart' as plan;
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart'
+    as plan;
 
 // Repositorios - interfaces solo para definir la estructura
 abstract class PaymentRepository {
@@ -15,7 +16,10 @@ abstract class SubscriptionPlanRepository {
 }
 
 abstract class UserRepository {
-  Future<RepositoryResult<dynamic>> getUserById(String academyId, String userId);
+  Future<RepositoryResult<dynamic>> getUserById(
+    String academyId,
+    String userId,
+  );
   Future<RepositoryResult<dynamic>> updateUser(dynamic user);
 }
 
@@ -23,15 +27,16 @@ abstract class UserRepository {
 class RepositoryResult<T> {
   final T? data;
   final Failure? failure;
-  
+
   RepositoryResult._({this.data, this.failure});
-  
+
   factory RepositoryResult.success(T data) => RepositoryResult._(data: data);
-  factory RepositoryResult.error(Failure failure) => RepositoryResult._(failure: failure);
-  
+  factory RepositoryResult.error(Failure failure) =>
+      RepositoryResult._(failure: failure);
+
   bool get isSuccess => failure == null && data != null;
   bool get isError => failure != null;
-  
+
   R fold<R>(R Function(Failure) onError, R Function(T) onSuccess) {
     if (isError) {
       return onError(failure!);
@@ -39,9 +44,9 @@ class RepositoryResult<T> {
       return onSuccess(data as T);
     }
   }
-  
+
   bool get isLeft => isError;
-  
+
   T getOrElse(T Function() orElse) {
     if (isSuccess) {
       return data as T;
@@ -63,7 +68,7 @@ class PaymentService {
   );
 
   /// Registra un nuevo pago y actualiza el estado de suscripción del atleta
-  /// 
+  ///
   /// Retorna el pago registrado si es exitoso o un Failure si ocurre un error
   Future<RepositoryResult<PaymentModel>> registerPayment({
     required PaymentModel payment,
@@ -72,62 +77,70 @@ class PaymentService {
     try {
       // 1. Guardar el pago
       final paymentResult = await _paymentRepository.savePayment(payment);
-      
+
       if (paymentResult.isLeft) {
         return paymentResult;
       }
-      
+
       // Si no se debe actualizar la suscripción, solo devolver el pago
       if (!shouldUpdateSubscription) {
         return paymentResult;
       }
-      
+
       // 2. Obtener el plan de suscripción si está especificado
       if (payment.subscriptionPlanId == null) {
-        return RepositoryResult.error(ValidationFailure(
-          message: 'Se requiere un plan de suscripción para actualizar el estado',
-        ));
+        return RepositoryResult.error(
+          ValidationFailure(
+            message:
+                'Se requiere un plan de suscripción para actualizar el estado',
+          ),
+        );
       }
-      
-      final planResult = await _subscriptionPlanRepository.getSubscriptionPlanById(
-        payment.academyId,
-        payment.subscriptionPlanId!,
-      );
-      
+
+      final planResult = await _subscriptionPlanRepository
+          .getSubscriptionPlanById(
+            payment.academyId,
+            payment.subscriptionPlanId!,
+          );
+
       // Si no se puede obtener el plan, devolver error
       if (planResult.isLeft) {
-        return RepositoryResult.error(ValidationFailure(
-          message: 'No se pudo obtener el plan de suscripción',
-        ));
+        return RepositoryResult.error(
+          ValidationFailure(
+            message: 'No se pudo obtener el plan de suscripción',
+          ),
+        );
       }
-      
+
       final plan = planResult.getOrElse(() => throw UnimplementedError());
-      
+
       // 3. Obtener el usuario actual
       final userResult = await _userRepository.getUserById(
         payment.academyId,
         payment.athleteId,
       );
-      
+
       if (userResult.isLeft) {
-        return RepositoryResult.error(ValidationFailure(
-          message: 'No se pudo obtener la información del atleta',
-        ));
+        return RepositoryResult.error(
+          ValidationFailure(
+            message: 'No se pudo obtener la información del atleta',
+          ),
+        );
       }
-      
+
       final user = userResult.getOrElse(() => throw UnimplementedError());
-      
+
       // Verificar que el usuario sea un cliente
       if (user.clientData == null) {
-        return RepositoryResult.error(ValidationFailure(
-          message: 'El usuario no es un cliente',
-        ));
+        return RepositoryResult.error(
+          ValidationFailure(message: 'El usuario no es un cliente'),
+        );
       }
-      
+
       // 4. Calcular las fechas de inicio y fin del periodo
       final DateTime startDate = payment.periodStartDate ?? DateTime.now();
       final DateTime endDate = _calculateEndDate(startDate, plan);
-      
+
       // 5. Actualizar el estado de suscripción del cliente
       final clientData = user.clientData!.copyWith(
         subscriptionPlanId: plan.id,
@@ -136,36 +149,40 @@ class PaymentService {
         nextPaymentDate: endDate,
         remainingDays: _calculateRemainingDays(endDate),
       );
-      
-      final updatedUser = user.copyWith(
-        clientData: clientData,
-      );
-      
+
+      final updatedUser = user.copyWith(clientData: clientData);
+
       // 6. Guardar el usuario actualizado
       final updateResult = await _userRepository.updateUser(updatedUser);
-      
+
       if (updateResult.isLeft) {
-        return RepositoryResult.error(ValidationFailure(
-          message: 'No se pudo actualizar el estado de suscripción del usuario',
-        ));
+        return RepositoryResult.error(
+          ValidationFailure(
+            message:
+                'No se pudo actualizar el estado de suscripción del usuario',
+          ),
+        );
       }
-      
+
       // 7. Devolver el pago exitoso
       return paymentResult;
     } catch (e) {
       return RepositoryResult.error(Failure.unexpectedError(error: e));
     }
   }
-  
+
   /// Calcula la fecha de finalización del periodo basado en la fecha de inicio
   /// y el plan de suscripción seleccionado
-  DateTime _calculateEndDate(DateTime startDate, plan.SubscriptionPlanModel plan) {
+  DateTime _calculateEndDate(
+    DateTime startDate,
+    plan.SubscriptionPlanModel plan,
+  ) {
     return startDate.add(Duration(days: plan.durationInDays));
   }
-  
+
   /// Calcula los días restantes hasta la fecha de finalización
   int _calculateRemainingDays(DateTime endDate) {
     final now = DateTime.now();
     return endDate.difference(now).inDays;
   }
-} 
+}

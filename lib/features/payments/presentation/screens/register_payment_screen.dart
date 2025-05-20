@@ -21,7 +21,7 @@ class RegisterPaymentScreen extends ConsumerStatefulWidget {
 
 class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   String? _selectedAthleteId;
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _conceptController = TextEditingController();
@@ -44,7 +44,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   Widget build(BuildContext context) {
     // Observar el estado del formulario
     // final formState = ref.watch(paymentFormNotifierProvider);
-    
+
     // Si cambia el estado a éxito, cerrar la pantalla
     ref.listen(paymentFormNotifierProvider, (previous, current) {
       if (!_isLoading && current.isSuccess) {
@@ -56,7 +56,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         );
         context.pop();
       }
-      
+
       if (!_isLoading && current.failure != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -70,19 +70,17 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
           ),
         );
       }
-      
+
       setState(() {
         _isLoading = current.isSubmitting;
       });
     });
-    
+
     // Obtener la lista de atletas de la academia
     final athletesAsyncValue = ref.watch(academyAthletesProvider);
-    
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Registrar Pago'),
-      ),
+      appBar: AppBar(title: const Text('Registrar Pago')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -92,17 +90,14 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
             children: [
               const Text(
                 'Información del Pago',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              
+
               // Selección de atleta
               _buildAthleteSelector(athletesAsyncValue),
               const SizedBox(height: 16),
-              
+
               // Monto
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,9 +112,13 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                         prefixIcon: Icon(Icons.attach_money),
                         border: OutlineInputBorder(),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}'),
+                        ),
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -134,7 +133,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  
+
                   // Selector de moneda
                   Expanded(
                     flex: 1,
@@ -144,12 +143,13 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                         border: OutlineInputBorder(),
                       ),
                       value: _selectedCurrency,
-                      items: _currencies.map((currency) {
-                        return DropdownMenuItem<String>(
-                          value: currency,
-                          child: Text(currency),
-                        );
-                      }).toList(),
+                      items:
+                          _currencies.map((currency) {
+                            return DropdownMenuItem<String>(
+                              value: currency,
+                              child: Text(currency),
+                            );
+                          }).toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setState(() {
@@ -162,7 +162,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              
+
               // Concepto
               TextFormField(
                 controller: _conceptController,
@@ -180,7 +180,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Fecha de pago
               InkWell(
                 onTap: () => _selectDate(context),
@@ -190,13 +190,11 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                     prefixIcon: Icon(Icons.calendar_today),
                     border: OutlineInputBorder(),
                   ),
-                  child: Text(
-                    DateFormat('dd/MM/yyyy').format(_paymentDate),
-                  ),
+                  child: Text(DateFormat('dd/MM/yyyy').format(_paymentDate)),
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // Notas
               TextFormField(
                 controller: _notesController,
@@ -209,16 +207,17 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                 maxLines: 3,
               ),
               const SizedBox(height: 24),
-              
+
               // Botón de registro
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submitPayment,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Registrar Pago'),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('Registrar Pago'),
                 ),
               ),
             ],
@@ -237,7 +236,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
             style: TextStyle(color: Colors.red),
           );
         }
-        
+
         return DropdownButtonFormField<String>(
           decoration: const InputDecoration(
             labelText: 'Seleccionar Atleta',
@@ -245,12 +244,15 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
             border: OutlineInputBorder(),
           ),
           value: _selectedAthleteId,
-          items: athletes.map((athlete) {
-            return DropdownMenuItem<String>(
-              value: athlete.id,
-              child: Text('${athlete.displayName ?? 'Sin nombre'} (${athlete.email})'),
-            );
-          }).toList(),
+          items:
+              athletes.map((athlete) {
+                return DropdownMenuItem<String>(
+                  value: athlete.id,
+                  child: Text(
+                    '${athlete.displayName ?? 'Sin nombre'} (${athlete.email})',
+                  ),
+                );
+              }).toList(),
           onChanged: (value) {
             setState(() {
               _selectedAthleteId = value;
@@ -265,10 +267,11 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Text(
-        'Error al cargar atletas: $error',
-        style: const TextStyle(color: Colors.red),
-      ),
+      error:
+          (error, stackTrace) => Text(
+            'Error al cargar atletas: $error',
+            style: const TextStyle(color: Colors.red),
+          ),
     );
   }
 
@@ -289,7 +292,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   void _submitPayment() {
     if (_formKey.currentState?.validate() ?? false) {
       final notifier = ref.read(paymentFormNotifierProvider.notifier);
-      
+
       notifier.submitPayment(
         athleteId: _selectedAthleteId!,
         amount: double.parse(_amountController.text),
@@ -306,6 +309,8 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
 @riverpod
 Future<List<UserModel>> academyAthletes(Ref ref) async {
   // Devolver una lista vacía temporalmente para evitar errores
-  AppLogger.logWarning('ADVERTENCIA: academyAthletesProvider está devolviendo una lista vacía.');
-  return Future.value([]); 
-} 
+  AppLogger.logWarning(
+    'ADVERTENCIA: academyAthletesProvider está devolviendo una lista vacía.',
+  );
+  return Future.value([]);
+}

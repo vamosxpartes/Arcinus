@@ -4,6 +4,9 @@ import 'package:arcinus/features/memberships/presentation/providers/academy_user
 import 'package:arcinus/features/memberships/presentation/providers/academy_members_providers.dart';
 import 'package:arcinus/features/memberships/presentation/widgets/academy_user_card.dart';
 import 'package:arcinus/features/memberships/presentation/utils/role_utils.dart';
+import 'package:arcinus/features/memberships/presentation/screens/academy_user_details_screen.dart';
+import 'package:arcinus/features/memberships/presentation/screens/add_athlete_screen.dart';
+import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/core/utils/screen_under_development.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
@@ -11,6 +14,8 @@ import 'package:arcinus/features/users/presentation/providers/client_user_provid
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
+import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 
 class AcademyMembersScreen extends ConsumerStatefulWidget {
   final String academyId;
@@ -62,7 +67,11 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
             onPressed: () {
               Navigator.of(context).pop();
               // Navegar a pantalla de añadir atleta
-              context.push('/owner/academy/${widget.academyId}/members/add-athlete');
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => AddAthleteScreen(academyId: widget.academyId),
+                ),
+              );
             },
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
@@ -124,6 +133,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
     );
   }
 
+  // Método para construir la lista horizontal de avatares con indicadores de pago
   Widget _buildAvatarList(List<AcademyUserModel> users) {
     // Filtramos atletas y ordenamos por próxima fecha de pago
     final athleteUsers = users.where((user) => 
@@ -152,7 +162,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
           Padding(
             padding: const EdgeInsets.only(left: 16, bottom: 12),
             child: Text(
-              'Usuarios proximos a pagar',
+              'Usuarios próximos a pagar',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -177,9 +187,12 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
     );
   }
 
+  // Widget para construir cada avatar con sus indicadores de estado de pago
   Widget _buildAvatarItem(AcademyUserModel athlete) {
     return Consumer(
       builder: (context, ref, _) {
+        // Obtener configuración de pagos de la academia
+        final paymentConfigAsync = ref.watch(paymentConfigProvider(widget.academyId));
         final clientUserAsync = ref.watch(clientUserProvider(athlete.id));
         
         return clientUserAsync.when(
@@ -194,179 +207,302 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
               return const SizedBox.shrink();
             }
             
-            return GestureDetector(
-              onTap: () {
-                // Al pulsar mostramos la tarjeta con detalles
-              },
-              child: Container(
-                width: 80,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Column(
-                  children: [
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: RoleUtils.getRoleColor(AppRole.atleta),
-                          backgroundImage: athlete.profileImageUrl != null
-                              ? NetworkImage(athlete.profileImageUrl!)
-                              : null,
-                          child: athlete.profileImageUrl == null
-                              ? Text(
-                                  athlete.firstName.isNotEmpty ? athlete.firstName[0].toUpperCase() : 'A',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : null,
+            return paymentConfigAsync.when(
+              data: (paymentConfig) {
+                // Verificar si el pago está vencido, considerando el período de gracia
+                // Esto usa la configuración de días de gracia definida por la academia
+                final bool isPaymentOverdue = clientUser?.nextPaymentDate != null && 
+                    DateTime.now().isAfter(
+                      clientUser!.nextPaymentDate!.add(
+                        Duration(days: paymentConfig.gracePeriodDays)
+                      )
+                    );
+                
+                // Verificar si está en período de gracia (después de fecha límite pero dentro del período de gracia)
+                final bool isInGracePeriod = clientUser?.nextPaymentDate != null && 
+                    DateTime.now().isAfter(clientUser!.nextPaymentDate!) && 
+                    DateTime.now().isBefore(
+                      clientUser.nextPaymentDate!.add(
+                        Duration(days: paymentConfig.gracePeriodDays)
+                      )
+                    );
+                
+                return GestureDetector(
+                  onTap: () {
+                    // Navegar directamente a la pantalla de pagos al tocar el avatar
+                    // Esto facilita la gestión de pagos para los atletas que lo requieren
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => AthletePaymentsScreen(
+                          athleteId: athlete.id,
+                          athleteName: athlete.fullName,
                         ),
-                        // Checkmark para los seguidos (todos se consideran seguidos)
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppTheme.blackSwarm,
-                                width: 1.5,
+                      ),
+                    );
+                  },
+                  onLongPress: () {
+                    // Mostrar menú contextual con opciones al mantener presionado
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.person),
+                            title: const Text('Ver detalles del atleta'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => AcademyUserDetailsScreen(
+                                    academyId: widget.academyId,
+                                    userId: athlete.id,
+                                    initialUserData: athlete,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.payment),
+                            title: const Text('Gestionar pagos'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => AthletePaymentsScreen(
+                                    athleteId: athlete.id,
+                                    athleteName: athlete.fullName,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.calendar_today),
+                            title: const Text('Ver asistencia'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Función de asistencia en desarrollo'),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 80,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      children: [
+                        Stack(
+                          children: [
+                            // Aplicar borde rojo si el pago está vencido, naranja si está en período de gracia
+                            // Esto proporciona indicación visual clara del estado de pago del atleta
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: isPaymentOverdue 
+                                    ? Border.all(color: AppTheme.bonfireRed, width: 3)
+                                    : (isInGracePeriod
+                                        ? Border.all(color: AppTheme.goldTrophy, width: 3)
+                                        : null),
+                              ),
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: RoleUtils.getRoleColor(AppRole.atleta),
+                                backgroundImage: athlete.profileImageUrl != null
+                                    ? NetworkImage(athlete.profileImageUrl!)
+                                    : null,
+                                child: athlete.profileImageUrl == null
+                                    ? Text(
+                                        athlete.firstName.isNotEmpty ? athlete.firstName[0].toUpperCase() : 'A',
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : null,
                               ),
                             ),
-                            child: Center(
-                              child: (clientUser?.subscriptionPlan != null && clientUser?.nextPaymentDate != null)
-                                ? Builder(
-                                    builder: (context) {
-                                      // Fecha actual
-                                      final now = DateTime.now();
-                                      final nextPaymentDate = clientUser!.nextPaymentDate!;
-                                      
-                                      // Si ya está vencido, mostrar '!'
-                                      if (now.isAfter(nextPaymentDate)) {
-                                        return const Text(
-                                          '!',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.bonfireRed,
-                                          ),
-                                        );
-                                      }
-                                      
-                                      // Calcular días restantes desde hoy hasta el próximo pago
-                                      final daysRemaining = nextPaymentDate.difference(now).inDays;
-                                      
-                                      return Text(
-                                        '$daysRemaining',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: daysRemaining < 5 
-                                              ? AppTheme.bonfireRed 
-                                              : (daysRemaining < 15 
-                                                  ? AppTheme.goldTrophy 
-                                                  : Colors.black),
-                                        ),
-                                      );
-                                    }
-                                  )
-                                : const Icon(
-                                    Icons.check,
-                                    size: 12,
-                                    color: Colors.black,
+                            // Indicador numérico con los días restantes o estado de pago
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.blackSwarm,
+                                    width: 1.5,
                                   ),
-                            ),
-                          ),
-                        ),
-                        // Indicador de pago cercano
-                        if (hasPaymentSoon)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: clientUser.remainingDays! < 5
-                                    ? AppTheme.bonfireRed
-                                    : AppTheme.goldTrophy,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppTheme.blackSwarm,
-                                  width: 1,
+                                ),
+                                child: Center(
+                                  child: (clientUser?.subscriptionPlan != null && clientUser?.nextPaymentDate != null)
+                                    ? Builder(
+                                        builder: (context) {
+                                          // Fecha actual
+                                          final now = DateTime.now();
+                                          final nextPaymentDate = clientUser!.nextPaymentDate!;
+                                          
+                                          // Si ya está vencido, mostrar '!'
+                                          if (isPaymentOverdue) {
+                                            return const Text(
+                                              '!',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.bonfireRed,
+                                              ),
+                                            );
+                                          } else if (isInGracePeriod) {
+                                            // En período de gracia
+                                            return const Text(
+                                              'G',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.goldTrophy,
+                                              ),
+                                            );
+                                          }
+                                          
+                                          // Mostrar días restantes con color según cercanía
+                                          final daysRemaining = nextPaymentDate.difference(now).inDays;
+                                          
+                                          return Text(
+                                            '$daysRemaining',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: daysRemaining < 5 
+                                                  ? AppTheme.bonfireRed 
+                                                  : (daysRemaining < 15 
+                                                      ? AppTheme.goldTrophy 
+                                                      : Colors.black),
+                                            ),
+                                          );
+                                        }
+                                      )
+                                    : const Icon(
+                                        Icons.check,
+                                        size: 12,
+                                        color: Colors.black,
+                                      ),
                                 ),
                               ),
                             ),
+                            // Indicador de color en la esquina superior para alertar sobre pago
+                            if (hasPaymentSoon || isPaymentOverdue || isInGracePeriod)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: isPaymentOverdue 
+                                        ? AppTheme.bonfireRed
+                                        : (isInGracePeriod
+                                            ? AppTheme.goldTrophy
+                                            : (clientUser!.remainingDays! < 5
+                                                ? AppTheme.bonfireRed
+                                                : AppTheme.goldTrophy)),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppTheme.blackSwarm,
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${athlete.firstName.split(' ')[0]}.',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${athlete.firstName.split(' ')[0]}.',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
+              loading: () => _buildLoadingAvatarItem(athlete),
+              error: (_, __) => _buildErrorAvatarItem(athlete),
             );
           },
-          loading: () => Container(
-            width: 80,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: RoleUtils.getRoleColor(AppRole.atleta).withAlpha(90),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 14,
-                  width: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withAlpha(60),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          error: (_, __) => Container(
-            width: 80,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: RoleUtils.getRoleColor(AppRole.atleta),
-                  child: const Icon(Icons.error, color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${athlete.firstName.split(' ')[0]}.',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
+          loading: () => _buildLoadingAvatarItem(athlete),
+          error: (_, __) => _buildErrorAvatarItem(athlete),
         );
       },
+    );
+  }
+  
+  // Widget para mostrar avatar en estado de carga
+  Widget _buildLoadingAvatarItem(AcademyUserModel athlete) {
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: RoleUtils.getRoleColor(AppRole.atleta).withAlpha(90),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 14,
+            width: 50,
+            decoration: BoxDecoration(
+              color: Colors.grey.withAlpha(60),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  // Widget para mostrar avatar en estado de error
+  Widget _buildErrorAvatarItem(AcademyUserModel athlete) {
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: RoleUtils.getRoleColor(AppRole.atleta),
+            child: const Icon(Icons.error, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${athlete.firstName.split(' ')[0]}.',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 

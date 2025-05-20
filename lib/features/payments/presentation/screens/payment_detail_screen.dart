@@ -14,23 +14,24 @@ import 'package:intl/intl.dart';
 class PaymentDetailScreen extends ConsumerStatefulWidget {
   /// ID del usuario cuyos pagos se mostrarán (atleta o padre)
   final String userId;
-  
+
   /// Nombre del usuario (opcional)
   final String? userName;
-  
+
   /// Rol del usuario que visualiza la pantalla (para adaptar la UI)
   final AppRole viewerRole;
 
   /// Constructor
   const PaymentDetailScreen({
-    super.key, 
+    super.key,
     required this.userId,
     this.userName,
     required this.viewerRole,
   });
 
   @override
-  ConsumerState<PaymentDetailScreen> createState() => _PaymentDetailScreenState();
+  ConsumerState<PaymentDetailScreen> createState() =>
+      _PaymentDetailScreenState();
 }
 
 class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
@@ -39,12 +40,13 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
     super.initState();
     // Actualizar el título en el Shell (según corresponda al rol)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final title = widget.userName != null 
-          ? 'Pagos de ${widget.userName}'
-          : 'Detalle de pagos';
-          
+      final title =
+          widget.userName != null
+              ? 'Pagos de ${widget.userName}'
+              : 'Detalle de pagos';
+
       // Solo actualizar el título si estamos en el OwnerShell
-      if (widget.viewerRole == AppRole.propietario || 
+      if (widget.viewerRole == AppRole.propietario ||
           widget.viewerRole == AppRole.colaborador) {
         ref.read(currentScreenTitleProvider.notifier).state = title;
       }
@@ -53,19 +55,25 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.userId));
-    final bool isManagerView = widget.viewerRole == AppRole.propietario || 
-                             widget.viewerRole == AppRole.colaborador;
+    final paymentsAsyncValue = ref.watch(
+      athletePaymentsNotifierProvider(widget.userId),
+    );
+    final bool isManagerView =
+        widget.viewerRole == AppRole.propietario ||
+        widget.viewerRole == AppRole.colaborador;
 
     return Scaffold(
       body: Column(
         children: [
           // Información del usuario (atleta/padre)
           _buildUserInfo(isManagerView),
-          
+
           // Botones de filtro y actualización
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -86,42 +94,56 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
                     IconButton(
                       icon: const Icon(Icons.refresh),
                       tooltip: 'Actualizar pagos',
-                      onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
+                      onPressed:
+                          () => ref.invalidate(
+                            athletePaymentsNotifierProvider(widget.userId),
+                          ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Lista de pagos
           Expanded(
             child: paymentsAsyncValue.when(
-              data: (payments) => _buildPaymentsList(context, payments, isManagerView),
+              data:
+                  (payments) =>
+                      _buildPaymentsList(context, payments, isManagerView),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stackTrace) => _buildErrorWidget(context, error),
             ),
           ),
         ],
       ),
-      floatingActionButton: isManagerView ? FloatingActionButton.extended(
-        onPressed: () {
-          // Solo los managers pueden registrar nuevos pagos
-          final currentAcademy = ref.read(currentAcademyProvider);
-          if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-            context.push(
-              '/owner/academy/${currentAcademy.id}/payments/register',
-              extra: {'preselectedAthleteId': widget.userId},
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('No se pudo determinar la academia actual')),
-            );
-          }
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Registrar Pago'),
-      ) : null, // No mostrar FAB para roles que no son manager
+      floatingActionButton:
+          isManagerView
+              ? FloatingActionButton.extended(
+                onPressed: () {
+                  // Solo los managers pueden registrar nuevos pagos
+                  final currentAcademy = ref.read(currentAcademyProvider);
+                  if (currentAcademy != null &&
+                      currentAcademy.id != null &&
+                      currentAcademy.id!.isNotEmpty) {
+                    context.push(
+                      '/owner/academy/${currentAcademy.id}/payments/register',
+                      extra: {'preselectedAthleteId': widget.userId},
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'No se pudo determinar la academia actual',
+                        ),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Registrar Pago'),
+              )
+              : null, // No mostrar FAB para roles que no son manager
     );
   }
 
@@ -161,10 +183,9 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
             ),
             const Divider(height: 32),
             _buildPaymentSummary(),
-            
+
             // Información de plan de suscripción (a implementar)
-            if (isManagerView) 
-              _buildSubscriptionInfo(),
+            if (isManagerView) _buildSubscriptionInfo(),
           ],
         ),
       ),
@@ -173,10 +194,10 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
 
   Widget _buildPaymentStatusIndicator() {
     const status = 'active'; // Simulación: Cambiar por datos reales
-    
+
     Color statusColor;
     String statusText;
-    
+
     switch (status) {
       case 'active':
         statusColor = Colors.green;
@@ -190,7 +211,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
         statusColor = Colors.grey;
         statusText = 'Inactivo';
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -200,10 +221,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
       ),
       child: Text(
         statusText,
-        style: TextStyle(
-          color: statusColor,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -225,10 +243,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
           const SizedBox(height: 8),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Plan Mensual'),
-              Text('\$50.000 / mes'),
-            ],
+            children: [Text('Plan Mensual'), Text('\$50.000 / mes')],
           ),
           const SizedBox(height: 4),
           Row(
@@ -236,12 +251,15 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
             children: [
               const Text('Próximo pago:'),
               Text(
-                DateFormat('dd/MM/yyyy').format(DateTime.now().add(const Duration(days: 15))),
+                DateFormat(
+                  'dd/MM/yyyy',
+                ).format(DateTime.now().add(const Duration(days: 15))),
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          if (widget.viewerRole == AppRole.propietario) // Solo para propietarios
+          if (widget.viewerRole ==
+              AppRole.propietario) // Solo para propietarios
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -259,42 +277,54 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
   Widget _buildPaymentSummary() {
     return Consumer(
       builder: (context, ref, child) {
-        final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(widget.userId));
-        
+        final paymentsAsyncValue = ref.watch(
+          athletePaymentsNotifierProvider(widget.userId),
+        );
+
         return paymentsAsyncValue.when(
           data: (payments) {
-            final totalPaid = payments.fold<double>(0, (sum, payment) => sum + payment.amount);
-            final lastPayment = payments.isNotEmpty 
-              ? payments.reduce((a, b) => a.paymentDate.isAfter(b.paymentDate) ? a : b) 
-              : null;
-            
+            final totalPaid = payments.fold<double>(
+              0,
+              (sum, payment) => sum + payment.amount,
+            );
+            final lastPayment =
+                payments.isNotEmpty
+                    ? payments.reduce(
+                      (a, b) => a.paymentDate.isAfter(b.paymentDate) ? a : b,
+                    )
+                    : null;
+
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildInfoColumn(
-                  'Total Pagado', 
-                  NumberFormat.currency(symbol: '\$', decimalDigits: 2).format(totalPaid)
+                  'Total Pagado',
+                  NumberFormat.currency(
+                    symbol: '\$',
+                    decimalDigits: 2,
+                  ).format(totalPaid),
                 ),
                 _buildInfoColumn(
-                  'Último Pago', 
-                  lastPayment != null 
-                    ? DateFormat('dd/MM/yyyy').format(lastPayment.paymentDate)
-                    : 'Ninguno'
+                  'Último Pago',
+                  lastPayment != null
+                      ? DateFormat('dd/MM/yyyy').format(lastPayment.paymentDate)
+                      : 'Ninguno',
                 ),
                 _buildInfoColumn(
-                  'Cantidad de Pagos', 
-                  payments.length.toString()
+                  'Cantidad de Pagos',
+                  payments.length.toString(),
                 ),
               ],
             );
           },
-          loading: () => const Center(
-            child: SizedBox(
-              height: 50,
-              width: 50,
-              child: CircularProgressIndicator(),
-            ),
-          ),
+          loading:
+              () => const Center(
+                child: SizedBox(
+                  height: 50,
+                  width: 50,
+                  child: CircularProgressIndicator(),
+                ),
+              ),
           error: (_, __) => const Text('Error al cargar el resumen de pagos'),
         );
       },
@@ -314,22 +344,20 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ],
     );
   }
 
-  Widget _buildPaymentsList(BuildContext context, List<PaymentModel> payments, bool isManagerView) {
+  Widget _buildPaymentsList(
+    BuildContext context,
+    List<PaymentModel> payments,
+    bool isManagerView,
+  ) {
     if (payments.isEmpty) {
       return const Center(
-        child: Text(
-          'No hay pagos registrados',
-          style: TextStyle(fontSize: 16),
-        ),
+        child: Text('No hay pagos registrados', style: TextStyle(fontSize: 16)),
       );
     }
 
@@ -342,7 +370,11 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
     );
   }
 
-  Widget _buildPaymentCard(BuildContext context, PaymentModel payment, bool isManagerView) {
+  Widget _buildPaymentCard(
+    BuildContext context,
+    PaymentModel payment,
+    bool isManagerView,
+  ) {
     final formattedDate = DateFormat('dd/MM/yyyy').format(payment.paymentDate);
     final formattedAmount = NumberFormat.currency(
       symbol: _getCurrencySymbol(payment.currency),
@@ -357,7 +389,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
           children: [
             Expanded(
               child: Text(
-                payment.concept ?? 'Pago', 
+                payment.concept ?? 'Pago',
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -400,20 +432,26 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
             ],
           ],
         ),
-        trailing: isManagerView ? IconButton(
-          icon: const Icon(Icons.more_vert),
-          onPressed: () {
-            _showPaymentOptions(context, payment);
-          },
-        ) : null, // Solo mostrar opciones para managers
+        trailing:
+            isManagerView
+                ? IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () {
+                    _showPaymentOptions(context, payment);
+                  },
+                )
+                : null, // Solo mostrar opciones para managers
         onTap: () {
           // Para usuario cliente: solo ver detalle
           // Para managers: ver detalle con opciones
           final currentAcademy = ref.read(currentAcademyProvider);
-          if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-            final route = isManagerView
-                ? '/owner/academy/${currentAcademy.id}/payments/${payment.id}'
-                : '/client/payments/${payment.id}'; // Ruta para cliente
+          if (currentAcademy != null &&
+              currentAcademy.id != null &&
+              payment.id != null) {
+            final route =
+                isManagerView
+                    ? '/owner/academy/${currentAcademy.id}/payments/${payment.id}'
+                    : '/client/payments/${payment.id}'; // Ruta para cliente
             context.push(route);
           }
         },
@@ -436,11 +474,11 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
 
   void _showPaymentOptions(BuildContext context, PaymentModel payment) {
     // Solo los managers pueden ver estas opciones
-    if (widget.viewerRole != AppRole.propietario && 
+    if (widget.viewerRole != AppRole.propietario &&
         widget.viewerRole != AppRole.colaborador) {
       return;
     }
-    
+
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -455,8 +493,12 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
                   Navigator.pop(context);
                   // Navegar a detalles del pago
                   final currentAcademy = ref.read(currentAcademyProvider);
-                  if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-                    context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}');
+                  if (currentAcademy != null &&
+                      currentAcademy.id != null &&
+                      payment.id != null) {
+                    context.push(
+                      '/owner/academy/${currentAcademy.id}/payments/${payment.id}',
+                    );
                   }
                 },
               ),
@@ -469,8 +511,12 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
                     Navigator.pop(context);
                     // Navegar a editar pago
                     final currentAcademy = ref.read(currentAcademyProvider);
-                    if (currentAcademy != null && currentAcademy.id != null && payment.id != null) {
-                      context.push('/owner/academy/${currentAcademy.id}/payments/${payment.id}/edit');
+                    if (currentAcademy != null &&
+                        currentAcademy.id != null &&
+                        payment.id != null) {
+                      context.push(
+                        '/owner/academy/${currentAcademy.id}/payments/${payment.id}/edit',
+                      );
                     }
                   },
                 ),
@@ -478,7 +524,10 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
               if (widget.viewerRole == AppRole.propietario)
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                  title: const Text(
+                    'Eliminar',
+                    style: TextStyle(color: Colors.red),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     _confirmDeletePayment(context, payment);
@@ -496,7 +545,7 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
     if (widget.viewerRole != AppRole.propietario) {
       return;
     }
-    
+
     final currentAcademy = ref.read(currentAcademyProvider);
     final academyId = currentAcademy?.id;
 
@@ -505,7 +554,9 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
       builder: (context) {
         return AlertDialog(
           title: const Text('Eliminar pago'),
-          content: const Text('¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.'),
+          content: const Text(
+            '¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -518,24 +569,39 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
                 Navigator.pop(context);
                 // Eliminar pago y actualizar la lista
                 if (payment.id != null && academyId != null) {
-                  ref.read(paymentRepositoryProvider).deletePayment(academyId, payment.id!).then((_) {
-                    // Invalidar el provider para refrescar la lista
-                    ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Pago eliminado correctamente')),
-                      );
-                    }
-                  }).catchError((error) {
-                    if (context.mounted) {  
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al eliminar el pago: $error')),
-                      );
-                    }
-                  });
+                  ref
+                      .read(paymentRepositoryProvider)
+                      .deletePayment(academyId, payment.id!)
+                      .then((_) {
+                        // Invalidar el provider para refrescar la lista
+                        ref.invalidate(
+                          athletePaymentsNotifierProvider(widget.userId),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pago eliminado correctamente'),
+                            ),
+                          );
+                        }
+                      })
+                      .catchError((error) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Error al eliminar el pago: $error',
+                              ),
+                            ),
+                          );
+                        }
+                      });
                 }
               },
-              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Eliminar',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -544,17 +610,14 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
   }
 
   Widget _buildErrorWidget(BuildContext context, Object error) {
-    final failure = error is Failure ? error : Failure.unexpectedError(error: error);
-  
+    final failure =
+        error is Failure ? error : Failure.unexpectedError(error: error);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 60,
-          ),
+          const Icon(Icons.error_outline, color: Colors.red, size: 60),
           const SizedBox(height: 16),
           Text(
             failure.maybeWhen(
@@ -563,7 +626,10 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
               authError: (code, message) => message,
               validationError: (message) => message,
               cacheError: (message) => message,
-              unexpectedError: (err, _) => err?.toString() ?? 'Ocurrió un error inesperado al cargar los pagos',
+              unexpectedError:
+                  (err, _) =>
+                      err?.toString() ??
+                      'Ocurrió un error inesperado al cargar los pagos',
               orElse: () => 'Ocurrió un error inesperado al cargar los pagos',
             ),
             textAlign: TextAlign.center,
@@ -571,11 +637,14 @@ class _PaymentDetailScreenState extends ConsumerState<PaymentDetailScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
+            onPressed:
+                () => ref.invalidate(
+                  athletePaymentsNotifierProvider(widget.userId),
+                ),
             child: const Text('Intentar de nuevo'),
           ),
         ],
       ),
     );
   }
-} 
+}

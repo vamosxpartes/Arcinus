@@ -82,10 +82,22 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
   }
   
   void updateSubscriptionPlan(String? subscriptionPlanId) {
+    AppLogger.logInfo(
+      'Actualizando plan de suscripción',
+      className: _className,
+      functionName: 'updateSubscriptionPlan',
+      params: {'planId': subscriptionPlanId},
+    );
     state = state.copyWith(subscriptionPlanId: subscriptionPlanId);
   }
   
   void updateSubscriptionStartDate(DateTime? startDate) {
+    AppLogger.logInfo(
+      'Actualizando fecha de inicio de suscripción',
+      className: _className,
+      functionName: 'updateSubscriptionStartDate',
+      params: {'startDate': startDate?.toString()},
+    );
     state = state.copyWith(subscriptionStartDate: startDate);
   }
   
@@ -284,12 +296,27 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
       
       // Información de cliente para pagos/suscripciones
       if (state.subscriptionPlanId != null) {
-      
+        AppLogger.logInfo(
+          'Asignando plan de suscripción al atleta',
+          className: _className,
+          functionName: 'submitForm',
+          params: {
+            'subscriptionPlanId': state.subscriptionPlanId,
+            'startDate': state.subscriptionStartDate
+          },
+        );
+        
         // Datos de cliente base (se actualizarán completos al asignar plan)
         userData['clientData'] = {
           'subscriptionPlanId': state.subscriptionPlanId,
           'paymentStatus': 'active', // Marcamos como activo inicialmente
         };
+      } else {
+        AppLogger.logInfo(
+          'No se seleccionó plan de suscripción para el atleta',
+          className: _className,
+          functionName: 'submitForm'
+        );
       }
       
       AppLogger.logInfo(

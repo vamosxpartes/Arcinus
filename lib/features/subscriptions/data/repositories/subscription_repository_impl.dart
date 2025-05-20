@@ -332,23 +332,45 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     DateTime startDate,
   ) async {
     try {
-      // Obtener el plan
+      AppLogger.logInfo(
+        'Asignando plan de suscripción a usuario',
+        className: _className,
+        functionName: 'assignPlanToUser',
+        params: {
+          'academyId': academyId,
+          'userId': userId,
+          'planId': planId,
+          'startDate': startDate.toIso8601String(),
+        },
+      );
+
+      // Obtener el plan para calcular la fecha de próximo pago
       final planResult = await getSubscriptionPlan(academyId, planId);
       
       return planResult.fold(
         (failure) => Left(failure),
         (plan) async {
-          // Asignar el plan al usuario
-          final userRef = _getUsersCollection(academyId).doc(userId);
+          // Calcular fecha de próximo pago
+          final durationInDays = plan.durationInDays;
+          final nextPaymentDate = startDate.add(Duration(days: durationInDays));
+          final remainingDays = nextPaymentDate.difference(DateTime.now()).inDays;
           
-          await userRef.update({
-            'subscriptionPlanId': planId,
-            'subscriptionStartDate': startDate,
-            // Podríamos calcular la fecha de fin basada en el plan
-          });
+          // Datos a actualizar en el perfil de usuario
+          final clientData = {
+            'clientData': {
+              'subscriptionPlanId': planId,
+              'paymentStatus': 'active', // Marcar como activo al asignar plan
+              'lastPaymentDate': Timestamp.fromDate(startDate),
+              'nextPaymentDate': Timestamp.fromDate(nextPaymentDate),
+              'remainingDays': remainingDays,
+            }
+          };
+          
+          // Actualizar el perfil de usuario
+          await _getUsersCollection(academyId).doc(userId).update(clientData);
           
           return const Right(null);
-        }
+        },
       );
     } catch (e, s) {
       AppLogger.logError(

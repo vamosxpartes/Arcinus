@@ -15,39 +15,42 @@ import 'package:arcinus/core/utils/app_logger.dart';
 class ManagerPaymentDetailScreen extends ConsumerStatefulWidget {
   /// ID del usuario cuyos pagos se mostrarán (atleta o padre)
   final String userId;
-  
+
   /// Nombre del usuario (opcional)
   final String? userName;
-  
+
   /// Rol del manager que visualiza la pantalla
   final AppRole managerRole;
 
   /// Constructor
   const ManagerPaymentDetailScreen({
-    super.key, 
+    super.key,
     required this.userId,
     this.userName,
     required this.managerRole,
   });
 
   @override
-  ConsumerState<ManagerPaymentDetailScreen> createState() => _ManagerPaymentDetailScreenState();
+  ConsumerState<ManagerPaymentDetailScreen> createState() =>
+      _ManagerPaymentDetailScreenState();
 }
 
-class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetailScreen> {
+class _ManagerPaymentDetailScreenState
+    extends ConsumerState<ManagerPaymentDetailScreen> {
   // Estado de filtros
   String _filterBy = 'all';
   DateTime? _startDate;
   DateTime? _endDate;
-  
+
   @override
   void initState() {
     super.initState();
     // Actualizar el título en el Shell
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final title = widget.userName != null 
-          ? 'Pagos de ${widget.userName}'
-          : 'Detalle de pagos';
+      final title =
+          widget.userName != null
+              ? 'Pagos de ${widget.userName}'
+              : 'Detalle de pagos';
       ref.read(currentScreenTitleProvider.notifier).state = title;
     });
   }
@@ -56,17 +59,19 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   Widget build(BuildContext context) {
     // Obtenemos los pagos filtrados
     final filteredPaymentsAsyncValue = ref.watch(
-      filteredAthletePaymentsProvider(FilteredPaymentParams(
-        userId: widget.userId,
-        filterBy: _filterBy,
-        startDate: _startDate,
-        endDate: _endDate,
-      ))
+      filteredAthletePaymentsProvider(
+        FilteredPaymentParams(
+          userId: widget.userId,
+          filterBy: _filterBy,
+          startDate: _startDate,
+          endDate: _endDate,
+        ),
+      ),
     );
-    
+
     // Obtenemos los datos del usuario cliente para mostrar su información
     final clientUserAsyncValue = ref.watch(clientUserProvider(widget.userId));
-    
+
     // Verificar si el usuario actual es propietario (para ciertas acciones)
     final isOwner = widget.managerRole == AppRole.propietario;
 
@@ -79,10 +84,13 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
             loading: () => _buildLoadingUserCard(),
             error: (error, _) => _buildErrorUserCard(error),
           ),
-          
+
           // Encabezado y filtros
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -102,22 +110,26 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
                     IconButton(
                       icon: const Icon(Icons.refresh),
                       tooltip: 'Actualizar pagos',
-                      onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
+                      onPressed:
+                          () => ref.invalidate(
+                            athletePaymentsNotifierProvider(widget.userId),
+                          ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Mostrar filtros activos
           if (_filterBy != 'all' || _startDate != null || _endDate != null)
             _buildActiveFilters(),
-          
+
           // Lista de pagos
           Expanded(
             child: filteredPaymentsAsyncValue.when(
-              data: (payments) => _buildPaymentsList(context, payments, isOwner),
+              data:
+                  (payments) => _buildPaymentsList(context, payments, isOwner),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stackTrace) => _buildErrorWidget(context, error),
             ),
@@ -141,9 +153,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
       margin: EdgeInsets.all(16.0),
       child: Padding(
         padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: Center(child: CircularProgressIndicator()),
       ),
     );
   }
@@ -177,8 +187,10 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
     final userName = widget.userName ?? 'Usuario';
     final paymentStatus = 'active'; // Simulación
     final planName = 'Plan Mensual'; // Simulación
-    final nextPaymentDate = DateTime.now().add(const Duration(days: 15)); // Simulación
-    
+    final nextPaymentDate = DateTime.now().add(
+      const Duration(days: 15),
+    ); // Simulación
+
     return Card(
       margin: const EdgeInsets.all(16.0),
       child: Padding(
@@ -212,7 +224,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
               ],
             ),
             const Divider(height: 32),
-            
+
             // Sección de suscripción
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -272,7 +284,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   Widget _buildStatusBadge(String status) {
     Color statusColor;
     String statusText;
-    
+
     switch (status) {
       case 'active':
         statusColor = Colors.green;
@@ -286,7 +298,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
         statusColor = Colors.grey;
         statusText = 'Inactivo';
     }
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -296,10 +308,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
       ),
       child: Text(
         statusText,
-        style: TextStyle(
-          color: statusColor,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -337,7 +346,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   // Obtener texto descriptivo de filtros activos
   String _getActiveFiltersText() {
     final List<String> filters = [];
-    
+
     if (_filterBy != 'all') {
       switch (_filterBy) {
         case 'recent':
@@ -354,7 +363,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
           break;
       }
     }
-    
+
     if (_startDate != null && _endDate != null) {
       final start = DateFormat('dd/MM/yyyy').format(_startDate!);
       final end = DateFormat('dd/MM/yyyy').format(_endDate!);
@@ -366,8 +375,10 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
       final end = DateFormat('dd/MM/yyyy').format(_endDate!);
       filters.add('Hasta $end');
     }
-    
-    return filters.isEmpty ? 'Todos los pagos' : 'Filtros: ${filters.join(', ')}';
+
+    return filters.isEmpty
+        ? 'Todos los pagos'
+        : 'Filtros: ${filters.join(', ')}';
   }
 
   // Limpiar todos los filtros
@@ -383,144 +394,171 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Filtrar Pagos'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Filtros predefinidos
-                const Text('Período:'),
-                RadioListTile<String>(
-                  title: const Text('Todos'),
-                  value: 'all',
-                  groupValue: _filterBy,
-                  onChanged: (value) => setState(() => _filterBy = value!),
-                ),
-                RadioListTile<String>(
-                  title: const Text('Últimos 30 días'),
-                  value: 'recent',
-                  groupValue: _filterBy,
-                  onChanged: (value) => setState(() => _filterBy = value!),
-                ),
-                RadioListTile<String>(
-                  title: const Text('Este mes'),
-                  value: 'month',
-                  groupValue: _filterBy,
-                  onChanged: (value) => setState(() => _filterBy = value!),
-                ),
-                RadioListTile<String>(
-                  title: const Text('Este año'),
-                  value: 'year',
-                  groupValue: _filterBy,
-                  onChanged: (value) => setState(() => _filterBy = value!),
-                ),
-                RadioListTile<String>(
-                  title: const Text('Personalizado'),
-                  value: 'custom',
-                  groupValue: _filterBy,
-                  onChanged: (value) => setState(() => _filterBy = value!),
-                ),
-                
-                // Filtros de fecha personalizados
-                if (_filterBy == 'custom') ...[
-                  const SizedBox(height: 16),
-                  const Text('Rango de fechas:'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.calendar_today, size: 16),
-                          label: Text(_startDate == null 
-                            ? 'Fecha inicio' 
-                            : DateFormat('dd/MM/yyyy').format(_startDate!)),
-                          onPressed: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: _startDate ?? DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime.now(),
-                            );
-                            if (date != null) {
-                              setState(() => _startDate = date);
-                            }
-                          },
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setState) => AlertDialog(
+                  title: const Text('Filtrar Pagos'),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Filtros predefinidos
+                        const Text('Período:'),
+                        RadioListTile<String>(
+                          title: const Text('Todos'),
+                          value: 'all',
+                          groupValue: _filterBy,
+                          onChanged:
+                              (value) => setState(() => _filterBy = value!),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.calendar_today, size: 16),
-                          label: Text(_endDate == null 
-                            ? 'Fecha fin' 
-                            : DateFormat('dd/MM/yyyy').format(_endDate!)),
-                          onPressed: () async {
-                            final date = await showDatePicker(
-                              context: context,
-                              initialDate: _endDate ?? DateTime.now(),
-                              firstDate: DateTime(2000),
-                              lastDate: DateTime.now(),
-                            );
-                            if (date != null) {
-                              setState(() => _endDate = date);
-                            }
-                          },
+                        RadioListTile<String>(
+                          title: const Text('Últimos 30 días'),
+                          value: 'recent',
+                          groupValue: _filterBy,
+                          onChanged:
+                              (value) => setState(() => _filterBy = value!),
                         ),
-                      ),
-                    ],
+                        RadioListTile<String>(
+                          title: const Text('Este mes'),
+                          value: 'month',
+                          groupValue: _filterBy,
+                          onChanged:
+                              (value) => setState(() => _filterBy = value!),
+                        ),
+                        RadioListTile<String>(
+                          title: const Text('Este año'),
+                          value: 'year',
+                          groupValue: _filterBy,
+                          onChanged:
+                              (value) => setState(() => _filterBy = value!),
+                        ),
+                        RadioListTile<String>(
+                          title: const Text('Personalizado'),
+                          value: 'custom',
+                          groupValue: _filterBy,
+                          onChanged:
+                              (value) => setState(() => _filterBy = value!),
+                        ),
+
+                        // Filtros de fecha personalizados
+                        if (_filterBy == 'custom') ...[
+                          const SizedBox(height: 16),
+                          const Text('Rango de fechas:'),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(
+                                    Icons.calendar_today,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    _startDate == null
+                                        ? 'Fecha inicio'
+                                        : DateFormat(
+                                          'dd/MM/yyyy',
+                                        ).format(_startDate!),
+                                  ),
+                                  onPressed: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: _startDate ?? DateTime.now(),
+                                      firstDate: DateTime(2000),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null) {
+                                      setState(() => _startDate = date);
+                                    }
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(
+                                    Icons.calendar_today,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    _endDate == null
+                                        ? 'Fecha fin'
+                                        : DateFormat(
+                                          'dd/MM/yyyy',
+                                        ).format(_endDate!),
+                                  ),
+                                  onPressed: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: _endDate ?? DateTime.now(),
+                                      firstDate: DateTime(2000),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (date != null) {
+                                      setState(() => _endDate = date);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ],
-              ],
-            ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _clearFilters();
+                      },
+                      child: const Text('Limpiar'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancelar'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+
+                        // Aplicar filtros
+                        this.setState(() {
+                          if (_filterBy == 'recent') {
+                            _startDate = DateTime.now().subtract(
+                              const Duration(days: 30),
+                            );
+                            _endDate = DateTime.now();
+                          } else if (_filterBy == 'month') {
+                            final now = DateTime.now();
+                            _startDate = DateTime(now.year, now.month, 1);
+                            _endDate = DateTime(now.year, now.month + 1, 0);
+                          } else if (_filterBy == 'year') {
+                            final now = DateTime.now();
+                            _startDate = DateTime(now.year, 1, 1);
+                            _endDate = DateTime(now.year, 12, 31);
+                          } else if (_filterBy != 'custom') {
+                            _startDate = null;
+                            _endDate = null;
+                          }
+                        });
+                      },
+                      child: const Text('Aplicar'),
+                    ),
+                  ],
+                ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _clearFilters();
-              },
-              child: const Text('Limpiar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                
-                // Aplicar filtros
-                this.setState(() {
-                  if (_filterBy == 'recent') {
-                    _startDate = DateTime.now().subtract(const Duration(days: 30));
-                    _endDate = DateTime.now();
-                  } else if (_filterBy == 'month') {
-                    final now = DateTime.now();
-                    _startDate = DateTime(now.year, now.month, 1);
-                    _endDate = DateTime(now.year, now.month + 1, 0);
-                  } else if (_filterBy == 'year') {
-                    final now = DateTime.now();
-                    _startDate = DateTime(now.year, 1, 1);
-                    _endDate = DateTime(now.year, 12, 31);
-                  } else if (_filterBy != 'custom') {
-                    _startDate = null;
-                    _endDate = null;
-                  }
-                });
-              },
-              child: const Text('Aplicar'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   // Lista de pagos
-  Widget _buildPaymentsList(BuildContext context, List<PaymentModel> payments, bool isOwner) {
+  Widget _buildPaymentsList(
+    BuildContext context,
+    List<PaymentModel> payments,
+    bool isOwner,
+  ) {
     if (payments.isEmpty) {
       return const Center(
         child: Column(
@@ -528,10 +566,7 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
           children: [
             Icon(Icons.payments_outlined, size: 64, color: Colors.grey),
             SizedBox(height: 16),
-            Text(
-              'No hay pagos registrados',
-              style: TextStyle(fontSize: 16),
-            ),
+            Text('No hay pagos registrados', style: TextStyle(fontSize: 16)),
             SizedBox(height: 8),
             Text(
               'Puedes registrar un nuevo pago con el botón + abajo',
@@ -552,7 +587,11 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   }
 
   // Tarjeta de pago individual
-  Widget _buildPaymentCard(BuildContext context, PaymentModel payment, bool isOwner) {
+  Widget _buildPaymentCard(
+    BuildContext context,
+    PaymentModel payment,
+    bool isOwner,
+  ) {
     final formattedDate = DateFormat('dd/MM/yyyy').format(payment.paymentDate);
     final formattedAmount = NumberFormat.currency(
       symbol: _getCurrencySymbol(payment.currency),
@@ -624,7 +663,11 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   }
 
   // Mostrar opciones de pago
-  void _showPaymentOptions(BuildContext context, PaymentModel payment, bool isOwner) {
+  void _showPaymentOptions(
+    BuildContext context,
+    PaymentModel payment,
+    bool isOwner,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -662,7 +705,10 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
               if (isOwner)
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+                  title: const Text(
+                    'Eliminar',
+                    style: TextStyle(color: Colors.red),
+                  ),
                   onTap: () {
                     Navigator.pop(context);
                     _confirmDeletePayment(context, payment);
@@ -678,28 +724,27 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   // Registrar un nuevo pago
   void _registerNewPayment(BuildContext context) {
     final currentAcademy = ref.read(currentAcademyProvider);
-    
+
     if (currentAcademy != null && currentAcademy.id != null) {
       final route = '/manager/academy/${currentAcademy.id}/payments/register';
       final extra = {'preselectedAthleteId': widget.userId};
-      
+
       context.push(route, extra: extra).then((_) {
         // Invalidar el provider para refrescar la lista
         ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
       });
-      
+
       AppLogger.logInfo(
         'Navegando a registrar pago para usuario',
         className: 'ManagerPaymentDetailScreen',
         functionName: '_registerNewPayment',
-        params: {
-          'userId': widget.userId,
-          'academyId': currentAcademy.id,
-        },
+        params: {'userId': widget.userId, 'academyId': currentAcademy.id},
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo determinar la academia actual')),
+        const SnackBar(
+          content: Text('No se pudo determinar la academia actual'),
+        ),
       );
     }
   }
@@ -712,28 +757,28 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
       );
       return;
     }
-    
+
     final currentAcademy = ref.read(currentAcademyProvider);
     if (currentAcademy != null && currentAcademy.id != null) {
-      final route = '/manager/academy/${currentAcademy.id}/payments/${payment.id}/edit';
-      
+      final route =
+          '/manager/academy/${currentAcademy.id}/payments/${payment.id}/edit';
+
       context.push(route).then((_) {
         // Invalidar el provider para refrescar la lista
         ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
       });
-      
+
       AppLogger.logInfo(
         'Navegando a editar pago',
         className: 'ManagerPaymentDetailScreen',
         functionName: '_editPayment',
-        params: {
-          'paymentId': payment.id,
-          'academyId': currentAcademy.id,
-        },
+        params: {'paymentId': payment.id, 'academyId': currentAcademy.id},
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo determinar la academia actual')),
+        const SnackBar(
+          content: Text('No se pudo determinar la academia actual'),
+        ),
       );
     }
   }
@@ -760,13 +805,15 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
       );
       return;
     }
-    
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Eliminar pago'),
-          content: const Text('¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.'),
+          content: const Text(
+            '¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer.',
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -779,7 +826,10 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
                 Navigator.pop(context);
                 _deletePayment(payment);
               },
-              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              child: const Text(
+                'Eliminar',
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
@@ -790,48 +840,46 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
   // Eliminar pago
   void _deletePayment(PaymentModel payment) {
     final currentAcademy = ref.read(currentAcademyProvider);
-    
+
     if (currentAcademy?.id == null || payment.id == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error: No se puede eliminar este pago')),
       );
       return;
     }
-    
-    ref.read(paymentRepositoryProvider).deletePayment(currentAcademy!.id!, payment.id!).then((_) {
-      // Invalidar el provider para refrescar la lista
-      ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
-      if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pago eliminado correctamente')),
-      );
-      }
-      AppLogger.logInfo(
-        'Pago eliminado correctamente',
-        className: 'ManagerPaymentDetailScreen',
-        functionName: '_deletePayment',
-        params: {
-          'paymentId': payment.id,
-          'academyId': currentAcademy.id,
-        },
-      );
-    }).catchError((error) {
-      if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al eliminar el pago: $error')),
-      );
-      }
-      AppLogger.logError(
-        message: 'Error al eliminar pago',
-        error: error,
-        className: 'ManagerPaymentDetailScreen',
-        functionName: '_deletePayment',
-        params: {
-          'paymentId': payment.id,
-          'academyId': currentAcademy.id,
-        },
-      );
-    });
+
+    ref
+        .read(paymentRepositoryProvider)
+        .deletePayment(currentAcademy!.id!, payment.id!)
+        .then((_) {
+          // Invalidar el provider para refrescar la lista
+          ref.invalidate(athletePaymentsNotifierProvider(widget.userId));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Pago eliminado correctamente')),
+            );
+          }
+          AppLogger.logInfo(
+            'Pago eliminado correctamente',
+            className: 'ManagerPaymentDetailScreen',
+            functionName: '_deletePayment',
+            params: {'paymentId': payment.id, 'academyId': currentAcademy.id},
+          );
+        })
+        .catchError((error) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al eliminar el pago: $error')),
+            );
+          }
+          AppLogger.logError(
+            message: 'Error al eliminar pago',
+            error: error,
+            className: 'ManagerPaymentDetailScreen',
+            functionName: '_deletePayment',
+            params: {'paymentId': payment.id, 'academyId': currentAcademy.id},
+          );
+        });
   }
 
   // Obtener símbolo de moneda
@@ -850,17 +898,14 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
 
   // Widget de error
   Widget _buildErrorWidget(BuildContext context, Object error) {
-    final failure = error is Failure ? error : Failure.unexpectedError(error: error);
-  
+    final failure =
+        error is Failure ? error : Failure.unexpectedError(error: error);
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 60,
-          ),
+          const Icon(Icons.error_outline, color: Colors.red, size: 60),
           const SizedBox(height: 16),
           Text(
             failure.maybeWhen(
@@ -869,7 +914,10 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
               authError: (code, message) => message,
               validationError: (message) => message,
               cacheError: (message) => message,
-              unexpectedError: (err, _) => err?.toString() ?? 'Ocurrió un error inesperado al cargar los pagos',
+              unexpectedError:
+                  (err, _) =>
+                      err?.toString() ??
+                      'Ocurrió un error inesperado al cargar los pagos',
               orElse: () => 'Ocurrió un error inesperado al cargar los pagos',
             ),
             textAlign: TextAlign.center,
@@ -877,7 +925,10 @@ class _ManagerPaymentDetailScreenState extends ConsumerState<ManagerPaymentDetai
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => ref.invalidate(athletePaymentsNotifierProvider(widget.userId)),
+            onPressed:
+                () => ref.invalidate(
+                  athletePaymentsNotifierProvider(widget.userId),
+                ),
             child: const Text('Intentar de nuevo'),
           ),
         ],
@@ -892,61 +943,75 @@ class FilteredPaymentParams {
   final String filterBy;
   final DateTime? startDate;
   final DateTime? endDate;
-  
+
   const FilteredPaymentParams({
     required this.userId,
     required this.filterBy,
     this.startDate,
     this.endDate,
   });
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is FilteredPaymentParams &&
-      other.userId == userId &&
-      other.filterBy == filterBy &&
-      other.startDate == startDate &&
-      other.endDate == endDate;
+        other.userId == userId &&
+        other.filterBy == filterBy &&
+        other.startDate == startDate &&
+        other.endDate == endDate;
   }
-  
+
   @override
   int get hashCode => Object.hash(userId, filterBy, startDate, endDate);
 }
 
 /// Provider para obtener pagos filtrados
-final filteredAthletePaymentsProvider = Provider.family<AsyncValue<List<PaymentModel>>, FilteredPaymentParams>(
-  (ref, params) {
-    final paymentsAsyncValue = ref.watch(athletePaymentsNotifierProvider(params.userId));
-    
-    return paymentsAsyncValue.whenData((payments) {
-      if (params.filterBy == 'all' && params.startDate == null && params.endDate == null) {
-        return payments;
+final filteredAthletePaymentsProvider = Provider.family<
+  AsyncValue<List<PaymentModel>>,
+  FilteredPaymentParams
+>((ref, params) {
+  final paymentsAsyncValue = ref.watch(
+    athletePaymentsNotifierProvider(params.userId),
+  );
+
+  return paymentsAsyncValue.whenData((payments) {
+    if (params.filterBy == 'all' &&
+        params.startDate == null &&
+        params.endDate == null) {
+      return payments;
+    }
+
+    return payments.where((payment) {
+      bool matchesFilter = true;
+
+      // Filtro por fecha
+      if (params.startDate != null) {
+        matchesFilter =
+            matchesFilter && payment.paymentDate.isAfter(params.startDate!);
       }
-      
-      return payments.where((payment) {
-        bool matchesFilter = true;
-        
-        // Filtro por fecha
-        if (params.startDate != null) {
-          matchesFilter = matchesFilter && payment.paymentDate.isAfter(params.startDate!);
-        }
-        if (params.endDate != null) {
-          // Incluir todo el día final
-          final endOfDay = DateTime(params.endDate!.year, params.endDate!.month, params.endDate!.day, 23, 59, 59);
-          matchesFilter = matchesFilter && payment.paymentDate.isBefore(endOfDay);
-        }
-        
-        return matchesFilter;
-      }).toList();
-    });
-  },
-);
+      if (params.endDate != null) {
+        // Incluir todo el día final
+        final endOfDay = DateTime(
+          params.endDate!.year,
+          params.endDate!.month,
+          params.endDate!.day,
+          23,
+          59,
+          59,
+        );
+        matchesFilter = matchesFilter && payment.paymentDate.isBefore(endOfDay);
+      }
+
+      return matchesFilter;
+    }).toList();
+  });
+});
 
 // Provider simulado para datos del cliente (a implementar con el modelo real después)
-final clientUserProvider = Provider.family<AsyncValue<dynamic>, String>(
-  (ref, userId) {
-    // Simular una carga de datos
-    return const AsyncValue.data({});
-  },
-); 
+final clientUserProvider = Provider.family<AsyncValue<dynamic>, String>((
+  ref,
+  userId,
+) {
+  // Simular una carga de datos
+  return const AsyncValue.data({});
+});
