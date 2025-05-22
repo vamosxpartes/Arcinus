@@ -15,7 +15,6 @@ import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
-import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
 
 part 'register_payment_screen.g.dart';
@@ -118,6 +117,22 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       // 1. Cargar la configuración de pagos
       final paymentConfigAsync = await ref.read(paymentConfigProvider(academyId).future);
       
+      // Registrar la configuración en los logs
+      AppLogger.logInfo(
+        'Configuración de pagos cargada',
+        className: 'RegisterPaymentScreenState',
+        functionName: '_initializeAsync',
+        params: {
+          'billingMode': paymentConfigAsync.billingMode.displayName,
+          'allowPartialPayments': paymentConfigAsync.allowPartialPayments,
+          'earlyPaymentDiscount': paymentConfigAsync.earlyPaymentDiscount,
+          'earlyPaymentDiscountPercent': paymentConfigAsync.earlyPaymentDiscountPercent,
+          'earlyPaymentDays': paymentConfigAsync.earlyPaymentDays,
+          'lateFeeEnabled': paymentConfigAsync.lateFeeEnabled,
+          'autoRenewal': paymentConfigAsync.autoRenewal,
+        },
+      );
+      
       // 2. Si tenemos un atleta seleccionado, cargar sus datos
       if (_selectedAthleteId != null) {
         final clientUserAsync = await ref.read(clientUserProvider(_selectedAthleteId!).future);
@@ -174,6 +189,19 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   void _setupFormFromUserAndConfig() {
     if (_clientUser == null || _paymentConfig == null) return;
     
+    AppLogger.logInfo(
+      'Configurando formulario con datos del usuario y configuración',
+      className: 'RegisterPaymentScreenState',
+      functionName: '_setupFormFromUserAndConfig',
+      params: {
+        'userId': _clientUser!.userId,
+        'hasPlan': _clientUser!.subscriptionPlan != null,
+        'planId': _clientUser!.subscriptionPlanId,
+        'allowPartialPayments': _paymentConfig!.allowPartialPayments,
+        'earlyPaymentDiscount': _paymentConfig!.earlyPaymentDiscount,
+      },
+    );
+    
     // Si hay un plan de suscripción, utilizar sus datos
     if (_clientUser!.subscriptionPlan != null) {
       final plan = _clientUser!.subscriptionPlan!;
@@ -202,6 +230,18 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         final amount = double.tryParse(_amountController.text) ?? 0;
         _isPartialPayment = amount < _totalPlanAmount!;
       }
+      
+      AppLogger.logInfo(
+        'Configuración de plan aplicada al formulario',
+        className: 'RegisterPaymentScreenState',
+        functionName: '_setupFormFromUserAndConfig',
+        params: {
+          'planName': plan.name,
+          'planAmount': plan.amount,
+          'planCurrency': plan.currency,
+          'isEditable': _paymentConfig!.earlyPaymentDiscount,
+        },
+      );
     } else {
       // Si no hay plan, verificar si se permiten pagos sin plan
       if (!_paymentConfig!.allowPartialPayments) {
@@ -307,6 +347,22 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       }
 
       final amount = double.tryParse(_amountController.text) ?? 0;
+      
+      AppLogger.logInfo(
+        'Enviando pago',
+        className: 'RegisterPaymentScreenState',
+        functionName: '_submitPayment',
+        params: {
+          'athleteId': _selectedAthleteId,
+          'amount': amount,
+          'currency': _selectedCurrency,
+          'concept': _conceptController.text,
+          'paymentDate': _paymentDate.toString(),
+          'isPartialPayment': _isPartialPayment,
+          'subscriptionPlanId': _subscriptionPlanId,
+          'totalPlanAmount': _totalPlanAmount,
+        },
+      );
       
       // Usar el método submitPayment del PaymentFormNotifier
       final notifier = ref.read(paymentFormNotifierProvider.notifier);
@@ -508,6 +564,8 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                   ],
+                  readOnly: _clientUser?.subscriptionPlan != null && 
+                          !(_paymentConfig?.earlyPaymentDiscount ?? false),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Ingresa un monto';
@@ -568,6 +626,8 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
               border: OutlineInputBorder(),
               hintText: 'Ej: Mensualidad Octubre',
             ),
+            readOnly: _clientUser?.subscriptionPlan != null && 
+                    !(_paymentConfig?.earlyPaymentDiscount ?? false),
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Ingresa un concepto para el pago';
@@ -746,7 +806,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                           '${plan.name} - ${plan.amount} ${plan.currency}',
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                   onChanged: (value) {
                     setState(() {
