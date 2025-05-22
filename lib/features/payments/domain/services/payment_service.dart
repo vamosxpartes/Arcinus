@@ -2,6 +2,7 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart'
     as plan;
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 
 // Repositorios - interfaces solo para definir la estructura
 abstract class PaymentRepository {
@@ -141,10 +142,18 @@ class PaymentService {
       final DateTime startDate = payment.periodStartDate ?? DateTime.now();
       final DateTime endDate = _calculateEndDate(startDate, plan);
 
-      // 5. Actualizar el estado de suscripción del cliente
+      // 5. Determinar el estado de pago correcto
+      // Si la fecha de fin es futura, el estado es activo
+      // Si la fecha de fin es pasada, el estado es en mora
+      final now = DateTime.now();
+      final PaymentStatus newStatus = endDate.isAfter(now) 
+          ? PaymentStatus.active 
+          : PaymentStatus.overdue;
+
+      // 6. Actualizar el estado de suscripción del cliente
       final clientData = user.clientData!.copyWith(
         subscriptionPlanId: plan.id,
-        paymentStatus: user.PaymentStatus.active.name,
+        paymentStatus: newStatus.name,
         lastPaymentDate: payment.paymentDate,
         nextPaymentDate: endDate,
         remainingDays: _calculateRemainingDays(endDate),
@@ -152,7 +161,7 @@ class PaymentService {
 
       final updatedUser = user.copyWith(clientData: clientData);
 
-      // 6. Guardar el usuario actualizado
+      // 7. Guardar el usuario actualizado
       final updateResult = await _userRepository.updateUser(updatedUser);
 
       if (updateResult.isLeft) {
@@ -164,7 +173,7 @@ class PaymentService {
         );
       }
 
-      // 7. Devolver el pago exitoso
+      // 8. Devolver el pago exitoso
       return paymentResult;
     } catch (e) {
       return RepositoryResult.error(Failure.unexpectedError(error: e));

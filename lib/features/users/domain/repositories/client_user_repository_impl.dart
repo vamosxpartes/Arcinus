@@ -593,7 +593,7 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
             'subscriptionPlanId': planId,
             'nextPaymentDate': Timestamp.fromDate(nextPaymentDate),
             'remainingDays': remainingDays,
-            'paymentStatus': PaymentStatus.active.name,
+            'paymentStatus': PaymentStatus.inactive.name,
             'assignedAt': Timestamp.fromDate(DateTime.now()),
           };
           
@@ -698,5 +698,112 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     }
     
     return [];
+  }
+
+  @override
+  Future<Either<Failure, bool>> updateClientUserPaymentStatus(
+    String academyId,
+    String userId,
+    PaymentStatus newStatus,
+  ) async {
+    try {
+      AppLogger.logInfo(
+        'Actualizando estado de pago de usuario cliente',
+        className: _className,
+        functionName: 'updateClientUserPaymentStatus',
+        params: {
+          'academyId': academyId, 
+          'userId': userId, 
+          'newStatus': newStatus.name
+        },
+      );
+      
+      // Obtener el documento actual para actualizar solo el estado de pago
+      final userDoc = await _getUsersCollection(academyId).doc(userId).get();
+      
+      if (!userDoc.exists) {
+        return left(const Failure.notFound(message: 'Usuario no encontrado'));
+      }
+      
+      final userData = userDoc.data()!;
+      final clientData = userData['clientData'] as Map<String, dynamic>? ?? {};
+      
+      // Actualizar solo el campo de estado de pago
+      final updatedClientData = {
+        ...clientData,
+        'paymentStatus': newStatus.name,
+      };
+      
+      // Actualizar el documento
+      await _getUsersCollection(academyId).doc(userId).update({
+        'clientData': updatedClientData,
+      });
+      
+      AppLogger.logInfo(
+        'Estado de pago actualizado exitosamente',
+        className: _className,
+        functionName: 'updateClientUserPaymentStatus',
+        params: {'academyId': academyId, 'userId': userId, 'newStatus': newStatus.name},
+      );
+      
+      return right(true);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al actualizar estado de pago del usuario',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'updateClientUserPaymentStatus',
+        params: {'academyId': academyId, 'userId': userId},
+      );
+      return left(Failure.unexpectedError(error: e));
+    }
+  }
+
+  Future<Either<Failure, String>> createClientUser(String academyId, Map<String, dynamic> userData) async {
+    try {
+      AppLogger.logInfo(
+        'Creando usuario cliente',
+        className: _className,
+        functionName: 'createClientUser',
+        params: {'academyId': academyId},
+      );
+      
+      // Asegurar que el clientData incluya un estado de pago inactivo
+      if (userData.containsKey('clientData')) {
+        final clientData = userData['clientData'] as Map<String, dynamic>;
+        // Si no se especifica un estado, establecer como inactivo
+        if (!clientData.containsKey('paymentStatus')) {
+          clientData['paymentStatus'] = PaymentStatus.inactive.name;
+        }
+        userData['clientData'] = clientData;
+      } else {
+        // Si no tiene clientData, crearlo con estado inactivo
+        userData['clientData'] = {
+          'paymentStatus': PaymentStatus.inactive.name,
+        };
+      }
+      
+      final docRef = await _getUsersCollection(academyId).add(userData);
+      
+      AppLogger.logInfo(
+        'Usuario cliente creado exitosamente',
+        className: _className,
+        functionName: 'createClientUser',
+        params: {'academyId': academyId, 'userId': docRef.id},
+      );
+      
+      return right(docRef.id);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al crear usuario cliente',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'createClientUser',
+        params: {'academyId': academyId},
+      );
+      return left(Failure.unexpectedError(error: e));
+    }
   }
 } 

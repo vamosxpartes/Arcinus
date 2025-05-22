@@ -1,8 +1,6 @@
-import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/providers/add_athlete_providers.dart';
 import 'package:arcinus/features/memberships/presentation/providers/academy_providers.dart';
-import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/memberships/domain/state/add_athlete_state.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
@@ -318,8 +316,18 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
                     functionName: 'onBackToList'
                   );
                   
-                  // Primero navegar para evitar acceder a los controllers después
-                  context.go('/manager/academy/$academyId/members');
+                  // Resetear el estado del formulario en el provider
+                  ref.read(addAthleteProvider.notifier).resetForm();
+                  
+                  // Usar Navigator.pop(context) ya que esta pantalla se empujó con MaterialPageRoute
+                  // Esto la cerrará y volverá a la pantalla anterior (AcademyMembersScreen)
+                  if (Navigator.canPop(context)) {
+                    Navigator.of(context).pop();
+                  } else {
+                    // Fallback si no puede hacer pop (poco probable en este contexto), usar context.go
+                    // Esto es una salvaguarda, pero no debería ser necesario.
+                    context.go('/manager/academy/$academyId/members');
+                  }
                 },
                 child: const Text('Volver a la lista'),
               ),
@@ -348,7 +356,7 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
       GlobalKey<FormState>(),
       GlobalKey<FormState>(),
       GlobalKey<FormState>(),
-      GlobalKey<FormState>(),
+      // GlobalKey<FormState>(), // Eliminado para el plan de suscripción
     ];
 
     // Obtener la lista de pasos
@@ -880,6 +888,7 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
         ),
       ),
       
+      /*
       // Plan de Suscripción
       Step(
         state: state.currentStep >= 5 ? StepState.complete : StepState.indexed,
@@ -890,138 +899,7 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
           child: _buildSubscriptionPlanStep(widget.academyId, addAthleteNotifier),
         ),
       ),
+      */
     ];
   }
-
-  // Widget para el paso de selección de plan de suscripción
-  Widget _buildSubscriptionPlanStep(String academyId, dynamic addAthleteNotifier) {
-    if (_isDisposed || !mounted) return const SizedBox.shrink();
-
-    return Consumer(
-      builder: (context, ref, child) {
-        final plansAsyncValue = ref.watch(activeSubscriptionPlansProvider(academyId));
-        
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Asignar plan de suscripción',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Este paso es opcional. Puedes asignar un plan de suscripción ahora o hacerlo más tarde.',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            
-            // Lista de planes disponibles
-            plansAsyncValue.when(
-              data: (plans) {
-                if (plans.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No hay planes disponibles. Puedes crearlos en la sección de Planes de Suscripción.',
-                      textAlign: TextAlign.center,
-                    ),
-                  );
-                }
-                
-                return Column(
-                  children: [
-                    // Selector de planes
-                    DropdownButtonFormField<String>(
-                      isExpanded: true, // Permitir que el dropdown use todo el espacio disponible
-                      decoration: const InputDecoration(
-                        labelText: 'Seleccionar plan',
-                        border: OutlineInputBorder(),
-                        isDense: true, // Reducir altura del campo
-                      ),
-                      hint: const Text(
-                        'Seleccionar un plan (opcional)',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      value: ref.watch(addAthleteProvider).subscriptionPlanId,
-                      onChanged: (planId) {
-                        // Usar método dinámico para actualizar
-                        addAthleteNotifier.updateSubscriptionPlan(planId);
-                      },
-                      items: [
-                        // Opción para no seleccionar plan
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child: Text(
-                            'No asignar plan',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        // Opciones de planes disponibles
-                        ...plans.map((plan) => DropdownMenuItem<String>(
-                          value: plan.id,
-                          child: Text(
-                            '${plan.name} - ${plan.amount} ${plan.currency} / ${plan.billingCycle.displayName}',
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        )),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Selector de fecha de inicio
-                    InkWell(
-                      onTap: () async {
-                        final now = DateTime.now();
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: now,
-                          firstDate: now.subtract(const Duration(days: 7)), // Permitir seleccionar hasta 7 días atrás
-                          lastDate: now.add(const Duration(days: 30)), // Permitir seleccionar hasta 30 días adelante
-                        );
-                        
-                        if (date != null) {
-                          // Usar método dinámico para actualizar
-                          addAthleteNotifier.updateSubscriptionStartDate(date);
-                        }
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Fecha de inicio',
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.calendar_today),
-                        ),
-                        isEmpty: false,
-                        child: Text(
-                          // Obtener fecha de manera segura
-                          _getSubscriptionDateText(addAthleteNotifier),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(
-                child: Text('Error al cargar planes: $error'),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-  
-  // Función auxiliar para obtener el texto de la fecha de manera segura
-  String _getSubscriptionDateText(dynamic notifier) {
-    try {
-      final startDate = notifier.state.subscriptionStartDate;
-      if (startDate != null && startDate is DateTime) {
-        return DateFormat('dd/MM/yyyy').format(startDate);
-      }
-    } catch (e) {
-      // Ignorar errores de acceso
-    }
-    return 'Seleccionar fecha (hoy por defecto)';
-  }
-} 
+}

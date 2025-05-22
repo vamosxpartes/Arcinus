@@ -1,9 +1,11 @@
-import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 import 'package:arcinus/features/payments/data/repositories/payment_config_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'payment_config_provider.g.dart';
 
 /// Provider para el repositorio de configuración de pagos
 final paymentConfigRepositoryProvider = Provider<PaymentConfigRepository>((
@@ -11,26 +13,6 @@ final paymentConfigRepositoryProvider = Provider<PaymentConfigRepository>((
 ) {
   return PaymentConfigRepositoryImpl();
 });
-
-/// Provider que proporciona la configuración de pagos para una academia específica
-final paymentConfigProvider = FutureProvider.family<PaymentConfigModel, String>(
-  (ref, academyId) async {
-    final repository = ref.watch(paymentConfigRepositoryProvider);
-
-    final result = await repository.getPaymentConfig(academyId);
-
-    return result.fold((failure) {
-      AppLogger.logError(
-        message: 'Error al obtener configuración de pagos',
-        error: failure,
-        className: 'paymentConfigProvider',
-        params: {'academyId': academyId},
-      );
-      // Devolver configuración por defecto en caso de error
-      return PaymentConfigModel.defaultConfig(academyId: academyId);
-    }, (config) => config);
-  },
-);
 
 /// Notifier para modificar la configuración de pagos
 class PaymentConfigNotifier
@@ -185,4 +167,133 @@ final paymentConfigNotifierProvider = StateNotifierProvider.family<
     academyId: academyId,
   );
 });
+
+/// Provider para gestionar la configuración de pagos de una academia
+@riverpod
+class PaymentConfig extends _$PaymentConfig {
+  static const String _className = 'PaymentConfig';
+
+  @override
+  Future<PaymentConfigModel> build(String academyId) async {
+    AppLogger.logInfo(
+      'Obteniendo configuración de pagos',
+      className: _className,
+      functionName: 'build',
+      params: {'academyId': academyId},
+    );
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final configsRef = firestore
+          .collection('academies')
+          .doc(academyId)
+          .collection('payment_configs');
+
+      // Buscar la configuración existente
+      final snapshot = await configsRef.limit(1).get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        final config = PaymentConfigModel.fromJson({
+          'id': doc.id,
+          ...doc.data(),
+        });
+
+        AppLogger.logInfo(
+          'Configuración de pagos obtenida',
+          className: _className,
+          functionName: 'build',
+          params: {'academyId': academyId, 'configId': config.id},
+        );
+
+        return config;
+      }
+
+      // Si no existe, crear una configuración por defecto
+      final defaultConfig = PaymentConfigModel.defaultConfig(academyId: academyId);
+      final docRef = await configsRef.add(defaultConfig.toJson());
+
+      AppLogger.logInfo(
+        'Creada configuración de pagos predeterminada',
+        className: _className,
+        functionName: 'build',
+        params: {'academyId': academyId, 'configId': docRef.id},
+      );
+
+      return defaultConfig.copyWith(id: docRef.id);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al obtener configuración de pagos',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'build',
+        params: {'academyId': academyId},
+      );
+      throw Exception('Error al obtener configuración de pagos: $e');
+    }
+  }
+
+  /// Actualiza la configuración de pagos
+  Future<void> updateConfig(PaymentConfigModel updatedConfig) async {
+    AppLogger.logInfo(
+      'Actualizando configuración de pagos',
+      className: _className,
+      functionName: 'updateConfig',
+      params: {'academyId': updatedConfig.academyId, 'configId': updatedConfig.id},
+    );
+
+    // Guardar el estado actual por si falla la actualización
+    final previousState = state;
+    state = const AsyncValue.loading();
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final configDocRef = firestore
+          .collection('academies')
+          .doc(updatedConfig.academyId)
+          .collection('payment_configs')
+          .doc(updatedConfig.id);
+      
+      await configDocRef.update(updatedConfig.toJson());
+
+      AppLogger.logInfo(
+        'Configuración de pagos actualizada',
+        className: _className,
+        functionName: 'updateConfig',
+        params: {'academyId': updatedConfig.academyId, 'configId': updatedConfig.id},
+      );
+      // Actualizar el estado con la nueva configuración
+      // Es importante construir un nuevo AsyncData para que los watchers reaccionen.
+      state = AsyncData(updatedConfig);
+    } catch (e, s) {
+      AppLogger.logError(
+        message: 'Error al actualizar configuración de pagos',
+        error: e,
+        stackTrace: s,
+        className: _className,
+        functionName: 'updateConfig',
+        params: {'academyId': updatedConfig.academyId, 'configId': updatedConfig.id},
+      );
+      // Revertir al estado anterior en caso de error
+      state = previousState;
+      // Propagar la excepción para que la UI pueda manejarla si es necesario
+      throw Exception('Error al actualizar configuración de pagos: $e');
+    }
+  }
+}
+
+/// Extensión para facilitar el acceso a PaymentConfigModel desde AsyncValue
+extension PaymentConfigModelAsyncValue on AsyncValue<PaymentConfigModel> {
+  /// Devuelve el PaymentConfigModel si está disponible, sino null.
+  PaymentConfigModel? get config => whenOrNull(data: (config) => config);
+}
+
+// TODO: Eliminar PaymentConfigNotifier y paymentConfigNotifierProvider si ya no se usan
+//       después de verificar que todo funciona con la clase PaymentConfig generada.
+//       Si se decide mantener PaymentConfigNotifier, considerar refactorizar
+//       la lógica de obtención y actualización para que sea consistente.
+//       Por ejemplo, PaymentConfig podría usar PaymentConfigRepository
+//       en lugar de acceder directamente a Firestore.
+
 

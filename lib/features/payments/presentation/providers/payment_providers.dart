@@ -2,8 +2,13 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
+import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/data/repositories/payment_repository_impl.dart';
+import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -125,6 +130,11 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
     String? concept,
     String? notes,
     String? receiptUrl,
+    String? subscriptionPlanId,
+    bool isPartialPayment = false,
+    double? totalPlanAmount,
+    DateTime? periodStartDate,
+    DateTime? periodEndDate,
   }) async {
     AppLogger.logInfo(
       'Registrando nuevo pago',
@@ -168,6 +178,11 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       registeredBy: userId,
       createdAt: DateTime.now(),
       receiptUrl: receiptUrl,
+      subscriptionPlanId: subscriptionPlanId,
+      isPartialPayment: isPartialPayment,
+      totalPlanAmount: totalPlanAmount,
+      periodStartDate: periodStartDate,
+      periodEndDate: periodEndDate,
     );
 
     AppLogger.logInfo(
@@ -365,6 +380,11 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
     String? concept,
     String? notes,
     String? receiptUrl,
+    String? subscriptionPlanId,
+    bool isPartialPayment = false,
+    double? totalPlanAmount,
+    DateTime? periodStartDate,
+    DateTime? periodEndDate,
   }) async {
     AppLogger.logInfo(
       'Enviando formulario de pago',
@@ -375,12 +395,26 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
         'monto': amount,
         'moneda': currency,
         'fecha': paymentDate.toString(),
+        'esParcial': isPartialPayment,
       },
     );
 
     state = state.copyWith(isSubmitting: true, failure: null, isSuccess: false);
 
     try {
+      final currentAcademy = ref.read(currentAcademyProvider);
+      if (currentAcademy == null || currentAcademy.id == null) {
+        throw const Failure.serverError(message: 'No se pudo determinar la academia actual');
+      }
+      
+      // Obtener la configuración de pagos de la academia
+      final paymentConfigAsync = await ref.read(paymentConfigProvider(currentAcademy.id!).future);
+      
+      // Comprobar si se permiten pagos parciales
+      if (isPartialPayment && !paymentConfigAsync.allowPartialPayments) {
+        throw const Failure.validationError(message: 'Los pagos parciales no están habilitados en esta academia');
+      }
+
       // Llamar directamente al método del Notifier de pagos de academia
       await ref
           .read(academyPaymentsNotifierProvider.notifier)
@@ -392,7 +426,132 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
             concept: concept,
             notes: notes,
             receiptUrl: receiptUrl,
+            subscriptionPlanId: subscriptionPlanId,
+            isPartialPayment: isPartialPayment,
+            totalPlanAmount: totalPlanAmount,
+            periodStartDate: periodStartDate,
+            periodEndDate: periodEndDate,
           );
+      
+      // Después de registrar el pago exitosamente, actualizar el estado del atleta
+      // según el modo de facturación y si el pago es parcial o completo
+      final clientUserRepository = ref.read(clientUserRepositoryProvider);
+      
+      // Determinar el estado de pago según el modo de facturación y si es pago parcial
+      PaymentStatus newPaymentStatus;
+      
+      if (isPartialPayment && totalPlanAmount != null && amount < totalPlanAmount) {
+        // Si es pago parcial, el estado debería ser ACTIVE pero controlado por la fecha de vencimiento
+        newPaymentStatus = PaymentStatus.active;
+      } else {
+        // Para pagos completos, siempre es ACTIVE
+        newPaymentStatus = PaymentStatus.active;
+      }
+      
+      // Aplicar el estado según el modo de facturación
+      switch (paymentConfigAsync.billingMode) {
+        case BillingMode.advance:
+          // Pago por adelantado: estado activo inmediato
+          newPaymentStatus = PaymentStatus.active;
+          break;
+        case BillingMode.current:
+          // Pago mes en curso: activo si el pago cubre el periodo actual
+          newPaymentStatus = PaymentStatus.active;
+          break;
+        case BillingMode.arrears:
+          // Pago mes vencido: podría depender de otras condiciones
+          // Por defecto activamos el usuario pero esto podría ajustarse
+          newPaymentStatus = PaymentStatus.active;
+          break;
+      }
+      
+      // Actualizar el estado de pago del atleta
+      final updateResult = await clientUserRepository.updateClientUserPaymentStatus(
+        currentAcademy.id!,
+        athleteId,
+        newPaymentStatus,
+      );
+      
+      updateResult.fold(
+        (failure) {
+          AppLogger.logWarning(
+            'Se registró el pago pero no se pudo actualizar el estado del atleta',
+            className: 'PaymentFormNotifier',
+            functionName: 'submitPayment',
+            params: {'athleteId': athleteId, 'failure': failure.toString()},
+          );
+          // No fallamos completamente ya que el pago se registró correctamente
+        },
+        (_) {
+          AppLogger.logInfo(
+            'Estado de pago del atleta actualizado a ${newPaymentStatus.name}',
+            className: 'PaymentFormNotifier',
+            functionName: 'submitPayment',
+            params: {'athleteId': athleteId},
+          );
+          
+          // También actualizar lastPaymentDate y otros datos relevantes del usuario
+          try {
+            // Obtener los datos actuales del usuario para preservarlos
+            clientUserRepository.getClientUser(currentAcademy.id!, athleteId).then((userResult) {
+              userResult.fold(
+                (failure) {
+                  AppLogger.logWarning(
+                    'No se pudo obtener datos del usuario para actualizar lastPaymentDate',
+                    className: 'PaymentFormNotifier',
+                    functionName: 'submitPayment',
+                    params: {'athleteId': athleteId, 'failure': failure.toString()},
+                  );
+                },
+                (user) {
+                  // Calcular la próxima fecha de pago si tenemos un plan de suscripción
+                  DateTime? nextPaymentDate;
+                  int? remainingDays;
+                  
+                  if (subscriptionPlanId != null && user.subscriptionPlan != null) {
+                    // Calcular según el ciclo de facturación del plan
+                    nextPaymentDate = _calculateNextPaymentDate(
+                      paymentDate, 
+                      user.subscriptionPlan!.billingCycle,
+                      paymentConfigAsync.billingMode
+                    );
+                    
+                    // Calcular días restantes
+                    remainingDays = nextPaymentDate.difference(DateTime.now()).inDays;
+                    remainingDays = remainingDays < 0 ? 0 : remainingDays;
+                                    }
+                  
+                  // Preparar datos actualizados manteniendo los datos existentes
+                  final updatedClientData = {
+                    'subscriptionPlanId': subscriptionPlanId ?? user.subscriptionPlanId,
+                    'paymentStatus': newPaymentStatus.name,
+                    'lastPaymentDate': Timestamp.fromDate(paymentDate),
+                    if (nextPaymentDate != null)
+                      'nextPaymentDate': Timestamp.fromDate(nextPaymentDate),
+                    if (remainingDays != null)
+                      'remainingDays': remainingDays,
+                  };
+                  
+                  // Actualizar los datos del usuario
+                  clientUserRepository.updateClientUser(
+                    currentAcademy.id!,
+                    athleteId,
+                    updatedClientData,
+                  );
+                },
+              );
+            });
+          } catch (e) {
+            AppLogger.logWarning(
+              'Error al actualizar lastPaymentDate',
+              className: 'PaymentFormNotifier',
+              functionName: 'submitPayment',
+              params: {'error': e.toString()},
+            );
+          }
+        },
+      );
+      
       // Si la llamada anterior no lanzó excepción, fue exitosa
       AppLogger.logInfo(
         'Pago registrado exitosamente desde formulario',
@@ -427,6 +586,47 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
         failure: Failure.unexpectedError(error: e),
         isSuccess: false,
       );
+    }
+  }
+
+  /// Calcular la próxima fecha de pago según el ciclo de facturación y modo de pago
+  DateTime _calculateNextPaymentDate(
+    DateTime currentPaymentDate, 
+    BillingCycle billingCycle,
+    BillingMode billingMode
+  ) {
+    // Ajustar la fecha base según el modo de facturación
+    DateTime baseDate;
+    
+    switch (billingMode) {
+      case BillingMode.advance:
+        // Para pago por adelantado, la fecha base es la fecha actual
+        baseDate = currentPaymentDate;
+        break;
+      case BillingMode.current:
+        // Para pago mes en curso, podría ser el inicio del mes o la fecha actual
+        baseDate = DateTime(currentPaymentDate.year, currentPaymentDate.month, 1);
+        break;
+      case BillingMode.arrears:
+        // Para pago mes vencido, podría ser el fin del mes actual
+        // Calculamos el último día del mes
+        final nextMonth = currentPaymentDate.month == 12 
+          ? DateTime(currentPaymentDate.year + 1, 1, 1)
+          : DateTime(currentPaymentDate.year, currentPaymentDate.month + 1, 1);
+        baseDate = nextMonth.subtract(const Duration(days: 1));
+        break;
+    }
+    
+    // Ahora calculamos la próxima fecha de pago basada en el ciclo
+    switch (billingCycle) {
+      case BillingCycle.monthly:
+        return DateTime(baseDate.year, baseDate.month + 1, baseDate.day);
+      case BillingCycle.quarterly:
+        return DateTime(baseDate.year, baseDate.month + 3, baseDate.day);
+      case BillingCycle.biannual:
+        return DateTime(baseDate.year, baseDate.month + 6, baseDate.day);
+      case BillingCycle.annual:
+        return DateTime(baseDate.year + 1, baseDate.month, baseDate.day);
     }
   }
 

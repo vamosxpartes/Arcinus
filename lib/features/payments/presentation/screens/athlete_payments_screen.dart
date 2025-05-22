@@ -3,6 +3,7 @@ import 'package:arcinus/features/academies/presentation/providers/current_academ
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/data/repositories/payment_repository_impl.dart';
+import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart'
     as subscriptions;
@@ -806,9 +807,13 @@ class _SubscriptionPlanModalState
                     );
                   }
 
+                  final plan = clientUser.subscriptionPlan!;
+                  final bool needsPayment = clientUser.paymentStatus == PaymentStatus.overdue || 
+                                            (clientUser.paymentStatus == PaymentStatus.inactive && _selectedPlanId == plan.id);
+
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8),
-                    color: Colors.blue[50],
+                    color: needsPayment ? Colors.orange[50] : Colors.blue[50],
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Column(
@@ -816,14 +821,14 @@ class _SubscriptionPlanModalState
                         children: [
                           Row(
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.info,
-                                color: Colors.blue,
+                                color: needsPayment ? Colors.orange : Colors.blue,
                                 size: 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Plan Actual: ${clientUser.subscriptionPlan!.name}',
+                                'Plan Actual: ${plan.name}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -833,10 +838,10 @@ class _SubscriptionPlanModalState
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Monto: ${clientUser.subscriptionPlan!.amount} ${clientUser.subscriptionPlan!.currency}',
+                            'Monto: ${plan.amount} ${plan.currency}',
                           ),
                           Text(
-                            'Ciclo: ${clientUser.subscriptionPlan!.billingCycle.displayName}',
+                            'Ciclo: ${plan.billingCycle.displayName}',
                           ),
                           if (clientUser.nextPaymentDate != null)
                             Text(
@@ -844,6 +849,85 @@ class _SubscriptionPlanModalState
                             ),
                           if (clientUser.remainingDays != null)
                             Text('Días restantes: ${clientUser.remainingDays}'),
+                          if (needsPayment) ...[
+                            const SizedBox(height: 12),
+                            Center(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.payment),
+                                label: const Text('Pagar Plan Pendiente'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () {
+                                  final currentAcademy = ref.read(currentAcademyProvider);
+                                  // Obtener la configuración de pagos para verificar si se permiten pagos parciales
+                                  final paymentConfigAsync = ref.read(paymentConfigProvider(widget.academyId));
+                                  
+                                  if (currentAcademy != null && currentAcademy.id != null) {
+                                    Navigator.pop(context); // Cerrar el modal
+                                    
+                                    // Determinar si mostrar opciones de pago parcial primero
+                                    paymentConfigAsync.whenData((config) {
+                                      if (config.allowPartialPayments) {
+                                        // Si se permiten pagos parciales, mostrar un diálogo para elegir
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Tipo de Pago'),
+                                            content: const Text('¿Desea realizar un pago parcial o pagar el monto completo?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context); // Cerrar el diálogo
+                                                  // Navegar a pantalla de pago con datos de pago parcial
+                                                  _navigateToPaymentScreen(
+                                                    context, 
+                                                    currentAcademy.id!, 
+                                                    plan,
+                                                    isPartialPayment: true
+                                                  );
+                                                },
+                                                child: const Text('Pago Parcial'),
+                                              ),
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context); // Cerrar el diálogo
+                                                  // Navegar a pantalla de pago con datos completos
+                                                  _navigateToPaymentScreen(
+                                                    context, 
+                                                    currentAcademy.id!, 
+                                                    plan,
+                                                    isPartialPayment: false
+                                                  );
+                                                },
+                                                child: const Text('Pago Completo'),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      } else {
+                                        // Si no se permiten pagos parciales, ir directamente a la pantalla de pago
+                                        _navigateToPaymentScreen(
+                                          context, 
+                                          currentAcademy.id!, 
+                                          plan,
+                                          isPartialPayment: false
+                                        );
+                                      }
+                                    });
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('No se pudo determinar la academia actual.'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -1189,4 +1273,29 @@ class _SubscriptionPlanModalState
       }
     }
   }
+
+  void _navigateToPaymentScreen(
+      BuildContext context, 
+      String academyId, 
+      SubscriptionPlanModel plan, 
+      {bool isPartialPayment = false}
+    ) {
+      // Implementa la lógica para navegar a la pantalla de pago con los datos del plan
+      // Esto puede incluir la creación de un nuevo pago o la actualización de uno existente
+      // Dependiendo de si es un pago parcial o completo
+      // Puedes usar GoRouter para navegar a la pantalla de pago
+      // Aquí se asume que se usa GoRouter para la navegación
+      context.push(
+        '/owner/academy/$academyId/payments/register',
+        extra: {
+          'preselectedAthleteId': widget.athleteId,
+          'paymentConcept': 'Pago plan: ${plan.name}',
+          'paymentAmount': plan.amount,
+          'paymentCurrency': plan.currency,
+          'subscriptionPlanId': plan.id,
+          'isPartialPayment': isPartialPayment,
+          'totalPlanAmount': plan.amount,
+        },
+      );
+    }
 }

@@ -3,34 +3,41 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:fpdart/fpdart.dart';
 
-/// Interfaz para el repositorio de usuarios cliente (atletas y padres)
+/// Interfaz para el repositorio de usuarios cliente
 abstract class ClientUserRepository {
-  /// Obtiene un usuario cliente específico
+  /// Obtiene un usuario cliente por su ID
   Future<Either<Failure, ClientUserModel>> getClientUser(
     String academyId,
     String userId,
   );
-
-  /// Obtiene la lista de usuarios cliente filtrados opcionalmente por tipo o estado de pago
+  
+  /// Obtiene todos los usuarios cliente de una academia, con filtros opcionales
   Future<Either<Failure, List<ClientUserModel>>> getClientUsers(
     String academyId, {
     AppRole? clientType,
     PaymentStatus? paymentStatus,
   });
-
-  /// Actualiza los datos de cliente de un usuario
+  
+  /// Actualiza los datos de un usuario cliente
   Future<Either<Failure, ClientUserModel>> updateClientUser(
     String academyId,
     String userId,
     Map<String, dynamic> clientData,
   );
-
+  
   /// Asigna un plan de suscripción a un usuario
   Future<Either<Failure, ClientUserModel>> assignSubscriptionPlan(
     String academyId,
     String userId,
     String planId,
     DateTime? startDate,
+  );
+  
+  /// Actualiza específicamente el estado de pago de un usuario
+  Future<Either<Failure, bool>> updateClientUserPaymentStatus(
+    String academyId,
+    String userId,
+    PaymentStatus newStatus,
   );
 
   /// Obtiene todos los planes de suscripción disponibles

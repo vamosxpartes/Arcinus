@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/sports/scripts/initialize_sports_collection.dart';
 import 'package:arcinus/features/auth/presentation/providers/registration_form_provider.dart';
+import 'package:arcinus/features/payments/presentation/providers/payment_status_verification_provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -34,6 +35,10 @@ void main() async {
     final container = ProviderContainer();
     await initRegistrationBox(container);
     AppLogger.logInfo('main: Registration box initialized');
+    
+    // Iniciar la verificación automática de estados de pago
+    AppLogger.logInfo('main: Starting payment status verification');
+    container.read(paymentStatusVerificationProvider);
 
     AppLogger.logInfo('main: Running ProviderScope...');
     runApp(UncontrolledProviderScope(

@@ -6,16 +6,15 @@ import 'package:arcinus/features/memberships/presentation/widgets/academy_user_c
 import 'package:arcinus/features/memberships/presentation/utils/role_utils.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_user_details_screen.dart';
 import 'package:arcinus/features/memberships/presentation/screens/add_athlete_screen.dart';
-import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
+import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/core/utils/screen_under_development.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
-import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 
 class AcademyMembersScreen extends ConsumerStatefulWidget {
   final String academyId;
@@ -191,51 +190,54 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
   Widget _buildAvatarItem(AcademyUserModel athlete) {
     return Consumer(
       builder: (context, ref, _) {
-        // Obtener configuración de pagos de la academia
         final paymentConfigAsync = ref.watch(paymentConfigProvider(widget.academyId));
         final clientUserAsync = ref.watch(clientUserProvider(athlete.id));
         
         return clientUserAsync.when(
           data: (clientUser) {
-            // Verifica si el cliente tiene plan y está próximo a pagar
             final bool hasPlan = clientUser?.subscriptionPlan != null;
-            final bool hasPaymentSoon = clientUser?.remainingDays != null && 
-                                      clientUser!.remainingDays! < 15;
-            
-            // Si no tiene plan o no está próximo a pagar, no mostramos en la lista horizontal
-            if (!hasPlan) {
-              return const SizedBox.shrink();
-            }
             
             return paymentConfigAsync.when(
               data: (paymentConfig) {
-                // Verificar si el pago está vencido, considerando el período de gracia
-                // Esto usa la configuración de días de gracia definida por la academia
-                final bool isPaymentOverdue = clientUser?.nextPaymentDate != null && 
-                    DateTime.now().isAfter(
-                      clientUser!.nextPaymentDate!.add(
-                        Duration(days: paymentConfig.gracePeriodDays)
-                      )
-                    );
-                
-                // Verificar si está en período de gracia (después de fecha límite pero dentro del período de gracia)
-                final bool isInGracePeriod = clientUser?.nextPaymentDate != null && 
-                    DateTime.now().isAfter(clientUser!.nextPaymentDate!) && 
-                    DateTime.now().isBefore(
-                      clientUser.nextPaymentDate!.add(
-                        Duration(days: paymentConfig.gracePeriodDays)
-                      )
-                    );
-                
+                final now = DateTime.now();
+                // final gracePeriodDuration = Duration(days: paymentConfig.gracePeriodDays); // No se usa directamente si usamos clientUser.paymentStatus
+
+                // Usar clientUser.paymentStatus para determinar el estado
+                final bool needsPaymentAttention = clientUser == null || // Si no hay datos del cliente
+                                                 !hasPlan || // Si no tiene plan asignado
+                                                 clientUser.paymentStatus == PaymentStatus.overdue || // Si está en mora
+                                                 (clientUser.paymentStatus == PaymentStatus.inactive && hasPlan); // Si está inactivo pero TIENE plan (implica que debería pagar)
+
+                final bool isInGracePeriod = clientUser?.paymentStatus == PaymentStatus.overdue && 
+                                             clientUser?.nextPaymentDate != null &&
+                                             now.isBefore(clientUser!.nextPaymentDate!.add(Duration(days: paymentConfig.gracePeriodDays))) &&
+                                             now.isAfter(clientUser.nextPaymentDate!);
+
+
+                // Determinar si mostrar alerta visual (borde e icono superior)
+                final bool showVisualAlert = needsPaymentAttention || 
+                                           isInGracePeriod ||
+                                           (hasPlan && clientUser.remainingDays != null && clientUser.remainingDays! < 5 && clientUser.paymentStatus == PaymentStatus.active);
+
+
+                Color borderColor = Colors.transparent;
+                if (needsPaymentAttention && clientUser?.paymentStatus == PaymentStatus.overdue) { // Específicamente rojo para 'overdue'
+                  borderColor = AppTheme.bonfireRed; 
+                } else if (needsPaymentAttention && !hasPlan) { // Naranja si no tiene plan
+                  borderColor = AppTheme.goldTrophy;
+                } else if (isInGracePeriod) {
+                  borderColor = AppTheme.goldTrophy;
+                }
+
+
                 return GestureDetector(
                   onTap: () {
                     // Navegar directamente a la pantalla de pagos al tocar el avatar
                     // Esto facilita la gestión de pagos para los atletas que lo requieren
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (context) => AthletePaymentsScreen(
+                        builder: (context) => RegisterPaymentScreen(
                           athleteId: athlete.id,
-                          athleteName: athlete.fullName,
                         ),
                       ),
                     );
@@ -270,9 +272,8 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                               Navigator.pop(context);
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (context) => AthletePaymentsScreen(
+                                  builder: (context) => RegisterPaymentScreen(
                                     athleteId: athlete.id,
-                                    athleteName: athlete.fullName,
                                   ),
                                 ),
                               );
@@ -306,11 +307,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                             Container(
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                border: isPaymentOverdue 
-                                    ? Border.all(color: AppTheme.bonfireRed, width: 3)
-                                    : (isInGracePeriod
-                                        ? Border.all(color: AppTheme.goldTrophy, width: 3)
-                                        : null),
+                                border: Border.all(color: borderColor, width: borderColor == Colors.transparent ? 0 : 3),
                               ),
                               child: CircleAvatar(
                                 radius: 30,
@@ -346,62 +343,72 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                                   ),
                                 ),
                                 child: Center(
-                                  child: (clientUser?.subscriptionPlan != null && clientUser?.nextPaymentDate != null)
-                                    ? Builder(
-                                        builder: (context) {
-                                          // Fecha actual
-                                          final now = DateTime.now();
-                                          final nextPaymentDate = clientUser!.nextPaymentDate!;
-                                          
-                                          // Si ya está vencido, mostrar '!'
-                                          if (isPaymentOverdue) {
-                                            return const Text(
-                                              '!',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppTheme.bonfireRed,
-                                              ),
-                                            );
-                                          } else if (isInGracePeriod) {
-                                            // En período de gracia
-                                            return const Text(
-                                              'G',
+                                  child: Builder(
+                                    builder: (context) {
+                                      if (clientUser == null || !hasPlan) { // No hay datos de cliente o no tiene plan
+                                        return const Icon(
+                                          Icons.playlist_add_check, // Icono para asignar plan
+                                          size: 12,
+                                          color: AppTheme.goldTrophy, // Naranja para "acción requerida"
+                                        );
+                                      }
+                                      switch (clientUser.paymentStatus) {
+                                        case PaymentStatus.overdue:
+                                          return const Text(
+                                            '!',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.bonfireRed,
+                                            ),
+                                          );
+                                        case PaymentStatus.inactive: // Inactivo pero con plan implica que necesita pagar para activar
+                                           return const Icon(
+                                            Icons.attach_money, 
+                                            size: 12,
+                                            color: AppTheme.bonfireRed,
+                                          );
+                                        case PaymentStatus.active:
+                                          if (clientUser.nextPaymentDate != null) {
+                                            final daysRemaining = clientUser.nextPaymentDate!.difference(now).inDays;
+                                            if (daysRemaining < 0 && !isInGracePeriod) { // Vencido y no en gracia (aunque overdue deberia cubrirlo)
+                                               return const Text(
+                                                '!',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.bonfireRed,
+                                                ),
+                                              );
+                                            }
+                                            return Text(
+                                              '$daysRemaining',
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
-                                                color: AppTheme.goldTrophy,
+                                                color: daysRemaining < 5 
+                                                    ? AppTheme.bonfireRed 
+                                                    : (daysRemaining < 15 
+                                                        ? AppTheme.goldTrophy 
+                                                        : Colors.black),
                                               ),
                                             );
+                                          } else {
+                                            // Activo pero sin fecha de próximo pago (podría ser plan vitalicio o error)
+                                            return const Icon(
+                                              Icons.check_circle_outline,
+                                              size: 12,
+                                              color: Colors.green,
+                                            );
                                           }
-                                          
-                                          // Mostrar días restantes con color según cercanía
-                                          final daysRemaining = nextPaymentDate.difference(now).inDays;
-                                          
-                                          return Text(
-                                            '$daysRemaining',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: daysRemaining < 5 
-                                                  ? AppTheme.bonfireRed 
-                                                  : (daysRemaining < 15 
-                                                      ? AppTheme.goldTrophy 
-                                                      : Colors.black),
-                                            ),
-                                          );
-                                        }
-                                      )
-                                    : const Icon(
-                                        Icons.check,
-                                        size: 12,
-                                        color: Colors.black,
-                                      ),
+                                      }
+                                    }
+                                  ),
                                 ),
                               ),
                             ),
                             // Indicador de color en la esquina superior para alertar sobre pago
-                            if (hasPaymentSoon || isPaymentOverdue || isInGracePeriod)
+                            if (showVisualAlert)
                               Positioned(
                                 right: 0,
                                 top: 0,
@@ -409,13 +416,15 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                                   width: 12,
                                   height: 12,
                                   decoration: BoxDecoration(
-                                    color: isPaymentOverdue 
+                                    color: (clientUser?.paymentStatus == PaymentStatus.overdue)
                                         ? AppTheme.bonfireRed
-                                        : (isInGracePeriod
-                                            ? AppTheme.goldTrophy
-                                            : (clientUser!.remainingDays! < 5
-                                                ? AppTheme.bonfireRed
-                                                : AppTheme.goldTrophy)),
+                                        : (!hasPlan || clientUser?.paymentStatus == PaymentStatus.inactive) // Sin plan o inactivo con plan
+                                            ? AppTheme.goldTrophy // Naranja para "atención requerida"
+                                            : (isInGracePeriod 
+                                                ? AppTheme.goldTrophy
+                                                : (clientUser != null && clientUser.remainingDays != null && clientUser.remainingDays! < 5 // Chequeo más robusto
+                                                    ? AppTheme.bonfireRed
+                                                    : AppTheme.goldTrophy)),
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: AppTheme.blackSwarm,

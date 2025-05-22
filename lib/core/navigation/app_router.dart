@@ -399,7 +399,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                          );
                       },
                    ),
-                   GoRoute(
+                                        GoRoute(
                       path: 'members',
                       name: AppRoutes.ownerAcademyMembers,
                        builder: (context, state) {
@@ -603,14 +603,26 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/owner/payments', // Path completo
               name: AppRoutes.ownerPayments,
               builder: (context, state) {
-                return PaymentsScreen();
+                return const ScreenUnderDevelopment(message: 'Gestión de Pagos');
               },
               routes: [ // Rutas anidadas de pagos (register, :paymentId) sí van aquí
                   GoRoute(
                     path: 'register',
                     name: AppRoutes.ownerRegisterPayment,
                     builder: (context, state) {
-                      return RegisterPaymentScreen();
+                      // Obtener el ID del atleta desde los parámetros de consulta (si existe)
+                      final athleteId = state.uri.queryParameters['athleteId'];
+                      
+                      if (athleteId != null) {
+                        // Si se proporciona un ID de atleta, pasar como parámetro
+                        return RegisterPaymentScreen(
+                        );
+                      } else {
+                        // Mostrar pantalla de error o una alternativa
+                        return const ScreenUnderDevelopment(
+                          message: 'Para registrar un pago, debe seleccionar un atleta primero',
+                        );
+                      }
                     },
                   ),
                   GoRoute(
@@ -636,7 +648,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: AppRoutes.payments,
               name: AppRoutes.payments,
-              builder: (context, state) => const PaymentsScreen(),
+              builder: (context, state) => const ScreenUnderDevelopment(message: 'Gestión de Pagos'),
             ),
           ],
         ),        
