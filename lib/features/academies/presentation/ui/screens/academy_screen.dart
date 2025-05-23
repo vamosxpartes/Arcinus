@@ -10,6 +10,7 @@ import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/academies/presentation/ui/widgets/custom_segmented_tabbar.dart'; // Importar el nuevo widget
 import 'package:arcinus/features/subscriptions/presentation/screens/subscription_plans_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/payment_config_screen.dart';
+import 'package:arcinus/features/billing/presentation/screens/billing_config_screen.dart';
 
 /// Pantalla que muestra los detalles de una academia deportiva.
 ///
@@ -35,7 +36,7 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this); // Aumentado a 4 tabs
 
     // Cargar datos de la academia
     _loadAcademy();
@@ -321,7 +322,7 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
                 // Usar el nuevo CustomSegmentedTabbar
                 CustomSegmentedTabbar(
                   controller: _tabController,
-                  tabs: const ['RESUMEN', 'PLANES', 'PAGOS'],
+                  tabs: const ['RESUMEN', 'PLANES', 'PAGOS', 'FACTURACIÓN'],
                   selectedColor:
                       AppTheme.blackSwarm, // Negro cuando está seleccionado
                   unselectedColor:
@@ -350,6 +351,7 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
                 _buildSummaryTab(academy),
                 _buildPlansTab(academy),
                 _buildPaymentConfigTab(academy),
+                _buildBillingTab(academy), // Nuevo tab de facturación
               ],
             ),
           ),
@@ -521,5 +523,13 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
     }
     
     return PaymentConfigScreen(academyId: academy.id!);
+  }
+  
+  Widget _buildBillingTab(AcademyModel academy) {
+    if (academy.id == null) {
+      return const Center(child: Text('ID de academia no válido'));
+    }
+    
+    return BillingConfigScreen(academyId: academy.id!);
   }
 }
