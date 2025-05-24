@@ -11,6 +11,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository_impl.dart';
+import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
+import 'package:arcinus/features/memberships/presentation/providers/academy_providers.dart';
 
 part 'add_athlete_providers.g.dart';
 
@@ -482,23 +484,189 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
   }
   
   // Método para cargar datos de prueba
-  void cargarDatosDePrueba() {
+  void cargarDatosDePrueba() async {
     final now = DateTime.now();
-    final fechaNacimiento = DateTime(now.year - 15, now.month, now.day); // 15 años atrás
     
-    // Actualizar estado con datos de prueba
+    // Generar datos dinámicos y variados
+    final nombres = ['Carlos', 'María', 'Andrés', 'Sofía', 'Julián', 'Isabella', 'Diego', 'Valentina'];
+    final apellidos = ['Rodríguez', 'García', 'López', 'Martínez', 'González', 'Pérez', 'Sánchez', 'Ramírez'];
+    final nivelesExperiencia = ['Principiante (0-1 años)', 'Intermedio (2-3 años)', 'Avanzado (4-5 años)', 'Experto (6+ años)'];
+    
+    // Seleccionar datos aleatorios
+    final random = DateTime.now().millisecondsSinceEpoch % 100;
+    final nombreIndex = random % nombres.length;
+    final apellidoIndex = (random + 3) % apellidos.length;
+    final experienciaIndex = random % nivelesExperiencia.length;
+    
+    // Generar edad entre 12 y 18 años
+    final edadAnios = 12 + (random % 7);
+    final fechaNacimiento = DateTime(now.year - edadAnios, now.month, now.day);
+    
+    // Generar datos físicos realistas según la edad
+    final alturaBase = 140 + (edadAnios - 12) * 8; // Entre 140cm (12 años) y 188cm (18 años)
+    final alturaVariacion = (random % 20) - 10; // +/- 10cm de variación
+    final altura = (alturaBase + alturaVariacion).toDouble();
+    
+    final pesoBase = 35 + (edadAnios - 12) * 6; // Entre 35kg (12 años) y 71kg (18 años)
+    final pesoVariacion = (random % 10) - 5; // +/- 5kg de variación
+    final peso = (pesoBase + pesoVariacion).toDouble();
+    
+    // Generar datos de contacto dinámicos
+    final telefonos = ['655', '601', '634', '625', '648', '657'];
+    final telefonoBase = telefonos[random % telefonos.length];
+    final numeroAleatorio = 100000 + (random * 7) % 900000;
+    
+    // Generar información médica variada
+    final alergias = [
+      'Ninguna conocida',
+      'Polen y ácaros del polvo',
+      'Frutos secos',
+      'Lactosa',
+      'Medicamentos (penicilina)',
+      'Picaduras de insectos'
+    ];
+    final condicionesMedicas = [
+      'Ninguna',
+      'Asma leve',
+      'Miopía',
+      'Antecedentes de esguinces de tobillo',
+      'Intolerancia alimentaria leve',
+      'Historial de lesiones deportivas menores'
+    ];
+    
+    final alergiaIndex = random % alergias.length;
+    final condicionIndex = random % condicionesMedicas.length;
+    
+    // Información deportiva básica
+    final experienciaSeleccionada = nivelesExperiencia[experienciaIndex];
+    
+    // Posición dinámica (se intentará obtener del provider)
+    String? posicionSeleccionada;
+    
+    // Especialización dinámica (se intentará obtener del provider)
+    String? especializacionSeleccionada;
+    
+    try {
+      // Obtener la academia actual
+      final currentAcademy = ref.read(currentAcademyProvider);
+      final academyId = currentAcademy?.id;
+      
+      if (academyId != null && academyId.isNotEmpty) {
+        // Obtener las posiciones dinámicas de la academia
+        final positionsAsync = await ref.read(sportPositionsProvider(academyId).future);
+        
+        if (positionsAsync.isNotEmpty) {
+          // Seleccionar posición aleatoria de las disponibles
+          final posicionIndex = random % positionsAsync.length;
+          posicionSeleccionada = positionsAsync[posicionIndex];
+          
+          AppLogger.logInfo(
+            'Posición dinámica seleccionada',
+            className: _className,
+            functionName: 'cargarDatosDePrueba',
+            params: {
+              'academyId': academyId,
+              'position': posicionSeleccionada,
+              'available': positionsAsync,
+            },
+          );
+        }
+        
+        // Obtener las características deportivas de la academia para especializaciones
+        final characteristicsAsync = await ref.read(academySportCharacteristicsProvider(academyId).future);
+        
+        if (characteristicsAsync != null && characteristicsAsync.athleteSpecializations.isNotEmpty) {
+          // Seleccionar especialización aleatoria de las disponibles
+          final especializacionIndex = random % characteristicsAsync.athleteSpecializations.length;
+          especializacionSeleccionada = characteristicsAsync.athleteSpecializations[especializacionIndex];
+          
+          AppLogger.logInfo(
+            'Especialización dinámica seleccionada',
+            className: _className,
+            functionName: 'cargarDatosDePrueba',
+            params: {
+              'academyId': academyId,
+              'especialization': especializacionSeleccionada,
+              'available': characteristicsAsync.athleteSpecializations,
+            },
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.logWarning(
+        'No se pudieron obtener datos deportivos dinámicos, usando fallback',
+        className: _className,
+        functionName: 'cargarDatosDePrueba',
+        params: {'error': e.toString()},
+      );
+    }
+    
+    // Fallback para posición si no se pudo obtener dinámica
+    if (posicionSeleccionada == null) {
+      final posicionesFallback = ['Portero', 'Defensa central', 'Lateral derecho', 'Lateral izquierdo', 'Mediocentro defensivo', 'Mediocentro', 'Extremo derecho', 'Extremo izquierdo', 'Delantero'];
+      final posicionIndex = random % posicionesFallback.length;
+      posicionSeleccionada = posicionesFallback[posicionIndex];
+      
+      AppLogger.logInfo(
+        'Usando posición fallback',
+        className: _className,
+        functionName: 'cargarDatosDePrueba',
+        params: {'position': posicionSeleccionada},
+      );
+    }
+    
+    // Fallback para especialización si no se pudo obtener dinámica
+    if (especializacionSeleccionada == null) {
+      final especializacionesFallback = ['Velocidad', 'Técnica', 'Fuerza', 'Resistencia', 'Liderazgo', 'Precisión', 'Agilidad', 'Táctica'];
+      final especializacionIndex = random % especializacionesFallback.length;
+      especializacionSeleccionada = especializacionesFallback[especializacionIndex];
+      
+      AppLogger.logInfo(
+        'Usando especialización fallback',
+        className: _className,
+        functionName: 'cargarDatosDePrueba',
+        params: {'especialization': especializacionSeleccionada},
+      );
+    }
+    
+    // Actualizar estado con datos de prueba dinámicos
     state = state.copyWith(
-      firstName: 'Carlos',
-      lastName: 'Rodríguez',
+      // Información personal
+      firstName: nombres[nombreIndex],
+      lastName: apellidos[apellidoIndex],
       birthDate: fechaNacimiento,
-      phoneNumber: '655123456',
-      heightCm: 176.5,
-      weightKg: 68.2,
-      allergies: 'Ninguna conocida',
-      medicalConditions: 'Asma leve',
-      emergencyContactName: 'Ana Rodríguez',
-      emergencyContactPhone: '655789012',
-      position: 'Defensa central'
+      phoneNumber: '$telefonoBase$numeroAleatorio',
+      
+      // Información física
+      heightCm: altura,
+      weightKg: peso,
+      
+      // Información de salud
+      allergies: alergias[alergiaIndex],
+      medicalConditions: condicionesMedicas[condicionIndex],
+      emergencyContactName: '${nombres[(nombreIndex + 1) % nombres.length]} ${apellidos[apellidoIndex]} (Madre)',
+      emergencyContactPhone: '${telefonos[(random + 1) % telefonos.length]}${100000 + (random * 11) % 900000}',
+      
+      // Información deportiva completa con datos dinámicos
+      position: posicionSeleccionada,
+      experience: experienciaSeleccionada,
+      specialization: especializacionSeleccionada,
+      
+      // Fecha de inicio de suscripción (si aplica)
+      subscriptionStartDate: now,
+    );
+    
+    AppLogger.logInfo(
+      'Datos de prueba cargados dinámicamente',
+      className: _className,
+      functionName: 'cargarDatosDePrueba',
+      params: {
+        'atleta': '${nombres[nombreIndex]} ${apellidos[apellidoIndex]}',
+        'edad': '$edadAnios años',
+        'posicion': posicionSeleccionada,
+        'especializacion': especializacionSeleccionada,
+        'experiencia': experienciaSeleccionada,
+      },
     );
     
     // El resto de la lógica para actualizar controladores es manejada por el widget

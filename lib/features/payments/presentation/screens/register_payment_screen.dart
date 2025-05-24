@@ -862,7 +862,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                 // Fecha de inicio
                 Row(
                   children: [
-                    const Text('Fecha de inicio:'),
+                    const Text('Fecha de asignacion del plan:'),
                     const SizedBox(width: 16),
                     Expanded(
                       child: InkWell(

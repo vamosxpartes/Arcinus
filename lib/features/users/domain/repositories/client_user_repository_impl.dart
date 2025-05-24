@@ -126,6 +126,7 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
           ? (clientData['nextPaymentDate'] as Timestamp).toDate()
           : null,
         remainingDays: clientData['remainingDays'] as int?,
+        isEstimatedDays: clientData['isEstimatedDays'] as bool? ?? false,
         linkedAccounts: _parseLinkedAccounts(clientData['linkedAccounts']),
         lastPaymentDate: clientData['lastPaymentDate'] != null
           ? (clientData['lastPaymentDate'] as Timestamp).toDate()
@@ -236,6 +237,7 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
             ? (clientData['nextPaymentDate'] as Timestamp).toDate()
             : null,
           remainingDays: clientData['remainingDays'] as int?,
+          isEstimatedDays: clientData['isEstimatedDays'] as bool? ?? false,
           linkedAccounts: _parseLinkedAccounts(clientData['linkedAccounts']),
           lastPaymentDate: clientData['lastPaymentDate'] != null
             ? (clientData['lastPaymentDate'] as Timestamp).toDate()
@@ -581,20 +583,23 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
           return left(failure);
         },
         (plan) async {
-          // Calcular la próxima fecha de pago
+          // Al asignar un plan, NO calculamos nextPaymentDate
+          // La próxima fecha de pago se calculará únicamente cuando se registre un pago
           final effectiveStartDate = startDate ?? DateTime.now();
-          final nextPaymentDate = _calculateNextPaymentDate(effectiveStartDate, plan.billingCycle);
           
-          // Calcular días restantes
-          final remainingDays = _calculateRemainingDays(effectiveStartDate, nextPaymentDate);
+          // Para remainingDays al asignar un plan, usar la duración del plan como referencia
+          // pero indicar que es una estimación hasta que se registre el primer pago
+          final planDurationDays = _getPlanDurationInDays(plan.billingCycle);
           
           // Actualizar el usuario
           final clientData = {
             'subscriptionPlanId': planId,
-            'nextPaymentDate': Timestamp.fromDate(nextPaymentDate),
-            'remainingDays': remainingDays,
-            'paymentStatus': PaymentStatus.inactive.name,
+            'planStartDate': Timestamp.fromDate(effectiveStartDate), // Fecha de inicio del plan (solo referencial)
+            'remainingDays': planDurationDays, // Duración completa del plan (estimación hasta primer pago)
+            'paymentStatus': PaymentStatus.inactive.name, // Inactivo hasta que se registre un pago
             'assignedAt': Timestamp.fromDate(DateTime.now()),
+            'isEstimatedDays': true, // Flag para indicar que remainingDays es estimación
+            // NO asignamos nextPaymentDate aquí - se asignará al registrar el primer pago
           };
           
           AppLogger.logInfo(
@@ -605,8 +610,9 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
               'academyId': academyId,
               'userId': userId,
               'planId': planId,
-              'nextPaymentDate': nextPaymentDate.toIso8601String(),
-              'remainingDays': remainingDays,
+              'effectiveStartDate': effectiveStartDate.toIso8601String(),
+              'planDurationDays': planDurationDays,
+              'note': 'nextPaymentDate se calculará al registrar el primer pago',
             },
           );
           
@@ -654,23 +660,18 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
     }
   }
   
-  // Método auxiliar para calcular la próxima fecha de pago
-  DateTime _calculateNextPaymentDate(DateTime startDate, BillingCycle billingCycle) {
+  // Método auxiliar para calcular la duración del plan en días
+  int _getPlanDurationInDays(BillingCycle billingCycle) {
     switch (billingCycle) {
       case BillingCycle.monthly:
-        return DateTime(startDate.year, startDate.month + 1, startDate.day);
+        return 30; // Aproximación para un mes
       case BillingCycle.quarterly:
-        return DateTime(startDate.year, startDate.month + 3, startDate.day);
+        return 90; // 3 meses aproximado
       case BillingCycle.biannual:
-        return DateTime(startDate.year, startDate.month + 6, startDate.day);
+        return 180; // 6 meses aproximado
       case BillingCycle.annual:
-        return DateTime(startDate.year + 1, startDate.month, startDate.day);
+        return 365; // 1 año aproximado
     }
-  }
-  
-  // Método auxiliar para calcular los días restantes
-  int _calculateRemainingDays(DateTime startDate, DateTime endDate) {
-    return endDate.difference(startDate).inDays;
   }
 
   // Método auxiliar para parsear el estado de pago

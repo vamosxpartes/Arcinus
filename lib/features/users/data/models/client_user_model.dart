@@ -149,6 +149,7 @@ class ClientUserModel with _$ClientUserModel {
     SubscriptionPlanModel? subscriptionPlan,
     DateTime? nextPaymentDate,
     int? remainingDays,
+    @Default(false) bool isEstimatedDays, // Indica si remainingDays es estimación
     @Default([]) List<String> linkedAccounts, // IDs de cuentas vinculadas (padre-atleta)
     DateTime? lastPaymentDate,
     @Default({}) Map<String, dynamic> metadata,

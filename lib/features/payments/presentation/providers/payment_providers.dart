@@ -506,22 +506,36 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
                   );
                 },
                 (user) {
-                  // Calcular la próxima fecha de pago si tenemos un plan de suscripción
+                  // Calcular la próxima fecha de pago según el ciclo de facturación y modo de pago
                   DateTime? nextPaymentDate;
                   int? remainingDays;
                   
                   if (subscriptionPlanId != null && user.subscriptionPlan != null) {
-                    // Calcular según el ciclo de facturación del plan
+                    // IMPORTANTE: Al registrar un pago, siempre usar la fecha del pago como base
+                    // para calcular la próxima fecha, NO la fecha de inicio del plan
                     nextPaymentDate = _calculateNextPaymentDate(
-                      paymentDate, 
+                      paymentDate, // Usar la fecha del pago actual, NO la fecha de inicio del plan
                       user.subscriptionPlan!.billingCycle,
                       paymentConfigAsync.billingMode
                     );
                     
-                    // Calcular días restantes
+                    // Calcular días restantes desde HOY hasta la próxima fecha de pago
                     remainingDays = nextPaymentDate.difference(DateTime.now()).inDays;
                     remainingDays = remainingDays < 0 ? 0 : remainingDays;
-                                    }
+                    
+                    AppLogger.logInfo(
+                      'Calculando próxima fecha de pago basada en pago actual',
+                      className: 'PaymentFormNotifier',
+                      functionName: 'submitPayment',
+                      params: {
+                        'fechaPagoActual': paymentDate.toIso8601String(),
+                        'proximaFechaPago': nextPaymentDate.toIso8601String(),
+                        'diasRestantes': remainingDays,
+                        'cicloFacturacion': user.subscriptionPlan!.billingCycle.name,
+                        'modoFacturacion': paymentConfigAsync.billingMode.name,
+                      },
+                    );
+                  }
                   
                   // Preparar datos actualizados manteniendo los datos existentes
                   final updatedClientData = {
@@ -532,6 +546,7 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
                       'nextPaymentDate': Timestamp.fromDate(nextPaymentDate),
                     if (remainingDays != null)
                       'remainingDays': remainingDays,
+                    'isEstimatedDays': false, // Ahora son días reales basados en pago
                   };
                   
                   // Actualizar los datos del usuario

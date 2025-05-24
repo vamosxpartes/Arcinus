@@ -47,7 +47,7 @@ class AcademyUserCard extends ConsumerWidget {
     
     // Placeholder para grupos (por ahora)
     final String groupPlaceholder = isAthlete 
-        ? 'Grupo Principal' 
+        ? 'Sin asignar grupo' 
         : (userRole == AppRole.padre ? 'Padre/Tutor' : 'Staff');
     
     // Contenido de la tarjeta

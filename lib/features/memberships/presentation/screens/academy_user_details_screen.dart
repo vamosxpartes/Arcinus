@@ -1,15 +1,15 @@
-import 'package:arcinus/core/auth/app_permissions.dart';
-import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
+import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/memberships/presentation/screens/edit_athlete_screen.dart';
 import 'package:arcinus/features/memberships/presentation/widgets/permission_widget.dart';
-import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
-import 'package:arcinus/core/theme/ux/app_theme.dart';
-import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/payments/presentation/screens/payment_history_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/core/auth/app_permissions.dart';
+import 'package:arcinus/core/theme/ux/app_theme.dart';
+import 'package:arcinus/core/auth/roles.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class AcademyUserDetailsScreen extends ConsumerWidget {
@@ -232,8 +232,10 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
                                   onPressed: () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (context) => RegisterPaymentScreen(
-                                          athleteId: user.id,
+                                        builder: (context) => PaymentHistoryScreen(
+                                          academyId: academyId,
+                                          athleteId: userId,
+                                          athleteName: user.fullName,
                                         ),
                                       ),
                                     );

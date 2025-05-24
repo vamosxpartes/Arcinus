@@ -156,6 +156,9 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
             case 'position':
               notifier.updatePosition(controller.text);
               break;
+            case 'experience':
+              notifier.updateExperience(controller.text);
+              break;
             case 'specialization':
               notifier.updateSpecialization(controller.text);
               break;
@@ -185,6 +188,17 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
     if (!mounted || _isDisposed) return;
     
     final state = ref.read(addAthleteProvider);
+    
+    AppLogger.logInfo(
+      'Sincronizando datos del estado a controladores locales',
+      className: 'AddAthleteScreen',
+      functionName: '_syncDataFromState',
+      params: {
+        'position': state.position,
+        'experience': state.experience,
+        'specialization': state.specialization,
+      },
+    );
     
     // Actualizar controllers con datos del estado de forma segura
     setState(() {
@@ -225,10 +239,37 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
               if (state.emergencyContactPhone != null) controller.text = state.emergencyContactPhone!;
               break;
             case 'position':
-              if (state.position != null) controller.text = state.position!;
+              if (state.position != null) {
+                controller.text = state.position!;
+                AppLogger.logInfo(
+                  'Sincronizado campo position',
+                  className: 'AddAthleteScreen',
+                  functionName: '_syncDataFromState',
+                  params: {'value': state.position!},
+                );
+              }
+              break;
+            case 'experience':
+              if (state.experience != null) {
+                controller.text = state.experience!;
+                AppLogger.logInfo(
+                  'Sincronizado campo experience',
+                  className: 'AddAthleteScreen',
+                  functionName: '_syncDataFromState',
+                  params: {'value': state.experience!},
+                );
+              }
               break;
             case 'specialization':
-              if (state.specialization != null) controller.text = state.specialization!;
+              if (state.specialization != null) {
+                controller.text = state.specialization!;
+                AppLogger.logInfo(
+                  'Sincronizado campo specialization',
+                  className: 'AddAthleteScreen',
+                  functionName: '_syncDataFromState',
+                  params: {'value': state.specialization!},
+                );
+              }
               break;
           }
         } catch (e) {
@@ -261,11 +302,17 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
       // Verificar mounted para evitar actualizaciones en widgets eliminados
       if (!mounted || _isDisposed) return;
       
+      // Detectar cambios en cualquier campo que indique que se cargaron datos de prueba
       if (previous?.firstName != next.firstName ||
           previous?.lastName != next.lastName ||
-          previous?.birthDate != next.birthDate) {
-        // Solo sincronizar si ha habido cambios en los datos básicos
-        // (posiblemente desde cargarDatosDePrueba)
+          previous?.birthDate != next.birthDate ||
+          previous?.position != next.position ||
+          previous?.experience != next.experience ||
+          previous?.specialization != next.specialization ||
+          previous?.phoneNumber != next.phoneNumber ||
+          previous?.heightCm != next.heightCm ||
+          previous?.weightKg != next.weightKg) {
+        // Sincronizar datos cuando se cargan datos de prueba o hay cambios significativos
         if (_isInitialized) {
           _syncDataFromState();
         }
@@ -370,6 +417,14 @@ class _AddAthleteScreenState extends ConsumerState<AddAthleteScreen> {
           IconButton(
             onPressed: () {
               addAthleteNotifier.cargarDatosDePrueba();
+              
+              // Forzar sincronización inmediata de los datos
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_isDisposed) {
+                  _syncDataFromState();
+                }
+              });
+              
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Datos de prueba cargados'),
