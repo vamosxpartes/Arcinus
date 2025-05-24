@@ -1,10 +1,10 @@
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
+import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/features/auth/data/models/user_model.dart';
@@ -423,9 +423,18 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          // Refrescar datos
+          // Invalidar múltiples providers para asegurar actualización completa
           ref.invalidate(clientUserProvider(_selectedAthleteId!));
-          _initializeAsync(); // Recargar datos para mostrar el plan asignado
+          
+          // También invalidar providers relacionados con academy members si existen
+          try {
+            ref.invalidate(academyUsersProvider(academyId));
+          } catch (e) {
+            // Si no existe el provider, no hacer nada
+          }
+          
+          // Reinicializar datos de forma asíncrona para reconstruir la pantalla
+          _reinitializeAfterPlanAssignment();
         },
       );
     } catch (e) {
@@ -437,6 +446,24 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     }
   }
   
+  /// Método para reinicializar datos después de asignar un plan
+  Future<void> _reinitializeAfterPlanAssignment() async {
+    // Marcar como no inicializado para forzar recarga completa
+    _isInitialized = false;
+    
+    // Limpiar datos actuales
+    _clientUser = null;
+    _paymentConfig = null;
+    
+    // Esperar un frame para que se procesen las invalidaciones
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    // Reinicializar de forma asíncrona
+    if (mounted) {
+      await _initializeAsync();
+    }
+  }
+
   void _showPlanEditDialog() {
     showDialog(
       context: context,
@@ -465,13 +492,23 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     // Observar el estado del formulario para manejar respuestas de la API
     ref.listen(paymentFormNotifierProvider, (previous, current) {
       if (!_isLoading && current.isSuccess) {
+        // Invalidar providers adicionales para asegurar que academy_members_screen se actualice
+        _invalidateProvidersAfterPayment();
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pago registrado correctamente'),
             backgroundColor: Colors.green,
           ),
         );
-        context.pop();
+        
+        // Esperar un poco para que se procesen las invalidaciones antes de navegar
+        final navigator = Navigator.of(context);
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            navigator.pop();
+          }
+        });
       }
 
       if (!_isLoading && current.failure != null) {
@@ -1150,6 +1187,17 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     }
     
     return Column(children: widgets);
+  }
+
+  void _invalidateProvidersAfterPayment() {
+    // Invalidar providers adicionales para asegurar que academy_members_screen se actualice
+    final academyId = ref.read(currentAcademyProvider)?.id;
+    if (_selectedAthleteId != null) {
+      ref.invalidate(clientUserProvider(_selectedAthleteId!));
+    }
+    if (academyId != null) {
+      ref.invalidate(academyUsersProvider(academyId));
+    }
   }
 }
 

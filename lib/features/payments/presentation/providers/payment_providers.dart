@@ -1,5 +1,6 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
@@ -8,6 +9,7 @@ import 'package:arcinus/features/payments/data/repositories/payment_repository_i
 import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
+import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -558,6 +560,10 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
         className: 'PaymentFormNotifier',
         functionName: 'submitPayment',
       );
+      
+      // Invalidar providers adicionales para asegurar actualización completa de la UI
+      _invalidateRelatedProviders(currentAcademy.id!, athleteId);
+      
       state = state.copyWith(isSubmitting: false, isSuccess: true);
     } on Failure catch (failure) {
       // Si registerPayment lanzó un Failure, lo capturamos aquí
@@ -638,5 +644,36 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
       functionName: 'reset',
     );
     state = const PaymentFormState();
+  }
+
+  /// Invalidar providers adicionales para asegurar actualización completa de la UI
+  void _invalidateRelatedProviders(String academyId, String athleteId) {
+    try {
+      // Invalidar providers de pagos
+      ref.invalidateSelf();
+      ref.invalidate(academyPaymentsNotifierProvider);
+      ref.invalidate(athletePaymentsNotifierProvider(athleteId));
+      
+      // Invalidar providers de usuarios cliente
+      ref.invalidate(clientUserProvider(athleteId));
+      ref.invalidate(clientUsersByRoleProvider((academyId, AppRole.atleta)));
+      ref.invalidate(clientUsersByPaymentStatusProvider((academyId, PaymentStatus.active)));
+      ref.invalidate(clientUsersByPaymentStatusProvider((academyId, PaymentStatus.inactive)));
+      ref.invalidate(clientUsersByPaymentStatusProvider((academyId, PaymentStatus.overdue)));
+      
+      AppLogger.logInfo(
+        'Providers invalidados exitosamente después del pago',
+        className: 'PaymentFormNotifier',
+        functionName: '_invalidateRelatedProviders',
+        params: {'academyId': academyId, 'athleteId': athleteId},
+      );
+    } catch (e) {
+      AppLogger.logWarning(
+        'Error al invalidar algunos providers después del pago',
+        className: 'PaymentFormNotifier',
+        functionName: '_invalidateRelatedProviders',
+        params: {'error': e.toString()},
+      );
+    }
   }
 }

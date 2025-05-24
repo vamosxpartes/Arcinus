@@ -12,6 +12,7 @@ import 'package:arcinus/features/billing/data/models/invoice_model.dart';
 import 'package:arcinus/features/billing/services/invoice_pdf_service.dart';
 import 'package:arcinus/features/billing/services/share_service.dart';
 import 'package:arcinus/features/billing/presentation/providers/billing_config_provider.dart';
+import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
 
 /// Pantalla para configurar los datos de facturación
 class BillingConfigScreen extends ConsumerStatefulWidget {
@@ -98,6 +99,35 @@ class _BillingConfigScreenState extends ConsumerState<BillingConfigScreen> {
       _resolutionController.text = config.invoiceResolution;
       _additionalNotesController.text = config.additionalNotes;
       
+      // Determinar el logoUrl a usar
+      String logoUrlToUse = config.logoUrl;
+      
+      // Si no hay logoUrl en la configuración de billing, intentar usar el de la academia
+      if (logoUrlToUse.isEmpty) {
+        try {
+          final academyData = await ref.read(academyProvider(widget.academyId).future);
+          if (academyData != null && academyData.logoUrl.isNotEmpty) {
+            logoUrlToUse = academyData.logoUrl;
+            AppLogger.logInfo(
+              'Usando logoUrl de la academia como fallback para facturación',
+              className: '_BillingConfigScreenState',
+              functionName: '_loadBillingConfig',
+              params: {
+                'academyId': widget.academyId,
+                'academyLogoUrl': academyData.logoUrl,
+              },
+            );
+          }
+        } catch (e) {
+          AppLogger.logWarning(
+            'No se pudo obtener logoUrl de la academia',
+            className: '_BillingConfigScreenState',
+            functionName: '_loadBillingConfig',
+            params: {'error': e.toString()},
+          );
+        }
+      }
+      
       setState(() {
         // Validar que los valores del dropdown estén en las opciones disponibles
         _taxRegime = _taxRegimeOptions.contains(config.taxRegime) 
@@ -118,20 +148,20 @@ class _BillingConfigScreenState extends ConsumerState<BillingConfigScreen> {
         _logoFile = null;
         
         // Verificar si la URL es válida (no es de ejemplo)
-        if (config.logoUrl.isNotEmpty && !config.logoUrl.contains('example.com') && _isValidImageUrl(config.logoUrl)) {
-          _logoUrl = config.logoUrl;
+        if (logoUrlToUse.isNotEmpty && !logoUrlToUse.contains('example.com') && _isValidImageUrl(logoUrlToUse)) {
+          _logoUrl = logoUrlToUse;
           _hasInvalidLogo = false;
         } else {
           // Marcar URL como inválida pero no guardar automáticamente
           _logoUrl = '';
-          _hasInvalidLogo = config.logoUrl.isNotEmpty && (config.logoUrl.contains('example.com') || !_isValidImageUrl(config.logoUrl));
+          _hasInvalidLogo = logoUrlToUse.isNotEmpty && (logoUrlToUse.contains('example.com') || !_isValidImageUrl(logoUrlToUse));
           
           if (_hasInvalidLogo) {
             AppLogger.logWarning(
               'URL de logo inválida detectada',
               className: '_BillingConfigScreenState',
               functionName: '_loadBillingConfig',
-              params: {'invalidUrl': config.logoUrl},
+              params: {'invalidUrl': logoUrlToUse},
             );
           }
         }
@@ -147,6 +177,7 @@ class _BillingConfigScreenState extends ConsumerState<BillingConfigScreen> {
           'academyId': widget.academyId,
           'hasLogo': (config.logoUrl.isNotEmpty).toString(),
           'logoUrl': config.logoUrl,
+          'logoUrlUsed': logoUrlToUse,
           'logoUrlLength': config.logoUrl.length.toString(),
           '_logoFile': (_logoFile?.path ?? 'null'),
           '_logoUrl': _logoUrl ?? 'null',
