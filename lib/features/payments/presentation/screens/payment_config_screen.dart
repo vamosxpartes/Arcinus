@@ -193,6 +193,26 @@ class PaymentConfigScreen extends ConsumerWidget {
                       autoRenewal: value,
                     )),
                   ),
+                  const SizedBox(height: 16),
+
+                  // Configuración avanzada de fechas
+                  _buildSectionTitle('Configuración avanzada'),
+                  _buildSwitch(
+                    'Permitir fecha de inicio manual en planes prepagados',
+                    config.allowManualStartDateInPrepaid,
+                    (value) => _updateConfig(ref, config.copyWith(
+                      allowManualStartDateInPrepaid: value,
+                    )),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Cuando está habilitado, permite a los administradores seleccionar una fecha de inicio diferente a la fecha de pago en planes prepagados.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ],
               ),
             ),

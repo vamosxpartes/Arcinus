@@ -3,23 +3,24 @@ import 'package:arcinus/features/users/presentation/providers/client_user_provid
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/features/auth/data/models/user_model.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
-import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
+import 'package:arcinus/features/payments/presentation/providers/subscription_billing_provider.dart';
+
+// Importar todos los widgets modulares
+import 'package:arcinus/features/payments/presentation/ui/widgets/widgets.dart';
 
 part 'register_payment_screen.g.dart';
 
-/// Pantalla para registrar un nuevo pago
+/// Pantalla modularizada para registrar un nuevo pago
 class RegisterPaymentScreen extends ConsumerStatefulWidget {
   /// ID del atleta para el cual se registrará el pago
   final String? athleteId;
@@ -35,17 +36,21 @@ class RegisterPaymentScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  RegisterPaymentScreenState createState() => RegisterPaymentScreenState();
+  RegisterPaymentScreenModularState createState() => RegisterPaymentScreenModularState();
 }
 
-class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
+class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScreen> {
+  // Claves de formularios
   final _formKey = GlobalKey<FormState>();
   final _planFormKey = GlobalKey<FormState>();
 
-  String? _selectedAthleteId;
+  // Controladores de texto
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _conceptController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+
+  // Estado del formulario
+  String? _selectedAthleteId;
   DateTime _paymentDate = DateTime.now();
   String _selectedCurrency = 'COP';
   String _selectedPaymentMethod = 'Efectivo';
@@ -60,11 +65,17 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   DateTime _startDate = DateTime.now();
   bool _isSubmittingPlan = false;
   
+  // Variables para fechas separadas
+  DateTime? _serviceStartDate;
+  DateTime? _serviceEndDate;
+  bool _showStartDateSelector = false;
+  
   // Configuración de pagos
   PaymentConfigModel? _paymentConfig;
   ClientUserModel? _clientUser;
   AcademyUserModel? _academyUser;
 
+  // Constantes
   final List<String> _currencies = ['COP', 'MXN', 'USD', 'EUR'];
   final List<String> _paymentMethods = [
     'Efectivo',
@@ -78,8 +89,8 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   void initState() {
     super.initState();
     AppLogger.logInfo(
-      'Inicializando pantalla de registro de pago',
-      className: 'RegisterPaymentScreenState',
+      'Inicializando pantalla modular de registro de pago',
+      className: 'RegisterPaymentScreenModularState',
       functionName: 'initState',
       params: {'athleteId': widget.athleteId, 'preloadedData': widget.preloadedData != null},
     );
@@ -99,7 +110,15 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       _initializeAsync();
     });
   }
-  
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _conceptController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initializeAsync() async {
     if (_isInitialized) return;
     
@@ -116,22 +135,6 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     try {
       // 1. Cargar la configuración de pagos
       final paymentConfigAsync = await ref.read(paymentConfigProvider(academyId).future);
-      
-      // Registrar la configuración en los logs
-      AppLogger.logInfo(
-        'Configuración de pagos cargada',
-        className: 'RegisterPaymentScreenState',
-        functionName: '_initializeAsync',
-        params: {
-          'billingMode': paymentConfigAsync.billingMode.displayName,
-          'allowPartialPayments': paymentConfigAsync.allowPartialPayments,
-          'earlyPaymentDiscount': paymentConfigAsync.earlyPaymentDiscount,
-          'earlyPaymentDiscountPercent': paymentConfigAsync.earlyPaymentDiscountPercent,
-          'earlyPaymentDays': paymentConfigAsync.earlyPaymentDays,
-          'lateFeeEnabled': paymentConfigAsync.lateFeeEnabled,
-          'autoRenewal': paymentConfigAsync.autoRenewal,
-        },
-      );
       
       // 2. Si tenemos un atleta seleccionado, cargar sus datos
       if (_selectedAthleteId != null) {
@@ -155,7 +158,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
           AppLogger.logError(
             message: 'Error al cargar datos del usuario de academia',
             error: e,
-            className: 'RegisterPaymentScreenState',
+            className: 'RegisterPaymentScreenModularState',
             functionName: '_initializeAsync',
           );
           setState(() {
@@ -175,7 +178,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       AppLogger.logError(
         message: 'Error al inicializar datos',
         error: e,
-        className: 'RegisterPaymentScreenState',
+        className: 'RegisterPaymentScreenModularState',
         functionName: '_initializeAsync',
       );
       _showError('Error al cargar datos: ${e.toString()}');
@@ -183,70 +186,6 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       setState(() {
         _isLoading = false;
       });
-    }
-  }
-  
-  void _setupFormFromUserAndConfig() {
-    if (_clientUser == null || _paymentConfig == null) return;
-    
-    AppLogger.logInfo(
-      'Configurando formulario con datos del usuario y configuración',
-      className: 'RegisterPaymentScreenState',
-      functionName: '_setupFormFromUserAndConfig',
-      params: {
-        'userId': _clientUser!.userId,
-        'hasPlan': _clientUser!.subscriptionPlan != null,
-        'planId': _clientUser!.subscriptionPlanId,
-        'allowPartialPayments': _paymentConfig!.allowPartialPayments,
-        'earlyPaymentDiscount': _paymentConfig!.earlyPaymentDiscount,
-      },
-    );
-    
-    // Si hay un plan de suscripción, utilizar sus datos
-    if (_clientUser!.subscriptionPlan != null) {
-      final plan = _clientUser!.subscriptionPlan!;
-      
-      // Autocompletar monto si está vacío
-      if (_amountController.text.isEmpty) {
-        _amountController.text = plan.amount.toString();
-      }
-      
-      // Autocompletar concepto si está vacío
-      if (_conceptController.text.isEmpty) {
-        _conceptController.text = 'Pago plan: ${plan.name}';
-      }
-      
-      // Usar moneda del plan
-      if (plan.currency.isNotEmpty) {
-        _selectedCurrency = plan.currency;
-      }
-      
-      // Guardar ID del plan y monto total
-      _subscriptionPlanId = _clientUser!.subscriptionPlanId;
-      _totalPlanAmount = plan.amount;
-      
-      // Verificar si es un pago parcial
-      if (_amountController.text.isNotEmpty) {
-        final amount = double.tryParse(_amountController.text) ?? 0;
-        _isPartialPayment = amount < _totalPlanAmount!;
-      }
-      
-      AppLogger.logInfo(
-        'Configuración de plan aplicada al formulario',
-        className: 'RegisterPaymentScreenState',
-        functionName: '_setupFormFromUserAndConfig',
-        params: {
-          'planName': plan.name,
-          'planAmount': plan.amount,
-          'planCurrency': plan.currency,
-          'isEditable': _paymentConfig!.earlyPaymentDiscount,
-        },
-      );
-    } else {
-      // Si no hay plan, verificar si se permiten pagos sin plan
-      if (!_paymentConfig!.allowPartialPayments) {
-        _showError('El atleta no tiene un plan de suscripción asignado y no se permiten pagos parciales');
-      }
     }
   }
 
@@ -282,6 +221,105 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     }
   }
 
+  void _setupFormFromUserAndConfig() {
+    if (_clientUser == null || _paymentConfig == null) return;
+    
+    AppLogger.logInfo(
+      'Configurando formulario con datos del usuario y configuración',
+      className: 'RegisterPaymentScreenModularState',
+      functionName: '_setupFormFromUserAndConfig',
+      params: {
+        'userId': _clientUser!.userId,
+        'hasPlan': _clientUser!.subscriptionPlan != null,
+        'planId': _clientUser!.subscriptionPlanId,
+        'allowPartialPayments': _paymentConfig!.allowPartialPayments,
+        'earlyPaymentDiscount': _paymentConfig!.earlyPaymentDiscount,
+        'billingMode': _paymentConfig!.billingMode.displayName,
+        'allowManualStartDate': _paymentConfig!.allowManualStartDateInPrepaid,
+      },
+    );
+    
+    // Determinar si mostrar selector de fecha de inicio
+    _showStartDateSelector = _paymentConfig!.billingMode == BillingMode.advance && 
+                            _paymentConfig!.allowManualStartDateInPrepaid;
+    
+    // Si hay un plan de suscripción, utilizar sus datos
+    if (_clientUser!.subscriptionPlan != null) {
+      final plan = _clientUser!.subscriptionPlan!;
+      
+      // Autocompletar monto si está vacío
+      if (_amountController.text.isEmpty) {
+        _amountController.text = plan.amount.toString();
+      }
+      
+      // Autocompletar concepto si está vacío
+      if (_conceptController.text.isEmpty) {
+        _conceptController.text = 'Pago plan: ${plan.name}';
+      }
+      
+      // Usar moneda del plan
+      if (plan.currency.isNotEmpty) {
+        _selectedCurrency = plan.currency;
+      }
+      
+      // Guardar ID del plan y monto total
+      _subscriptionPlanId = _clientUser!.subscriptionPlanId;
+      _totalPlanAmount = plan.amount;
+      
+      // Calcular fechas de servicio usando el servicio de facturación
+      _calculateServiceDates();
+      
+      // Verificar si es un pago parcial
+      if (_amountController.text.isNotEmpty) {
+        final amount = double.tryParse(_amountController.text) ?? 0;
+        _isPartialPayment = amount < _totalPlanAmount!;
+      }
+    } else {
+      // Si no hay plan, verificar si se permiten pagos sin plan
+      if (!_paymentConfig!.allowPartialPayments) {
+        _showError('El atleta no tiene un plan de suscripción asignado y no se permiten pagos parciales');
+      }
+    }
+  }
+
+  void _calculateServiceDates() {
+    if (_clientUser?.subscriptionPlan == null || _paymentConfig == null) return;
+    
+    final billingService = ref.read(subscriptionBillingServiceProvider);
+    final plan = _clientUser!.subscriptionPlan!;
+    
+    final calculation = billingService.calculateBillingDatesFromClientPlan(
+      paymentDate: _paymentDate,
+      requestedStartDate: _serviceStartDate,
+      plan: plan,
+      config: _paymentConfig!,
+    );
+    
+    setState(() {
+      _serviceStartDate = calculation.startDate;
+      _serviceEndDate = calculation.endDate;
+    });
+    
+    AppLogger.logInfo(
+      'Fechas de servicio calculadas',
+      className: 'RegisterPaymentScreenModularState',
+      functionName: '_calculateServiceDates',
+      params: {
+        'paymentDate': _paymentDate.toString(),
+        'serviceStartDate': _serviceStartDate.toString(),
+        'serviceEndDate': _serviceEndDate.toString(),
+        'billingMode': _paymentConfig!.billingMode.displayName,
+        'isValidConfiguration': calculation.isValidConfiguration,
+        'validationMessage': calculation.validationMessage,
+      },
+    );
+    
+    // Mostrar advertencia si hay problemas de configuración
+    if (!calculation.isValidConfiguration && calculation.validationMessage != null) {
+      _showError(calculation.validationMessage!);
+    }
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -291,14 +329,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _conceptController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
+  // Métodos de selección de fechas
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -310,6 +341,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       setState(() {
         _paymentDate = picked;
       });
+      _calculateServiceDates();
     }
   }
   
@@ -326,7 +358,24 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       });
     }
   }
+  
+  Future<void> _selectServiceStartDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _serviceStartDate ?? _paymentDate,
+      firstDate: _paymentDate.subtract(const Duration(days: 1)),
+      lastDate: _paymentDate.add(const Duration(days: 30)),
+    );
+    if (picked != null && picked != _serviceStartDate) {
+      setState(() {
+        _serviceStartDate = picked;
+      });
+      // Recalcular fechas cuando cambie la fecha de inicio
+      _calculateServiceDates();
+    }
+  }
 
+  // Métodos de envío
   void _submitPayment() {
     if (_formKey.currentState!.validate()) {
       if (_selectedAthleteId == null) {
@@ -350,7 +399,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       
       AppLogger.logInfo(
         'Enviando pago',
-        className: 'RegisterPaymentScreenState',
+        className: 'RegisterPaymentScreenModularState',
         functionName: '_submitPayment',
         params: {
           'athleteId': _selectedAthleteId,
@@ -376,7 +425,9 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         notes: _notesController.text,
         isPartialPayment: _isPartialPayment,
         subscriptionPlanId: _subscriptionPlanId,
-        totalPlanAmount: _totalPlanAmount
+        totalPlanAmount: _totalPlanAmount,
+        periodStartDate: _serviceStartDate,
+        periodEndDate: _serviceEndDate,
       );
     }
   }
@@ -445,8 +496,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       });
     }
   }
-  
-  /// Método para reinicializar datos después de asignar un plan
+
   Future<void> _reinitializeAfterPlanAssignment() async {
     // Marcar como no inicializado para forzar recarga completa
     _isInitialized = false;
@@ -465,26 +515,49 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   }
 
   void _showPlanEditDialog() {
+    final academyId = ref.read(currentAcademyProvider)?.id;
+    if (academyId == null) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cambiar plan de suscripción'),
-        content: _buildPlanForm(),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: PlanAssignmentForm(
+            formKey: _planFormKey,
+            selectedPlanId: _selectedPlanId,
+            startDate: _startDate,
+            isSubmitting: _isSubmittingPlan,
+            plansAsync: ref.watch(activeSubscriptionPlansProvider(academyId)),
+            onPlanChanged: (value) {
+              setState(() {
+                _selectedPlanId = value;
+              });
+            },
+            onSelectStartDate: () => _selectStartDate(context),
+            onSavePlan: _savePlan,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _savePlan();
-            },
-            child: const Text('Guardar'),
-          ),
         ],
       ),
     );
+  }
+
+  void _invalidateProvidersAfterPayment() {
+    // Invalidar providers adicionales para asegurar que academy_members_screen se actualice
+    final academyId = ref.read(currentAcademyProvider)?.id;
+    if (_selectedAthleteId != null) {
+      ref.invalidate(clientUserProvider(_selectedAthleteId!));
+    }
+    if (academyId != null) {
+      ref.invalidate(academyUsersProvider(academyId));
+    }
   }
 
   @override
@@ -552,652 +625,149 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Información del atleta
-                  if (_selectedAthleteId != null) _buildSelectedAthleteInfo(),
+                  if (_selectedAthleteId != null) 
+                    AthleteInfoCard(
+                      clientUser: _clientUser,
+                      academyUser: _academyUser,
+                      onEditPlan: hasPlan ? _showPlanEditDialog : null,
+                    ),
                   
                   const SizedBox(height: 16),
                   
                   // Si no hay atleta seleccionado, mostrar selector
-                  if (_selectedAthleteId == null) _buildAthleteSelector(),
+                  if (_selectedAthleteId == null) 
+                    AthleteSelector(
+                      selectedAthleteId: _selectedAthleteId,
+                      onAthleteChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedAthleteId = value;
+                            // Reiniciar inicialización con el nuevo atleta
+                            _isInitialized = false;
+                            _initializeAsync();
+                          });
+                        }
+                      },
+                      athletesAsyncValue: ref.watch(academyAthletesProvider),
+                    ),
+                  
                   if (_selectedAthleteId == null) const SizedBox(height: 16),
                   
                   // Mostrar formulario según si tiene plan o no
                   if (_selectedAthleteId != null) 
                     hasPlan 
-                      ? _buildPaymentForm() 
-                      : _buildAssignPlanForm(),
+                      ? _buildPaymentSection() 
+                      : _buildPlanAssignmentSection(),
                 ],
               ),
             ),
     );
   }
-  
-  Widget _buildPaymentForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Información del Pago',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
 
-          // Monto y moneda
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Campo de monto
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  controller: _amountController,
-                  decoration: const InputDecoration(
-                    labelText: 'Monto',
-                    prefixIcon: Icon(Icons.attach_money),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                  ],
-                  readOnly: _clientUser?.subscriptionPlan != null && 
-                          !(_paymentConfig?.earlyPaymentDiscount ?? false),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Ingresa un monto';
-                    }
-                    final amount = double.tryParse(value);
-                    if (amount == null || amount <= 0) {
-                      return 'Monto inválido';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    // Verificar si el pago es parcial
-                    if (_totalPlanAmount != null) {
-                      final amount = double.tryParse(value) ?? 0;
-                      setState(() {
-                        _isPartialPayment = amount < _totalPlanAmount!;
-                      });
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Selector de moneda
-              Expanded(
-                flex: 1,
-                child: DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Moneda',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _selectedCurrency,
-                  items: _currencies.map((currency) {
-                    return DropdownMenuItem<String>(
-                      value: currency,
-                      child: Text(currency),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedCurrency = value;
-                      });
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Concepto
-          TextFormField(
-            controller: _conceptController,
-            decoration: const InputDecoration(
-              labelText: 'Concepto',
-              prefixIcon: Icon(Icons.subject),
-              border: OutlineInputBorder(),
-              hintText: 'Ej: Mensualidad Octubre',
-            ),
-            readOnly: _clientUser?.subscriptionPlan != null && 
-                    !(_paymentConfig?.earlyPaymentDiscount ?? false),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Ingresa un concepto para el pago';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Fecha de pago
-          InkWell(
-            onTap: () => _selectDate(context),
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: 'Fecha de Pago',
-                prefixIcon: Icon(Icons.calendar_today),
-                border: OutlineInputBorder(),
-              ),
-              child: Text(DateFormat('dd/MM/yyyy').format(_paymentDate)),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Método de pago
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Método de Pago',
-              prefixIcon: Icon(Icons.payment),
-              border: OutlineInputBorder(),
-            ),
-            value: _selectedPaymentMethod,
-            items: _paymentMethods.map((method) {
-              return DropdownMenuItem<String>(
-                value: method,
-                child: Text(method),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _selectedPaymentMethod = value;
-                });
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Indicador de pago parcial y advertencias
-          _buildPaymentWarnings(),
-          const SizedBox(height: 16),
-
-          // Notas
-          TextFormField(
-            controller: _notesController,
-            decoration: const InputDecoration(
-              labelText: 'Notas (opcional)',
-              prefixIcon: Icon(Icons.note),
-              border: OutlineInputBorder(),
-              hintText: 'Notas adicionales sobre el pago',
-            ),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 24),
-
-          // Botón de registro
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _submitPayment,
-              child: _isLoading
-                  ? const CircularProgressIndicator()
-                  : const Text('Registrar Pago'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildAssignPlanForm() {
-    return Form(
-      key: _planFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            color: Colors.amber.shade100,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text(
-                        'Atleta sin Plan de Suscripción',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Para realizar pagos, primero debes asignar un plan de suscripción al atleta.',
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          const Text(
-            'Asignar Plan de Suscripción',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          
-          _buildPlanForm(),
-          
-          const SizedBox(height: 24),
-          
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _isSubmittingPlan ? null : _savePlan,
-              child: _isSubmittingPlan
-                  ? const CircularProgressIndicator()
-                  : const Text('Asignar Plan'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildPlanForm() {
+  Widget _buildPaymentSection() {
     final academyId = ref.read(currentAcademyProvider)?.id;
-    if (academyId == null) {
-      return const Text('No se pudo determinar la academia actual');
-    }
-    
-    return Consumer(
-      builder: (context, ref, _) {
-        final plansAsync = ref.watch(activeSubscriptionPlansProvider(academyId));
-        
-        return plansAsync.when(
-          data: (plans) {
-            if (plans.isEmpty) {
-              return const Text(
-                'No hay planes de suscripción disponibles.',
-                style: TextStyle(color: Colors.red),
-              );
-            }
-            
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Selector de plan
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Plan de Suscripción',
-                    prefixIcon: Icon(Icons.card_membership),
-                    border: OutlineInputBorder(),
-                  ),
-                  hint: const Text('Selecciona un plan'),
-                  value: _selectedPlanId,
-                  items: [
-                    // Opción para no seleccionar plan
-                    ...plans.map((plan) {
-                      return DropdownMenuItem<String>(
-                        value: plan.id,
-                        child: Text(
-                          '${plan.name} - ${plan.amount} ${plan.currency}',
-                        ),
-                      );
-                    }),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedPlanId = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Selecciona un plan';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Fecha de inicio
-                Row(
-                  children: [
-                    const Text('Fecha de asignacion del plan:'),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _selectStartDate(context),
-                        child: InputDecorator(
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.calendar_today),
-                            border: OutlineInputBorder(),
-                          ),
-                          child: Text(DateFormat('dd/MM/yyyy').format(_startDate)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
+    if (academyId == null) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        // Formulario de pago
+        PaymentForm(
+          formKey: _formKey,
+          amountController: _amountController,
+          conceptController: _conceptController,
+          notesController: _notesController,
+          paymentDate: _paymentDate,
+          selectedCurrency: _selectedCurrency,
+          selectedPaymentMethod: _selectedPaymentMethod,
+          isPartialPayment: _isPartialPayment,
+          totalPlanAmount: _totalPlanAmount,
+          clientUser: _clientUser,
+          paymentConfig: _paymentConfig,
+          currencies: _currencies,
+          paymentMethods: _paymentMethods,
+          onSelectDate: () => _selectDate(context),
+          onCurrencyChanged: (value) {
+            setState(() {
+              _selectedCurrency = value;
+            });
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Text(
-            'Error al cargar planes: $error',
-            style: const TextStyle(color: Colors.red),
-          ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildSelectedAthleteInfo() {
-    if (_academyUser != null) {
-      // Si tenemos datos de usuario de academia, usar esos
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: AppTheme.courtGreen,
-                    backgroundImage: _academyUser!.profileImageUrl != null
-                        ? NetworkImage(_academyUser!.profileImageUrl!)
-                        : null,
-                    child: _academyUser!.profileImageUrl == null
-                        ? const Icon(Icons.person, size: 30, color: Colors.white)
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _academyUser!.fullName,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _clientUser?.subscriptionPlan != null
-                              ? 'Plan: ${_clientUser!.subscriptionPlan!.name}'
-                              : 'Sin plan de suscripción',
-                          style: TextStyle(
-                            color: _clientUser?.subscriptionPlan != null ? Colors.green : Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (_clientUser?.subscriptionPlan != null) ...[
-                const SizedBox(height: 12),
-                const Divider(),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Estado: ${_clientUser!.paymentStatus.displayName}'),
-                    if (_clientUser!.nextPaymentDate != null)
-                      Text('Próximo pago: ${DateFormat('dd/MM/yyyy').format(_clientUser!.nextPaymentDate!)}'),
-                  ],
-                ),
-              ],
-            ],
+          onPaymentMethodChanged: (value) {
+            setState(() {
+              _selectedPaymentMethod = value;
+            });
+          },
+          onAmountChanged: (value) {
+            // Verificar si el pago es parcial
+            if (_totalPlanAmount != null) {
+              final amount = double.tryParse(value) ?? 0;
+              setState(() {
+                _isPartialPayment = amount < _totalPlanAmount!;
+              });
+            }
+          },
+          isLoading: _isLoading,
+        ),
+        const SizedBox(height: 16),
+        
+        // Información de configuración de facturación
+        if (_paymentConfig != null) 
+          BillingConfigInfo(paymentConfig: _paymentConfig!),
+        const SizedBox(height: 16),
+        
+        // Fechas de servicio
+        ServiceDatesSection(
+          serviceStartDate: _serviceStartDate,
+          serviceEndDate: _serviceEndDate,
+          showStartDateSelector: _showStartDateSelector,
+          onSelectServiceStartDate: () => _selectServiceStartDate(context),
+        ),
+        const SizedBox(height: 16),
+
+        // Advertencias de pago
+        PaymentWarnings(
+          isPartialPayment: _isPartialPayment,
+          totalPlanAmount: _totalPlanAmount,
+          currentAmount: double.tryParse(_amountController.text) ?? 0,
+          selectedCurrency: _selectedCurrency,
+          paymentDate: _paymentDate,
+          clientUser: _clientUser,
+          paymentConfig: _paymentConfig,
+        ),
+        const SizedBox(height: 24),
+
+        // Botón de registro
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _submitPayment,
+            child: _isLoading
+                ? const CircularProgressIndicator()
+                : const Text('Registrar Pago'),
           ),
         ),
-      );
-    }
-    
-    // Si solo tenemos datos de cliente, mostrar esa información
-    return Consumer(
-      builder: (context, ref, _) {
-        final clientUserAsync = ref.watch(clientUserProvider(_selectedAthleteId!));
-        
-        return clientUserAsync.when(
-          data: (clientUser) {
-            if (clientUser == null) {
-              return const Card(
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text('No se encontró información del atleta'),
-                ),
-              );
-            }
-            
-            final hasSubscription = clientUser.subscriptionPlan != null;
-            
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 30,
-                          backgroundColor: AppTheme.courtGreen,
-                          child: Icon(Icons.person, size: 30, color: Colors.white),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Atleta ID: ${clientUser.userId}',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                hasSubscription
-                                    ? 'Plan: ${clientUser.subscriptionPlan!.name}'
-                                    : 'Sin plan de suscripción',
-                                style: TextStyle(
-                                  color: hasSubscription ? Colors.green : Colors.orange,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (hasSubscription) ...[
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Estado: ${clientUser.paymentStatus.displayName}'),
-                          if (clientUser.nextPaymentDate != null)
-                            Text('Próximo pago: ${DateFormat('dd/MM/yyyy').format(clientUser.nextPaymentDate!)}'),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
-          loading: () => const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-          error: (_, __) => Card(
-            color: Colors.red.shade100,
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('Error al cargar información del atleta'),
-            ),
-          ),
-        );
-      },
+      ],
     );
   }
 
-  Widget _buildAthleteSelector() {
-    return Consumer(
-      builder: (context, ref, _) {
-        final athletesAsyncValue = ref.watch(academyAthletesProvider);
-        
-        return athletesAsyncValue.when(
-          data: (athletes) {
-            if (athletes.isEmpty) {
-              return const Text(
-                'No hay atletas registrados en la academia',
-                style: TextStyle(color: Colors.red),
-              );
-            }
-
-            return DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Seleccionar Atleta',
-                prefixIcon: Icon(Icons.person),
-                border: OutlineInputBorder(),
-              ),
-              value: _selectedAthleteId,
-              items: athletes.map((athlete) {
-                return DropdownMenuItem<String>(
-                  value: athlete.id,
-                  child: Text(athlete.displayName ?? athlete.email),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedAthleteId = value;
-                    // Reiniciar inicialización con el nuevo atleta
-                    _isInitialized = false;
-                    _initializeAsync();
-                  });
-                }
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Debes seleccionar un atleta';
-                }
-                return null;
-              },
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Text(
-            'Error al cargar la lista de atletas',
-            style: TextStyle(color: Colors.red),
-          ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildPaymentWarnings() {
-    final widgets = <Widget>[];
-    
-    // Advertencia de pago parcial
-    if (_isPartialPayment && _totalPlanAmount != null) {
-      widgets.add(
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.amber.shade100,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.info_outline, color: Colors.amber),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Esto es un pago parcial. El monto total del plan es ${_totalPlanAmount!} $_selectedCurrency',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-      
-      // Añadir advertencia si no se permiten pagos parciales
-      if (_paymentConfig != null && !_paymentConfig!.allowPartialPayments) {
-        widgets.add(const SizedBox(height: 8));
-        widgets.add(
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.red.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.warning, color: Colors.red),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'La academia no permite pagos parciales según su configuración',
-                    style: TextStyle(fontSize: 12, color: Colors.red),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    }
-    
-    // Advertencia de descuento por pronto pago
-    if (_paymentConfig != null && _paymentConfig!.earlyPaymentDiscount && _clientUser != null) {
-      final paymentDate = _paymentDate;
-      final nextPaymentDate = _clientUser!.nextPaymentDate;
-      
-      if (nextPaymentDate != null) {
-        final daysBeforePayment = nextPaymentDate.difference(paymentDate).inDays;
-        
-        if (daysBeforePayment >= _paymentConfig!.earlyPaymentDays) {
-          widgets.add(const SizedBox(height: 8));
-          widgets.add(
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green.shade100,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Este pago califica para un descuento por pronto pago del ${_paymentConfig!.earlyPaymentDiscountPercent}%',
-                      style: const TextStyle(fontSize: 12, color: Colors.green),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-      }
-    }
-    
-    return Column(children: widgets);
-  }
-
-  void _invalidateProvidersAfterPayment() {
-    // Invalidar providers adicionales para asegurar que academy_members_screen se actualice
+  Widget _buildPlanAssignmentSection() {
     final academyId = ref.read(currentAcademyProvider)?.id;
-    if (_selectedAthleteId != null) {
-      ref.invalidate(clientUserProvider(_selectedAthleteId!));
-    }
-    if (academyId != null) {
-      ref.invalidate(academyUsersProvider(academyId));
-    }
+    if (academyId == null) return const SizedBox.shrink();
+
+    return PlanAssignmentForm(
+      formKey: _planFormKey,
+      selectedPlanId: _selectedPlanId,
+      startDate: _startDate,
+      isSubmitting: _isSubmittingPlan,
+      plansAsync: ref.watch(activeSubscriptionPlansProvider(academyId)),
+      onPlanChanged: (value) {
+        setState(() {
+          _selectedPlanId = value;
+        });
+      },
+      onSelectStartDate: () => _selectStartDate(context),
+      onSavePlan: _savePlan,
+    );
   }
 }
 
@@ -1211,4 +781,4 @@ Future<List<UserModel>> academyAthletes(Ref ref) async {
     functionName: 'build',
   );
   return Future.value([]);
-}
+} 

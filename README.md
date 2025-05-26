@@ -28,12 +28,11 @@ El proyecto se encuentra en fase de planeacion de desarrollo con los siguientes 
 *   17. [x] **Gestión usuarios** (Vinculación Academia, Roles Iniciales)
 *   18. [x] **Implementación Roles y Permisos** (Lógica App para MVP)
 *   19. [x] **Sistema de pagos interno** (Registro Manual de Pagos Atletas)
-*   20. [ ] **Pruebas** (Cobertura Funcionalidades MVP)
+*   20. [x] **Pruebas** (Cobertura Funcionalidades MVP)
 *   21. [ ] **Configuración CI/CD** (Builds y Despliegues Automatizados Básicos)
 *   22. [ ] **Build Flavors/Environments** (Dev/Prod si es necesario)
 
 **Features a Validar/Post-MVP**
-*   [ ] **Inicio de Sesión con Google** (Integración Firebase Auth)
 *   [ ] **Inicio de Sesión con Apple** (Integración Firebase Auth)
 *   23. [ ] **Gestión de grupos/equipos** (Completo: CRUD, Asignaciones)
 *   24. [ ] **Sistema de entrenamientos y sesiones** (Definición, Planificación, Registro)

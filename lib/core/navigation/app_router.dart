@@ -25,7 +25,6 @@ import 'package:arcinus/features/memberships/presentation/screens/edit_permissio
 import 'package:arcinus/core/theme/ui/feedback/error_display.dart';
 import 'package:arcinus/features/payments/presentation/screens/payments_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
-import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
@@ -514,45 +513,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                               },
                             ),
                           ],
-                        ),
-                        // Ruta para ver pagos de un atleta específico
-                        GoRoute(
-                          path: 'athlete/:athleteId',
-                          name: 'ownerAcademyAthletePayments',
-                          builder: (context, state) {
-                            final academyId = state.pathParameters['academyId']!;
-                            final athleteId = state.pathParameters['athleteId']!;
-                            final athleteName = state.extra is Map ? (state.extra as Map)['athleteName'] as String? : null;
-                            
-                            return Consumer(
-                              builder: (context, ref, child) {
-                                // Establecer la academia actual usando el academyId
-                                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                  // Cargar el objeto AcademyModel completo usando el repositorio
-                                  final academyRepository = ref.read(academyRepositoryProvider);
-                                  final academyResult = await academyRepository.getAcademyById(academyId);
-                                  academyResult.fold(
-                                    (failure) => AppLogger.logError(
-                                      message: 'Error al cargar academia',
-                                      error: failure,
-                                      className: 'AppRouter',
-                                      functionName: 'ownerAcademyAthletePayments',
-                                      params: {'academyId': academyId, 'athleteId': athleteId},
-                                    ),
-                                    (academy) {
-                                      // Establecer la academia completa
-                                      ref.read(currentAcademyProvider.notifier).state = academy;
-                                    },
-                                  );
-                                });
-                                return AthletePaymentsScreen(
-                                  athleteId: athleteId,
-                                  athleteName: athleteName,
-                                );
-                              },
-                            );
-                          },
-                        ),
+                        ),                        
                       ],
                    ),
                    // Asegúrate de que las rutas dentro de academy/:academyId/ NO incluyan 'payments' aquí

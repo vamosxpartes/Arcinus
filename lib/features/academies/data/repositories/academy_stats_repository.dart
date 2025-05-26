@@ -62,7 +62,7 @@ class AcademyStatsRepository {
       final querySnapshot = await _firestore
           .collection('academies')
           .doc(academyId)
-          .collection('timeSeriesStats')
+          .collection('historical_academy_stats')
           .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
           .where('timestamp', isLessThanOrEqualTo: Timestamp.fromDate(endDate))
           .orderBy('timestamp')
@@ -131,7 +131,7 @@ class AcademyStatsRepository {
       final querySnapshot = await _firestore
           .collection('academies')
           .doc(academyId)
-          .collection('timeSeriesStats')
+          .collection('historical_academy_stats')
           .orderBy('timestamp', descending: true)
           .limit(6)
           .get();
@@ -187,7 +187,7 @@ class AcademyStatsRepository {
         final timeSeriesRef = _firestore
             .collection('academies')
             .doc(academyId)
-            .collection('timeSeriesStats')
+            .collection('historical_academy_stats')
             .doc('${date.year}-${date.month.toString().padLeft(2, '0')}');
             
         final timeSeriesData = {

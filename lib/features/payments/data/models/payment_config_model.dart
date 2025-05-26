@@ -81,6 +81,9 @@ class PaymentConfigModel with _$PaymentConfigModel {
     /// Permite renovación automática de planes
     @Default(false) bool autoRenewal,
 
+    /// Permite seleccionar manualmente la fecha de inicio en planes prepagados
+    @Default(false) bool allowManualStartDateInPrepaid,
+
     /// Fecha de creación
     DateTime? createdAt,
 

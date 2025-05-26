@@ -55,7 +55,7 @@ void main() {
         .thenReturn(mockStatsCollection);
     when(() => mockStatsCollection.doc('current'))
         .thenReturn(mockStatsDocRef);
-    when(() => mockAcademyDocRef.collection('timeSeriesStats'))
+    when(() => mockAcademyDocRef.collection('historical_academy_stats'))
         .thenReturn(mockTimeSeriesCollection);
     when(() => mockFirestore.batch()).thenReturn(mockWriteBatch);
 

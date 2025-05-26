@@ -1,9 +1,9 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
+import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
-import 'package:arcinus/features/payments/presentation/screens/athlete_payments_screen.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_user_details_screen.dart';
 import 'package:arcinus/features/memberships/presentation/utils/role_utils.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
@@ -471,9 +471,8 @@ class AcademyUserCard extends ConsumerWidget {
           // Deslizar a la izquierda: ir a pagos (solo atletas)
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => AthletePaymentsScreen(
+              builder: (context) => RegisterPaymentScreen(
                 athleteId: user.id,
-                athleteName: user.fullName,
               ),
             ),
           );
