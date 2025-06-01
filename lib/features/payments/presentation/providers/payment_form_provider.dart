@@ -280,7 +280,8 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormState> {
       // Iniciar carga
       state = state.copyWith(isLoading: true, error: () => null);
 
-      // Crear modelo de pago
+      // Crear modelo de pago con fecha automática
+      final currentDateTime = DateTime.now();
       final payment = PaymentModel(
         academyId: state.academyId,
         athleteId: state.athleteId,
@@ -288,11 +289,11 @@ class PaymentFormNotifier extends StateNotifier<PaymentFormState> {
         amount: state.amount,
         currency: state.currency,
         concept: state.concept,
-        paymentDate: state.paymentDate,
+        paymentDate: currentDateTime, // Fecha automática al momento del registro
         notes: state.notes.isNotEmpty ? state.notes : null,
         registeredBy:
             'currentUserId', // Esto debe ser reemplazado por el ID del usuario actual
-        createdAt: DateTime.now(),
+        createdAt: currentDateTime,
         isPartialPayment: state.isPartialPayment,
         totalPlanAmount: state.totalPlanAmount,
         periodStartDate: state.periodStartDate,

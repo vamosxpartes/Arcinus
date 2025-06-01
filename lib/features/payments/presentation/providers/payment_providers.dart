@@ -10,6 +10,7 @@ import 'package:arcinus/features/payments/presentation/providers/payment_config_
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
+import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -169,16 +170,18 @@ class AcademyPaymentsNotifier extends _$AcademyPaymentsNotifier {
       throw const Failure.serverError(message: errorMsg);
     }
 
+    // Usar fecha actual automática para el registro del pago
+    final currentDateTime = DateTime.now();
     final payment = PaymentModel(
       academyId: currentAcademy.id!,
       athleteId: athleteId,
       amount: amount,
       currency: currency,
       concept: concept,
-      paymentDate: paymentDate,
+      paymentDate: currentDateTime, // Fecha automática al momento del registro
       notes: notes,
       registeredBy: userId,
-      createdAt: DateTime.now(),
+      createdAt: currentDateTime,
       receiptUrl: receiptUrl,
       subscriptionPlanId: subscriptionPlanId,
       isPartialPayment: isPartialPayment,
@@ -537,8 +540,11 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
                     );
                   }
                   
+                  // Verificar si es el primer pago (atleta con plan pendiente)
+                  final isPendingFirstPayment = user.metadata['isPendingFirstPayment'] == true;
+                  
                   // Preparar datos actualizados manteniendo los datos existentes
-                  final updatedClientData = {
+                  Map<String, dynamic> updatedClientData = {
                     'subscriptionPlanId': subscriptionPlanId ?? user.subscriptionPlanId,
                     'paymentStatus': newPaymentStatus.name,
                     'lastPaymentDate': Timestamp.fromDate(paymentDate),
@@ -548,6 +554,34 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
                       'remainingDays': remainingDays,
                     'isEstimatedDays': false, // Ahora son días reales basados en pago
                   };
+                  
+                  // Si es el primer pago, establecer las fechas de inicio del plan
+                  if (isPendingFirstPayment) {
+                    // Usar la fecha de inicio del servicio si está disponible, sino la fecha del pago
+                    final planStartDate = periodStartDate ?? paymentDate;
+                    
+                    updatedClientData.addAll({
+                      'planStartDate': Timestamp.fromDate(planStartDate),
+                      'isPendingFirstPayment': false, // Ya no está pendiente
+                    });
+                    
+                    // Remover el flag de metadata si existe
+                    final currentMetadata = Map<String, dynamic>.from(user.metadata);
+                    currentMetadata.remove('isPendingFirstPayment');
+                    updatedClientData['metadata'] = currentMetadata;
+                    
+                    AppLogger.logInfo(
+                      'Estableciendo fecha de inicio del plan en primer pago',
+                      className: 'PaymentFormNotifier',
+                      functionName: 'submitPayment',
+                      params: {
+                        'athleteId': athleteId,
+                        'planStartDate': planStartDate.toIso8601String(),
+                        'paymentDate': paymentDate.toIso8601String(),
+                        'wasFirstPayment': true,
+                      },
+                    );
+                  }
                   
                   // Actualizar los datos del usuario
                   clientUserRepository.updateClientUser(
@@ -675,6 +709,43 @@ class PaymentFormNotifier extends _$PaymentFormNotifier {
       ref.invalidate(clientUsersByPaymentStatusProvider((academyId, PaymentStatus.active)));
       ref.invalidate(clientUsersByPaymentStatusProvider((academyId, PaymentStatus.inactive)));
       ref.invalidate(clientUsersByPaymentStatusProvider((academyId, PaymentStatus.overdue)));
+      
+      // *** CRÍTICO: Invalidar específicamente el provider optimizado con caché ***
+      ref.invalidate(clientUserCachedProvider(athleteId));
+      
+      // Además, forzar refresco del notifier si existe
+      try {
+        final notifier = ref.read(clientUserCachedProvider(athleteId).notifier);
+        
+        // El método invalidateAfterPayment ya verifica internamente si está mounted
+        notifier.invalidateAfterPayment();
+        
+        AppLogger.logInfo(
+          'ClientUserCachedProvider invalidado y refrescado manualmente',
+          className: 'PaymentFormNotifier',
+          functionName: '_invalidateRelatedProviders',
+          params: {'athleteId': athleteId}
+        );
+      } catch (e) {
+        AppLogger.logWarning(
+          'No se pudo refrescar manualmente el ClientUserCachedProvider',
+          className: 'PaymentFormNotifier',
+          functionName: '_invalidateRelatedProviders',
+          params: {'athleteId': athleteId, 'error': e.toString()}
+        );
+      }
+      
+      // También invalidar providers de membresías de la academia
+      try {
+        ref.invalidate(academyUsersProvider(academyId));
+      } catch (e) {
+        AppLogger.logWarning(
+          'No se pudo invalidar academyUsersProvider',
+          className: 'PaymentFormNotifier',
+          functionName: '_invalidateRelatedProviders',
+          params: {'error': e.toString()}
+        );
+      }
       
       AppLogger.logInfo(
         'Providers invalidados exitosamente después del pago',

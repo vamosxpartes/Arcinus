@@ -509,7 +509,33 @@ class ManagerDrawer extends ConsumerWidget {
           isActive: false,
         ),
         
-        // --- SECCIÓN 3: CUENTA Y CONFIGURACIÓN ---
+        // --- SECCIÓN 3: HERRAMIENTAS DE DESARROLLO ---
+        Divider(color: AppTheme.darkGray),
+        
+        Padding(
+          padding: EdgeInsets.all(AppTheme.spacingMd),
+          child: Text(
+            'DEV TOOLS',
+            style: TextStyle(
+              color: AppTheme.goldTrophy,
+              fontSize: AppTheme.captionSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+        
+        // --- Test de casos de uso ---
+        _buildDrawerItem(
+          context,
+          '',
+          Icons.bug_report_outlined,
+          'Test de casos de uso',
+          isActive: true,
+          onTap: () => _navigateToUseCaseTest(context),
+        ),
+        
+        // --- SECCIÓN 4: CUENTA Y CONFIGURACIÓN ---
         Divider(color: AppTheme.darkGray),
         
         Padding(
@@ -612,6 +638,18 @@ class ManagerDrawer extends ConsumerWidget {
       className: 'ManagerDrawer',
       functionName: '_navigateTo',
       params: {'route': route},
+    );
+  }
+  
+  // Navegar a test de casos de uso
+  void _navigateToUseCaseTest(BuildContext context) {
+    Navigator.pop(context); // Cerrar el drawer
+    context.go(AppRoutes.managerUseCaseTest);
+    
+    AppLogger.logInfo(
+      'Navegando a test de casos de uso',
+      className: 'ManagerDrawer',
+      functionName: '_navigateToUseCaseTest',
     );
   }
   

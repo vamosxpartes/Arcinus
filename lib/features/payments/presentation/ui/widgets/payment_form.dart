@@ -19,7 +19,6 @@ class PaymentForm extends StatelessWidget {
   final PaymentConfigModel? paymentConfig;
   final List<String> currencies;
   final List<String> paymentMethods;
-  final VoidCallback onSelectDate;
   final ValueChanged<String> onCurrencyChanged;
   final ValueChanged<String> onPaymentMethodChanged;
   final ValueChanged<String> onAmountChanged;
@@ -40,7 +39,6 @@ class PaymentForm extends StatelessWidget {
     this.paymentConfig,
     required this.currencies,
     required this.paymentMethods,
-    required this.onSelectDate,
     required this.onCurrencyChanged,
     required this.onPaymentMethodChanged,
     required this.onAmountChanged,
@@ -68,8 +66,34 @@ class PaymentForm extends StatelessWidget {
           _buildConceptField(),
           const SizedBox(height: 16),
 
-          // Fecha de pago
+          // Fecha de pago (automática)
           _buildPaymentDateField(context),
+          const SizedBox(height: 8),
+          
+          // Información sobre la fecha automática
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'La fecha de registro se establece automáticamente al momento de procesar el pago.',
+                    style: TextStyle(
+                      color: Colors.blue.shade700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
           
           // Método de pago
@@ -194,19 +218,36 @@ class PaymentForm extends StatelessWidget {
   }
 
   Widget _buildPaymentDateField(BuildContext context) {
-    return InkWell(
-      onTap: onSelectDate,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(4),
+      ),
       child: InputDecorator(
         decoration: const InputDecoration(
-          labelText: 'Fecha de Pago',
+          labelText: 'Fecha de Registro del Pago',
           prefixIcon: Icon(Icons.calendar_today),
-          border: OutlineInputBorder(),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          suffixIcon: Icon(Icons.lock, color: Colors.grey),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(DateFormat('dd/MM/yyyy').format(paymentDate)),
-            const Icon(Icons.arrow_drop_down),
+            Text(
+              DateFormat('dd/MM/yyyy HH:mm').format(paymentDate),
+              style: const TextStyle(
+                color: Colors.grey,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const Text(
+              '(Automática)',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ],
         ),
       ),

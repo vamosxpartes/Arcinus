@@ -1,28 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 
 /// Widget para el formulario de asignación de planes de suscripción
+/// Simplificado para solo seleccionar el plan, sin fecha de inicio
 class PlanAssignmentForm extends ConsumerWidget {
   final GlobalKey<FormState> formKey;
   final String? selectedPlanId;
-  final DateTime startDate;
   final bool isSubmitting;
   final AsyncValue<List<SubscriptionPlanModel>> plansAsync;
   final ValueChanged<String?> onPlanChanged;
-  final VoidCallback onSelectStartDate;
   final VoidCallback onSavePlan;
 
   const PlanAssignmentForm({
     super.key,
     required this.formKey,
     this.selectedPlanId,
-    required this.startDate,
     required this.isSubmitting,
     required this.plansAsync,
     required this.onPlanChanged,
-    required this.onSelectStartDate,
     required this.onSavePlan,
   });
 
@@ -33,7 +29,7 @@ class PlanAssignmentForm extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWarningCard(),
+          _buildInfoCard(),
           const SizedBox(height: 24),
           
           const Text(
@@ -52,42 +48,42 @@ class PlanAssignmentForm extends ConsumerWidget {
     );
   }
 
-  Widget _buildWarningCard() {
+  Widget _buildInfoCard() {
     return Card(
-      color: Colors.amber.shade100,
+      color: Colors.blue.shade50,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.amber),
-                SizedBox(width: 8),
-                Text(
-                  'Atleta sin Plan de Suscripción',
+                Icon(Icons.info_outline, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                const Text(
+                  'Asignación de Plan Simplificada',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             const Text(
-              'Para realizar pagos, primero debes asignar un plan de suscripción al atleta.',
+              'Selecciona un plan para el atleta. La fecha de inicio se establecerá automáticamente cuando se registre el primer pago.',
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.amber.shade200,
+                color: Colors.blue.shade100,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.lightbulb_outline, color: Colors.amber, size: 16),
+                  Icon(Icons.schedule, color: Colors.blue, size: 16),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Una vez asignado el plan, podrás registrar pagos para este atleta.',
+                      'Una vez asignado el plan, podrás registrar pagos y la fecha de inicio se calculará automáticamente.',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -139,11 +135,6 @@ class PlanAssignmentForm extends ConsumerWidget {
             
             // Mostrar detalles del plan seleccionado
             if (selectedPlanId != null) _buildSelectedPlanDetails(plans),
-            
-            const SizedBox(height: 16),
-            
-            // Fecha de asignación
-            _buildStartDateSelector(),
           ],
         );
       },
@@ -329,56 +320,6 @@ class PlanAssignmentForm extends ConsumerWidget {
         Text(
           value,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStartDateSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Fecha de Asignación',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: onSelectStartDate,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade400),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today, color: Colors.blue),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Fecha de inicio del plan',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        DateFormat('dd/MM/yyyy').format(startDate),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.arrow_drop_down, color: Colors.grey),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'El plan comenzará a aplicar desde esta fecha',
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
       ],
     );

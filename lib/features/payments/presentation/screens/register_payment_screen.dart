@@ -17,6 +17,7 @@ import 'package:arcinus/features/payments/presentation/providers/subscription_bi
 
 // Importar todos los widgets modulares
 import 'package:arcinus/features/payments/presentation/ui/widgets/widgets.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 
 part 'register_payment_screen.g.dart';
 
@@ -51,7 +52,7 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
 
   // Estado del formulario
   String? _selectedAthleteId;
-  DateTime _paymentDate = DateTime.now();
+  DateTime _paymentDate = DateTime.now(); // Fecha automática, no editable
   String _selectedCurrency = 'COP';
   String _selectedPaymentMethod = 'Efectivo';
   bool _isPartialPayment = false;
@@ -59,10 +60,10 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
   String? _subscriptionPlanId;
   bool _isLoading = false;
   bool _isInitialized = false;
+  bool _titlePushed = false;
   
   // Variables para asignación de plan
   String? _selectedPlanId;
-  DateTime _startDate = DateTime.now();
   bool _isSubmittingPlan = false;
   
   // Variables para fechas separadas
@@ -104,6 +105,14 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
     if (widget.preloadedData != null) {
       _processPreloadedData();
     }
+    
+    // Actualizar el título del ManagerShell
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_titlePushed) {
+        ref.read(titleManagerProvider.notifier).pushTitle('Gestión de Pagos');
+        _titlePushed = true;
+      }
+    });
     
     // Inicialización asíncrona completa después de que se construya el widget
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -330,34 +339,9 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
   }
 
   // Métodos de selección de fechas
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _paymentDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-    );
-    if (picked != null && picked != _paymentDate) {
-      setState(() {
-        _paymentDate = picked;
-      });
-      _calculateServiceDates();
-    }
-  }
+  // NOTA: _selectDate removido - la fecha de pago ahora es automática y no editable
   
-  Future<void> _selectStartDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (picked != null && picked != _startDate) {
-      setState(() {
-        _startDate = picked;
-      });
-    }
-  }
+
   
   Future<void> _selectServiceStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -396,6 +380,11 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
       }
 
       final amount = double.tryParse(_amountController.text) ?? 0;
+      
+      // Actualizar la fecha de pago al momento exacto del registro
+      setState(() {
+        _paymentDate = DateTime.now();
+      });
       
       AppLogger.logInfo(
         'Enviando pago',
@@ -455,12 +444,12 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
     try {
       final repository = ref.read(clientUserRepositoryProvider);
 
-      // Asignar nuevo plan
+      // Asignar nuevo plan sin fecha de inicio específica
       final result = await repository.assignSubscriptionPlan(
         academyId,
         _selectedAthleteId!,
         _selectedPlanId!,
-        _startDate,
+        null, // La fecha de inicio se establecerá al registrar el primer pago
       );
 
       result.fold(
@@ -527,7 +516,6 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
           child: PlanAssignmentForm(
             formKey: _planFormKey,
             selectedPlanId: _selectedPlanId,
-            startDate: _startDate,
             isSubmitting: _isSubmittingPlan,
             plansAsync: ref.watch(activeSubscriptionPlansProvider(academyId)),
             onPlanChanged: (value) {
@@ -535,7 +523,6 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
                 _selectedPlanId = value;
               });
             },
-            onSelectStartDate: () => _selectStartDate(context),
             onSavePlan: _savePlan,
           ),
         ),
@@ -553,8 +540,33 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
     // Invalidar providers adicionales para asegurar que academy_members_screen se actualice
     final academyId = ref.read(currentAcademyProvider)?.id;
     if (_selectedAthleteId != null) {
+      // *** CRÍTICO: Invalidar específicamente el provider optimizado con caché ***
+      ref.invalidate(clientUserCachedProvider(_selectedAthleteId!));
       ref.invalidate(clientUserProvider(_selectedAthleteId!));
+      
+      // Además, forzar refresco del notifier si existe
+      try {
+        final notifier = ref.read(clientUserCachedProvider(_selectedAthleteId!).notifier);
+        
+        // El método invalidateAfterPayment ya verifica internamente si está mounted
+        notifier.invalidateAfterPayment();
+        
+        AppLogger.logInfo(
+          'ClientUserCachedProvider invalidado manualmente desde RegisterPaymentScreen',
+          className: 'RegisterPaymentScreenModularState',
+          functionName: '_invalidateProvidersAfterPayment',
+          params: {'athleteId': _selectedAthleteId!}
+        );
+      } catch (e) {
+        AppLogger.logWarning(
+          'No se pudo refrescar manualmente el ClientUserCachedProvider desde RegisterPaymentScreen',
+          className: 'RegisterPaymentScreenModularState',
+          functionName: '_invalidateProvidersAfterPayment',
+          params: {'athleteId': _selectedAthleteId!, 'error': e.toString()}
+        );
+      }
     }
+    
     if (academyId != null) {
       ref.invalidate(academyUsersProvider(academyId));
     }
@@ -574,6 +586,11 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Restaurar el título anterior antes de navegar
+        if (_titlePushed) {
+          ref.read(titleManagerProvider.notifier).popTitle();
+        }
         
         // Esperar un poco para que se procesen las invalidaciones antes de navegar
         final navigator = Navigator.of(context);
@@ -605,19 +622,14 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
 
     final hasPlan = _clientUser?.subscriptionPlan != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestión de Pagos'),
-        actions: [
-          if (hasPlan)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Cambiar plan',
-              onPressed: _showPlanEditDialog,
-            ),
-        ],
-      ),
-      body: _isLoading && !_isInitialized
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && _titlePushed) {
+          // Restaurar el título anterior cuando se hace pop manualmente
+          ref.read(titleManagerProvider.notifier).popTitle();
+        }
+      },
+      child: _isLoading && !_isInitialized
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -653,14 +665,83 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
                   
                   if (_selectedAthleteId == null) const SizedBox(height: 16),
                   
-                  // Mostrar formulario según si tiene plan o no
+                  // Mostrar formulario según el estado del atleta
                   if (_selectedAthleteId != null) 
-                    hasPlan 
-                      ? _buildPaymentSection() 
-                      : _buildPlanAssignmentSection(),
+                    _buildMainSection(),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildMainSection() {
+    final hasPlan = _clientUser?.subscriptionPlan != null;
+    final isPendingFirstPayment = _clientUser?.metadata['isPendingFirstPayment'] == true;
+    
+    if (!hasPlan) {
+      // No tiene plan asignado - mostrar formulario de asignación
+      return _buildPlanAssignmentSection();
+    } else if (isPendingFirstPayment) {
+      // Tiene plan pero está pendiente del primer pago - mostrar ambos formularios
+      return _buildUnifiedSection();
+    } else {
+      // Tiene plan y ya ha realizado pagos - mostrar solo formulario de pago
+      return _buildPaymentSection();
+    }
+  }
+
+  Widget _buildUnifiedSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Información sobre el estado actual
+        Card(
+          color: Colors.orange.shade50,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.schedule, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Plan Asignado - Pendiente Primer Pago',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'El atleta tiene un plan asignado (${_clientUser?.subscriptionPlan?.name}) pero aún no ha realizado el primer pago. '
+                  'La fecha de inicio del plan se establecerá automáticamente cuando registres el primer pago.',
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _showPlanEditDialog,
+                        icon: const Icon(Icons.edit, size: 16),
+                        label: const Text('Cambiar Plan'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade100,
+                          foregroundColor: Colors.orange.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        
+        // Formulario de pago
+        _buildPaymentSection(),
+      ],
     );
   }
 
@@ -685,7 +766,6 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
           paymentConfig: _paymentConfig,
           currencies: _currencies,
           paymentMethods: _paymentMethods,
-          onSelectDate: () => _selectDate(context),
           onCurrencyChanged: (value) {
             setState(() {
               _selectedCurrency = value;
@@ -757,7 +837,6 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
     return PlanAssignmentForm(
       formKey: _planFormKey,
       selectedPlanId: _selectedPlanId,
-      startDate: _startDate,
       isSubmitting: _isSubmittingPlan,
       plansAsync: ref.watch(activeSubscriptionPlansProvider(academyId)),
       onPlanChanged: (value) {
@@ -765,7 +844,6 @@ class RegisterPaymentScreenModularState extends ConsumerState<RegisterPaymentScr
           _selectedPlanId = value;
         });
       },
-      onSelectStartDate: () => _selectStartDate(context),
       onSavePlan: _savePlan,
     );
   }

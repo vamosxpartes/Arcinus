@@ -10,6 +10,54 @@ import 'package:arcinus/core/theme/ux/app_theme.dart';
 // Provider para manejar el título de la pantalla actual
 final currentScreenTitleProvider = StateProvider<String>((ref) => 'Arcinus');
 
+// Provider para manejar un stack de títulos para restaurar al hacer pop
+final titleStackProvider = StateProvider<List<String>>((ref) => ['Arcinus']);
+
+// Provider para manejar el título con stack
+final titleManagerProvider = StateNotifierProvider<TitleManager, String>((ref) {
+  return TitleManager();
+});
+
+/// Clase para manejar el stack de títulos
+class TitleManager extends StateNotifier<String> {
+  final List<String> _titleStack = ['Arcinus'];
+  
+  TitleManager() : super('Arcinus');
+  
+  /// Empuja un nuevo título al stack
+  void pushTitle(String title) {
+    _titleStack.add(title);
+    state = title;
+  }
+  
+  /// Hace pop del título actual y restaura el anterior
+  String popTitle() {
+    if (_titleStack.length > 1) {
+      _titleStack.removeLast();
+      state = _titleStack.last;
+    }
+    return state;
+  }
+  
+  /// Actualiza el título actual sin afectar el stack
+  void updateCurrentTitle(String title) {
+    if (_titleStack.isNotEmpty) {
+      _titleStack[_titleStack.length - 1] = title;
+      state = title;
+    }
+  }
+  
+  /// Obtiene el título actual
+  String get currentTitle => state;
+  
+  /// Limpia el stack y establece un título base
+  void resetToTitle(String title) {
+    _titleStack.clear();
+    _titleStack.add(title);
+    state = title;
+  }
+}
+
 /// Widget Shell para roles de gestión (Propietario y Colaborador).
 ///
 /// Construye la estructura base de UI para las pantallas de gestión con un AppBar
@@ -112,9 +160,15 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
       );
     }
 
-    // Obtener el título actual de la pantalla
-    final currentScreenTitle = ref.watch(currentScreenTitleProvider);
-    final finalTitle = widget.screenTitle ?? currentScreenTitle;
+    // Usar el TitleManager para obtener el título actual
+    final currentTitle = ref.watch(titleManagerProvider);
+    final finalTitle = widget.screenTitle ?? currentTitle;
+    
+    // Detectar si estamos en el dashboard para mostrar iconos de notificaciones
+    final isDashboard = finalTitle.contains('Panel') || finalTitle.contains('Dashboard') || finalTitle == 'Panel de control';
+    
+    // Detectar si podemos hacer pop (hay pantallas en el stack)
+    final canPop = Navigator.of(context).canPop();
     
     AppLogger.logInfo(
       'ManagerShell building...',
@@ -122,9 +176,11 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
       functionName: 'build',
       params: {
         'widget.screenTitle': widget.screenTitle,
-        'currentScreenTitle': currentScreenTitle,
+        'currentTitle': currentTitle,
         'finalTitle': finalTitle,
         'userRole': userRole?.name,
+        'isDashboard': isDashboard,
+        'canPop': canPop,
       },
     );
     
@@ -136,8 +192,10 @@ class _ManagerShellState extends ConsumerState<ManagerShell> {
         backgroundColor: AppTheme.blackSwarm,
         iconColor: AppTheme.magnoliaWhite,
         titleColor: AppTheme.magnoliaWhite,
+        showNotificationIcons: isDashboard, // Solo mostrar en dashboard
       ),
-      drawer: ManagerDrawer(
+      // Solo mostrar drawer si no podemos hacer pop
+      drawer: canPop ? null : ManagerDrawer(
         context: context,
         userRole: userRole,
       ),

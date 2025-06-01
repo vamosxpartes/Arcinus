@@ -37,6 +37,8 @@ import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.d
 import 'package:arcinus/features/navigation_shells/super_admin_shell/super_admin_shell.dart';
 import 'package:arcinus/features/users/presentation/ui/screens/profile_screen.dart';
 import 'package:arcinus/features/subscriptions/presentation/screens/subscription_plans_screen.dart';
+import 'package:arcinus/features/academies/presentation/ui/screens/manager_dashboard_screen.dart';
+import 'package:arcinus/features/dev_tools/presentation/screens/use_case_test_screen.dart';
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -626,7 +628,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: '/manager/dashboard',
               name: 'managerDashboard',
-              builder: (_, __) => const ScreenUnderDevelopment(message: 'Dashboard'),
+              builder: (_, __) => const ManagerDashboardScreen(),
             ),
             GoRoute(
               path: '/manager/profile',
@@ -637,6 +639,11 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/manager/settings',
               name: 'managerSettings',
               builder: (_, __) => const ScreenUnderDevelopment(message: 'Configuración'),
+            ),
+            GoRoute(
+              path: '/manager/dev-tools/use-case-test',
+              name: 'managerUseCaseTest',
+              builder: (_, __) => const UseCaseTestScreen(),
             ),
             // Añadir ruta para crear academia dentro del shell manager
             GoRoute(

@@ -78,8 +78,10 @@ class _ManagerHomeScreenState extends ConsumerState<ManagerHomeScreen> {
     super.initState();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Establecer el título de la pantalla
-      ref.read(currentScreenTitleProvider.notifier).state = 'Mis Academias';
+      if (mounted) {
+        // Establecer el título de la pantalla usando TitleManager
+        ref.read(titleManagerProvider.notifier).updateCurrentTitle('Mis Academias');
+      }
     });
   }
 

@@ -61,6 +61,7 @@ class AppRoutes {
   static const String managerAcademyPayments = '/manager/academy/:academyId/payments';
   static const String managerProfile = '/manager/profile';
   static const String managerSettings = '/manager/settings';
+  static const String managerUseCaseTest = '/manager/dev-tools/use-case-test';
   
   // Rutas de academia específicas dentro de manager
   static const String managerAcademyPath = '/manager/academy/:academyId';

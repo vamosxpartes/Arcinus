@@ -9,14 +9,60 @@ part 'academy_users_providers.g.dart';
 // Provider para todos los usuarios de una academia
 @riverpod
 Stream<List<AcademyUserModel>> academyUsers(Ref ref, String academyId) {
-  final repository = ref.watch(academyUsersRepositoryProvider);
-  AppLogger.logInfo(
-    'Obteniendo todos los usuarios de la academia',
+  AppLogger.logProcessStart(
+    'Creando academyUsers stream provider',
     className: 'AcademyUsersProviders',
     functionName: 'academyUsers',
-    params: {'academyId': academyId},
+    params: {
+      'academyId': academyId,
+      'timestamp': DateTime.now().toString(),
+      'provider_hashCode': ref.hashCode,
+    },
   );
-  return repository.getAcademyUsers(academyId);
+
+  // Añadir listener para detectar cuando se destruye
+  ref.onDispose(() {
+    AppLogger.logInfo(
+      'Destruyendo academyUsers stream provider',
+      className: 'AcademyUsersProviders',
+      functionName: 'academyUsers',
+      params: {
+        'academyId': academyId,
+        'timestamp': DateTime.now().toString(),
+      },
+    );
+  });
+
+  final repository = ref.watch(academyUsersRepositoryProvider);
+  
+  AppLogger.logInfo(
+    'Obteniendo stream de usuarios de la academia',
+    className: 'AcademyUsersProviders',
+    functionName: 'academyUsers',
+    params: {
+      'academyId': academyId,
+      'repository_hashCode': repository.hashCode,
+    },
+  );
+
+  // Crear el stream y añadir logging a cada evento
+  final stream = repository.getAcademyUsers(academyId);
+  
+  return stream.map((users) {
+    AppLogger.logInfo(
+      'Nuevo evento en stream de academyUsers',
+      className: 'AcademyUsersProviders',
+      functionName: 'academyUsers',
+      params: {
+        'academyId': academyId,
+        'userCount': users.length,
+        'userIds': users.map((u) => u.id).take(3).toList(), // Solo los primeros 3 IDs
+        'timestamp': DateTime.now().toString(),
+        'stream_event_hashCode': users.hashCode,
+      },
+    );
+    return users;
+  });
 }
 
 // Provider para usuarios filtrados por rol

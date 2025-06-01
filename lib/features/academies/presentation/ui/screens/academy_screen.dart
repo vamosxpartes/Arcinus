@@ -31,48 +31,29 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Color _primaryColor = AppTheme.blackSwarm;
-  String? _academyName;
+  bool _titleInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this); // Aumentado a 4 tabs
-
-    // Cargar datos de la academia
-    _loadAcademy();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Configurar un título inicial mientras se carga la academia
-      ref.read(currentScreenTitleProvider.notifier).state = 'Academia';
-    });
   }
 
-  void _loadAcademy() {
-    // Cargar datos iniciales de la academia
-    ref.read(academyProvider(widget.academyId)).whenData((academy) {
-      if (academy != null && mounted) {
-        setState(() {
-          _academyName = academy.name;
-
-          // Nota: Si AcademyModel no tiene primaryColor, usar el color por defecto
-          _primaryColor = AppTheme.blackSwarm;
-        });
-
-        // Actualizar el título de la pantalla con el nombre de la academia
-        ref.read(currentScreenTitleProvider.notifier).state = academy.name;
-      }
-    });
+  void _updateTitleIfNeeded(AcademyModel academy) {
+    if (!_titleInitialized && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(titleManagerProvider.notifier).updateCurrentTitle(academy.name);
+          _titleInitialized = true;
+        }
+      });
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    // Verificar si el nombre de la academia ya está cargado
-    if (_academyName != null) {
-      // Actualizar el título de la pantalla
-      ref.read(currentScreenTitleProvider.notifier).state = _academyName!;
-    }
+    // REMOVER la actualización del título aquí para evitar actualizaciones múltiples
   }
 
   @override
@@ -91,12 +72,16 @@ class _AcademyScreenState extends ConsumerState<AcademyScreen>
           return const Center(child: Text('Academia no encontrada'));
         }
 
-        // El provider de academia actual y el color primario se manejan aquí
+        // Actualizar el título y la academia actual de forma segura
+        _updateTitleIfNeeded(academy);
+        
+        // Establecer la academia actual de forma segura
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             ref.read(currentAcademyProvider.notifier).state = academy;
           }
         });
+        
         _primaryColor = AppTheme.embers; // O color de la academia si existe
 
         // Devolvemos el CustomScrollView que antes estaba en el body

@@ -14,11 +14,15 @@ class ManagerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color backgroundColor;
   
   /// Lista opcional de widgets para mostrar como acciones en el AppBar.
-  /// Si es null, se usarán las acciones predeterminadas (notificaciones, mensajes).
+  /// Si es null, se usarán las acciones predeterminadas según showNotificationIcons.
   final List<Widget>? actions;
 
   final Color? iconColor; // Color para el ícono del drawer y acciones
   final Color? titleColor; // Color explícito para el título
+  
+  /// Si debe mostrar los iconos de notificaciones y mensajes.
+  /// Por defecto es false, solo se muestran en el dashboard.
+  final bool showNotificationIcons;
 
   /// Crea una instancia de [ManagerAppBar].
   const ManagerAppBar({
@@ -28,6 +32,7 @@ class ManagerAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.iconColor = AppTheme.magnoliaWhite, // Default a blanco
     this.titleColor = AppTheme.magnoliaWhite, // Default a blanco
+    this.showNotificationIcons = false, // Por defecto no mostrar
   });
 
   @override
@@ -42,27 +47,33 @@ class ManagerAppBar extends StatelessWidget implements PreferredSizeWidget {
         'customActions': actions != null ? 'presentes' : 'usando default',
         'iconColor': iconColor.toString(),
         'titleColor': titleColor.toString(),
+        'showNotificationIcons': showNotificationIcons,
       },
     );
 
-    final defaultActions = [
-      IconButton(
-        icon: const Icon(Icons.notifications_none_outlined, size: 22),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Próximamente: Notificaciones')),
-          );
-        },
-      ),
-      IconButton(
-        icon: const Icon(Icons.message_outlined, size: 22), // Icono de mensajes
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Próximamente: Mensajes')),
-          );
-        },
-      ),
-    ];
+    List<Widget> defaultActions = [];
+    
+    // Solo agregar iconos de notificaciones y mensajes si showNotificationIcons es true
+    if (showNotificationIcons) {
+      defaultActions = [
+        IconButton(
+          icon: const Icon(Icons.notifications_none_outlined, size: 22),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Próximamente: Notificaciones')),
+            );
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.message_outlined, size: 22), // Icono de mensajes
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Próximamente: Mensajes')),
+            );
+          },
+        ),
+      ];
+    }
 
     // Determinar el tema de íconos basado en iconColor
     final effectiveIconTheme = IconThemeData(color: iconColor, size: 22);

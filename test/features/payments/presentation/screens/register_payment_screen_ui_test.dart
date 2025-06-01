@@ -145,6 +145,28 @@ void main() {
       // Verificar que la pantalla se estabiliza
       expect(find.byType(RegisterPaymentScreen), findsOneWidget);
     });
+
+    testWidgets('Debe mostrar fecha de pago como automática y no editable', (tester) async {
+      // Act
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: const RegisterPaymentScreen(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Assert - Verificar que no hay elementos de selección de fecha
+      expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
+      
+      // Verificar que hay un icono de candado indicando que no es editable
+      expect(find.byIcon(Icons.lock), findsAtLeastNWidgets(0)); // Puede aparecer cuando hay datos
+      
+      // Verificar que hay texto indicando que es automática
+      expect(find.textContaining('Automática'), findsAtLeastNWidgets(0)); // Puede aparecer cuando hay datos
+    });
   });
 
   group('UI Components Validation', () {

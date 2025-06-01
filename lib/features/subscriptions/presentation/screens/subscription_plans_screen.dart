@@ -36,16 +36,18 @@ class _SubscriptionPlansScreenState extends ConsumerState<SubscriptionPlansScree
     );
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Establecer el título de la pantalla
-      AppLogger.logInfo(
-        'Estableciendo título en SubscriptionPlansScreen',
-        className: 'SubscriptionPlansScreen',
-        functionName: 'initState.postFrame',
-        params: {
-          'título': 'Planes de Suscripción',
-        },
-      );
-      ref.read(currentScreenTitleProvider.notifier).state = 'Planes de Suscripción';
+      if (mounted) {
+        // Establecer el título de la pantalla usando TitleManager
+        AppLogger.logInfo(
+          'Estableciendo título en SubscriptionPlansScreen',
+          className: 'SubscriptionPlansScreen',
+          functionName: 'initState.postFrame',
+          params: {
+            'título': 'Planes de Suscripción',
+          },
+        );
+        ref.read(titleManagerProvider.notifier).updateCurrentTitle('Planes de Suscripción');
+      }
     });
   }
 

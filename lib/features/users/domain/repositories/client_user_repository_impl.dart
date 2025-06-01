@@ -583,24 +583,34 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
           return left(failure);
         },
         (plan) async {
-          // Al asignar un plan, NO calculamos nextPaymentDate
-          // La próxima fecha de pago se calculará únicamente cuando se registre un pago
-          final effectiveStartDate = startDate ?? DateTime.now();
+          // Al asignar un plan sin fecha de inicio, NO calculamos fechas específicas
+          // Todas las fechas se calcularán únicamente cuando se registre el primer pago
           
-          // Para remainingDays al asignar un plan, usar la duración del plan como referencia
-          // pero indicar que es una estimación hasta que se registre el primer pago
-          final planDurationDays = _getPlanDurationInDays(plan.billingCycle);
+          Map<String, dynamic> clientData;
           
-          // Actualizar el usuario
-          final clientData = {
-            'subscriptionPlanId': planId,
-            'planStartDate': Timestamp.fromDate(effectiveStartDate), // Fecha de inicio del plan (solo referencial)
-            'remainingDays': planDurationDays, // Duración completa del plan (estimación hasta primer pago)
-            'paymentStatus': PaymentStatus.inactive.name, // Inactivo hasta que se registre un pago
-            'assignedAt': Timestamp.fromDate(DateTime.now()),
-            'isEstimatedDays': true, // Flag para indicar que remainingDays es estimación
-            // NO asignamos nextPaymentDate aquí - se asignará al registrar el primer pago
-          };
+          if (startDate != null) {
+            // Caso legacy: se proporciona fecha de inicio específica
+            final planDurationDays = _getPlanDurationInDays(plan.billingCycle);
+            clientData = {
+              'subscriptionPlanId': planId,
+              'planStartDate': Timestamp.fromDate(startDate),
+              'remainingDays': planDurationDays,
+              'paymentStatus': PaymentStatus.inactive.name,
+              'assignedAt': Timestamp.fromDate(DateTime.now()),
+              'isEstimatedDays': true,
+            };
+                     } else {
+             // Nuevo comportamiento: plan asignado sin fecha de inicio
+             // Las fechas se establecerán al registrar el primer pago
+             clientData = {
+               'subscriptionPlanId': planId,
+               'paymentStatus': PaymentStatus.inactive.name, // Inactivo hasta primer pago
+               'assignedAt': Timestamp.fromDate(DateTime.now()),
+               'isPendingFirstPayment': true, // Flag para indicar que espera primer pago
+               // NO asignamos planStartDate, remainingDays, ni nextPaymentDate
+               // Se asignarán al registrar el primer pago
+             };
+           }
           
           AppLogger.logInfo(
             'Actualizando datos de usuario con plan de suscripción',
@@ -610,9 +620,10 @@ class ClientUserRepositoryImpl implements ClientUserRepository {
               'academyId': academyId,
               'userId': userId,
               'planId': planId,
-              'effectiveStartDate': effectiveStartDate.toIso8601String(),
-              'planDurationDays': planDurationDays,
-              'note': 'nextPaymentDate se calculará al registrar el primer pago',
+              'startDateProvided': startDate != null,
+              'note': startDate != null 
+                ? 'Plan asignado con fecha de inicio específica'
+                : 'Plan asignado sin fecha - se establecerá al registrar primer pago',
             },
           );
           

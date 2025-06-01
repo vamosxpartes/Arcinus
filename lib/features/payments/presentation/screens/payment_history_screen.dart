@@ -6,9 +6,10 @@ import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 
 /// Pantalla que muestra el historial de pagos de un atleta específico
-class PaymentHistoryScreen extends ConsumerWidget {
+class PaymentHistoryScreen extends ConsumerStatefulWidget {
   /// ID del atleta
   final String athleteId;
   
@@ -26,33 +27,43 @@ class PaymentHistoryScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final paymentsAsyncValue = ref.watch(
-      athletePaymentsNotifierProvider(athleteId),
-    );
-    final clientUserAsyncValue = ref.watch(clientUserProvider(athleteId));
+  ConsumerState<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
+}
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          athleteName != null 
-            ? 'Historial de pagos - $athleteName'
-            : 'Historial de pagos',
-        ),
-        backgroundColor: AppTheme.bonfireRed,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-            onPressed: () {
-              ref.invalidate(athletePaymentsNotifierProvider(athleteId));
-              ref.invalidate(clientUserProvider(athleteId));
-            },
-          ),
-        ],
-      ),
-      body: Column(
+class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
+  bool _titlePushed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Actualizar el título del ManagerShell
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_titlePushed) {
+        final title = widget.athleteName != null 
+          ? 'Historial de pagos - ${widget.athleteName}'
+          : 'Historial de pagos';
+        ref.read(titleManagerProvider.notifier).pushTitle(title);
+        _titlePushed = true;
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final paymentsAsyncValue = ref.watch(
+      athletePaymentsNotifierProvider(widget.athleteId),
+    );
+    final clientUserAsyncValue = ref.watch(clientUserProvider(widget.athleteId));
+
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && _titlePushed) {
+          // Restaurar el título anterior cuando se hace pop
+          ref.read(titleManagerProvider.notifier).popTitle();
+        }
+      },
+      child: Column(
         children: [
           // Información del atleta
           _buildAthleteInfoCard(context, ref, clientUserAsyncValue),
@@ -89,8 +100,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
                   radius: 30,
                   backgroundColor: AppTheme.bonfireRed,
                   child: Text(
-                    athleteName?.isNotEmpty == true
-                      ? athleteName![0].toUpperCase()
+                    widget.athleteName?.isNotEmpty == true
+                      ? widget.athleteName![0].toUpperCase()
                       : 'A',
                     style: const TextStyle(
                       fontSize: 20,
@@ -105,13 +116,13 @@ class PaymentHistoryScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        athleteName ?? 'Atleta',
+                        widget.athleteName ?? 'Atleta',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'ID: $athleteId',
+                        'ID: ${widget.athleteId}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),

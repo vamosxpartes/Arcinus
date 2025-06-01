@@ -3,7 +3,7 @@
 Arcinus es una aplicación móvil desarrollada en Flutter para la gestión integral de academias deportivas. Permite administrar entrenadores, atletas, grupos, entrenamientos, clases, asistencia, pagos y comunicaciones.
 
 ##  Indice del Desarrollo
-
+1
 El proyecto se encuentra en fase de planeacion de desarrollo con los siguientes componentes:
 
 **Inicial (Fundamentos y Configuración)**

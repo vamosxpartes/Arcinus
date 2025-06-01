@@ -17,36 +17,31 @@ class ManagerDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen> {
+  bool _titleInitialized = false;
+
   @override
   void initState() {
     super.initState();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Establecer el título de la pantalla
-      ref.read(currentScreenTitleProvider.notifier).state = 'Panel de control';
+      if (mounted && !_titleInitialized) {
+        // Establecer el título de la pantalla usando TitleManager
+        ref.read(titleManagerProvider.notifier).updateCurrentTitle('Panel de control');
+        _titleInitialized = true;
+      }
     });
-  }
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    
-    // Asegurar que el título de la pantalla esté configurado
-    if (mounted) {
-      ref.read(currentScreenTitleProvider.notifier).state = 'Panel de control';
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final currentAcademy = ref.watch(currentAcademyProvider);
     
-    // Actualizar el título si tenemos una academia seleccionada
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final title = currentAcademy != null 
-          ? 'Panel de ${currentAcademy.name}' 
-          : 'Panel de control';
-      ref.read(currentScreenTitleProvider.notifier).state = title;
+    // Usar ref.listen para escuchar cambios en la academia actual
+    ref.listen(currentAcademyProvider, (previous, current) {
+      if (mounted && current != null && current != previous) {
+        final title = 'Panel de ${current.name}';
+        ref.read(titleManagerProvider.notifier).updateCurrentTitle(title);
+      }
     });
     
     // Si no hay academia seleccionada, mostrar mensaje

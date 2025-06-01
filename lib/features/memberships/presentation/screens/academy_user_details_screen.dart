@@ -1,18 +1,16 @@
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
-import 'package:arcinus/features/memberships/presentation/screens/edit_athlete_screen.dart';
-import 'package:arcinus/features/memberships/presentation/widgets/permission_widget.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/presentation/screens/payment_history_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:arcinus/core/auth/app_permissions.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
 
-class AcademyUserDetailsScreen extends ConsumerWidget {
+class AcademyUserDetailsScreen extends ConsumerStatefulWidget {
   final String academyId;
   final String userId;
   final AcademyUserModel? initialUserData; // Datos iniciales si ya tenemos el objeto
@@ -25,63 +23,60 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Si tenemos datos iniciales los usamos, sino cargamos del provider
-    final userAsyncValue = initialUserData != null
-        ? AsyncValue.data(initialUserData!)
-        : ref.watch(academyUserDetailsProvider(academyId, userId));
+  ConsumerState<AcademyUserDetailsScreen> createState() => _AcademyUserDetailsScreenState();
+}
 
-    return Scaffold(
-      appBar: AppBar(
-        title: userAsyncValue.maybeWhen(
-          data: (user) => Text('Detalles de ${user?.fullName ?? "Usuario"}'),
-          orElse: () => const Text('Detalles de usuario'),
-        ),
-        actions: [
-          PermissionGate(
-            academyId: academyId,
-            requiredPermission: AppPermissions.manageMemberships,
-            child: IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Editar usuario',
-              onPressed: () {
-                if (userAsyncValue.value == null) return;
-                
-                final user = userAsyncValue.value!;
-                final userRole = user.role != null
-                    ? AppRole.values.firstWhere(
-                        (r) => r.name == user.role,
-                        orElse: () => AppRole.atleta,
-                      )
-                    : AppRole.atleta;
-                    
-                if (userRole == AppRole.atleta) {
-                  // Si es atleta, navegamos a la pantalla de edición específica para atletas
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => EditAthleteScreen(
-                        academyId: academyId,
-                        userId: userId,
-                        initialUserData: user,
-                      ),
-                    ),
-                  );
-                } else {
-                  // Para otros roles, mostramos mensaje que está en desarrollo
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Función en desarrollo: Editar usuario no atleta')),
-                  );
-                }
-              },
-            ),
-          ),
-        ],
-      ),
-      body: userAsyncValue.when(
+class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScreen> {
+  bool _titlePushed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Si tenemos datos iniciales, actualizar el título inmediatamente
+    if (widget.initialUserData != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_titlePushed) {
+          ref.read(titleManagerProvider.notifier).pushTitle('Detalles de ${widget.initialUserData!.fullName}');
+          _titlePushed = true;
+        }
+      });
+    }
+  }
+
+  void _updateTitleIfNeeded(AcademyUserModel user) {
+    if (!_titlePushed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(titleManagerProvider.notifier).pushTitle('Detalles de ${user.fullName}');
+          _titlePushed = true;
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Si tenemos datos iniciales los usamos, sino cargamos del provider
+    final userAsyncValue = widget.initialUserData != null
+        ? AsyncValue.data(widget.initialUserData!)
+        : ref.watch(academyUserDetailsProvider(widget.academyId, widget.userId));
+
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && _titlePushed) {
+          // Restaurar el título anterior cuando se hace pop
+          ref.read(titleManagerProvider.notifier).popTitle();
+        }
+      },
+      child: userAsyncValue.when(
         data: (user) {
           if (user == null) {
             return const Center(child: Text('Usuario no encontrado'));
           }
+          
+          // Actualizar título solo si no se ha hecho antes
+          _updateTitleIfNeeded(user);
           
           final userRole = user.role != null
               ? AppRole.values.firstWhere(
@@ -233,8 +228,8 @@ class AcademyUserDetailsScreen extends ConsumerWidget {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) => PaymentHistoryScreen(
-                                          academyId: academyId,
-                                          athleteId: userId,
+                                          academyId: widget.academyId,
+                                          athleteId: widget.userId,
                                           athleteName: user.fullName,
                                         ),
                                       ),
