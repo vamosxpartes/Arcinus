@@ -120,6 +120,7 @@ class AppTheme {
   /// Tamaño para botones de acción flotantes
   static const double actionButtonSize = 52;
 
+
   /// Obtiene el tema claro (no utilizado actualmente,
   /// pero disponible para futuras implementaciones)
   static ThemeData get lightTheme {

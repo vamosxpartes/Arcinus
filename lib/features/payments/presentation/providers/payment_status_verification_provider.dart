@@ -1,5 +1,6 @@
 import 'package:arcinus/features/payments/domain/services/payment_status_service.dart' as payment_service;
 import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
 import 'package:arcinus/features/payments/domain/repositories/client_user_repository.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
@@ -12,6 +13,9 @@ import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/period_providers.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_assignment_model.dart';
+import 'package:arcinus/features/subscriptions/domain/repositories/period_repository.dart';
 
 part 'payment_status_verification_provider.g.dart';
 
@@ -43,14 +47,17 @@ class PaymentStatusVerification extends _$PaymentStatusVerification {
       // Obtener instancias de repositorios necesarios
       final clientUserRepo = ref.read(clientUserRepositoryProvider);
       final academyRepo = ref.read(academyRepositoryProvider);
+      final periodRepo = ref.read(periodRepositoryProvider);
       
       // Crear adaptadores para los repositorios
       final clientAdapter = _ClientAdapter(clientUserRepo);
       final academyAdapter = _AcademyAdapter(academyRepo, ref);
+      final periodAdapter = _PeriodAdapter(periodRepo);
 
       // Ejecutar verificación en todas las academias
       await payment_service.PaymentStatusService.verifyAllAcademies(
         clientAdapter,
+        periodAdapter,
         academyAdapter,
       );
 
@@ -106,6 +113,21 @@ class _ClientAdapter implements payment_service.ClientUserRepository {
       userId,
       newStatus,
     );
+  }
+}
+
+/// Adaptador para el repositorio de períodos
+class _PeriodAdapter implements payment_service.PeriodRepository {
+  final PeriodRepository _repo;
+  
+  _PeriodAdapter(this._repo);
+  
+  @override
+  Future<Either<Failure, List<SubscriptionAssignmentModel>>> getAthleteActivePeriods(
+    String academyId,
+    String athleteId,
+  ) {
+    return _repo.getActivePeriods(academyId, athleteId);
   }
 }
 

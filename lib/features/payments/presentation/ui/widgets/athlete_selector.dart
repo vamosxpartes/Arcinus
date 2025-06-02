@@ -60,6 +60,7 @@ class AthleteSelector extends ConsumerWidget {
                 return DropdownMenuItem<String>(
                   value: athlete.id,
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       CircleAvatar(
                         radius: 16,
@@ -70,7 +71,7 @@ class AthleteSelector extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      Flexible(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -79,6 +80,7 @@ class AthleteSelector extends ConsumerWidget {
                               athlete.displayName ?? 'Sin nombre',
                               style: const TextStyle(fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                             Text(
                               athlete.email,
@@ -87,6 +89,7 @@ class AthleteSelector extends ConsumerWidget {
                                 color: Colors.grey.shade600,
                               ),
                               overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ],
                         ),

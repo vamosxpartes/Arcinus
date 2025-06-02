@@ -5,6 +5,7 @@ import 'package:arcinus/features/memberships/presentation/screens/academy_user_d
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_config_provider.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
@@ -12,6 +13,7 @@ import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
 
 /// Widget modular para mostrar la sección horizontal de avatares de atletas
 /// con indicadores de estado de pago.
@@ -102,36 +104,30 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
     );
   }
 
-  /// Ordena atletas por proximidad de fecha de pago
+  /// Ordena atletas por proximidad de fecha de pago usando el nuevo sistema de períodos
   Future<List<AcademyUserModel>> _sortAthletesByPaymentProximity(
     List<AcademyUserModel> athletes, 
     WidgetRef ref
   ) async {
     final List<_AthleteWithPaymentData> athleteData = [];
-    final clientUserRepository = ref.read(clientUserRepositoryProvider);
     
-    // Obtenemos datos de pago para cada atleta
+    // Obtenemos datos de información completa para cada atleta
     for (final athlete in athletes) {
       try {
-        final clientUserResult = await clientUserRepository.getClientUser(
-          academyId, 
-          athlete.id
-        );
-        
-        final clientUser = clientUserResult.fold(
-          (failure) => null,
-          (user) => user,
-        );
+        final athleteCompleteInfo = await ref.read(athleteCompleteInfoProvider((
+          academyId: academyId,
+          athleteId: athlete.id,
+        )).future);
         
         athleteData.add(_AthleteWithPaymentData(
           athlete: athlete,
-          clientUser: clientUser,
+          athleteInfo: athleteCompleteInfo,
         ));
       } catch (e) {
         // En caso de error, agregamos el atleta sin datos de pago
         athleteData.add(_AthleteWithPaymentData(
           athlete: athlete,
-          clientUser: null,
+          athleteInfo: null,
         ));
       }
     }
@@ -142,27 +138,27 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
       
       // Función para calcular la prioridad de pago (menor valor = mayor prioridad)
       int getPriority(_AthleteWithPaymentData data) {
-        final clientUser = data.clientUser;
+        final athleteInfo = data.athleteInfo;
         
-        // Si no hay datos de cliente o no tiene plan: prioridad muy alta (necesita asignación)
-        if (clientUser == null || clientUser.subscriptionPlan == null) {
+        // Si no hay datos del atleta o no tiene plan: prioridad muy alta (necesita asignación)
+        if (athleteInfo == null || !athleteInfo.hasActivePlan) {
           return 0;
         }
         
         // Si está vencido (overdue): prioridad máxima
-        if (clientUser.paymentStatus == PaymentStatus.overdue) {
+        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue) {
           return 1;
         }
         
         // Si está inactivo pero tiene plan: prioridad alta (necesita pago)
-        if (clientUser.paymentStatus == PaymentStatus.inactive) {
+        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.inactive) {
           return 2;
         }
         
         // Si está activo y tiene fecha de pago específica
-        if (clientUser.paymentStatus == PaymentStatus.active && 
-            clientUser.nextPaymentDate != null) {
-          final daysRemaining = clientUser.nextPaymentDate!.difference(now).inDays;
+        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.active && 
+            athleteInfo.nextPaymentDate != null) {
+          final daysRemaining = athleteInfo.nextPaymentDate!.difference(now).inDays;
           
           // Menor a 0 días (vencido pero no marcado como overdue): prioridad muy alta
           if (daysRemaining < 0) {
@@ -182,9 +178,9 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
         
         // Si está activo pero no tiene nextPaymentDate (plan asignado sin pago registrado)
         // Usar remainingDays como aproximación si está disponible
-        if (clientUser.paymentStatus == PaymentStatus.active && 
-            clientUser.remainingDays != null) {
-          final remainingDays = clientUser.remainingDays!;
+        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.active && 
+            athleteInfo.remainingDays > 0) {
+          final remainingDays = athleteInfo.remainingDays;
           
           // Aplicar lógica similar pero con menos prioridad que fechas específicas
           if (remainingDays < 5) {
@@ -207,11 +203,11 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
       if (priorityA == priorityB) {
         // Calcular días restantes para ordenamiento
         int? getDaysRemaining(_AthleteWithPaymentData data) {
-          final clientUser = data.clientUser;
-          if (clientUser?.nextPaymentDate != null) {
-            return clientUser!.nextPaymentDate!.difference(now).inDays;
-          } else if (clientUser?.remainingDays != null) {
-            return clientUser!.remainingDays!;
+          final athleteInfo = data.athleteInfo;
+          if (athleteInfo?.nextPaymentDate != null) {
+            return athleteInfo!.nextPaymentDate!.difference(now).inDays;
+          } else if (athleteInfo?.remainingDays != null) {
+            return athleteInfo!.remainingDays;
           }
           return null;
         }
@@ -279,13 +275,16 @@ class PaymentAvatarItem extends ConsumerWidget {
     }
 
     final paymentConfigAsync = ref.watch(paymentConfigProvider(academyId));
-    final clientUserAsync = ref.watch(clientUserProvider(athlete.id));
+    final athleteCompleteInfoAsync = ref.watch(athleteCompleteInfoProvider((
+      academyId: academyId,
+      athleteId: athlete.id,
+    )));
     
-    return clientUserAsync.when(
-      data: (clientUser) => paymentConfigAsync.when(
+    return athleteCompleteInfoAsync.when(
+      data: (athleteInfo) => paymentConfigAsync.when(
         data: (paymentConfig) => _buildActiveAvatar(
           context, 
-          clientUser, 
+          athleteInfo, 
           paymentConfig,
         ),
         loading: () => _buildLoadingAvatar(),
@@ -298,44 +297,43 @@ class PaymentAvatarItem extends ConsumerWidget {
 
   Widget _buildActiveAvatar(
     BuildContext context,
-    ClientUserModel? clientUser,
+    AthleteCompleteInfo athleteInfo,
     PaymentConfigModel paymentConfig,
   ) {
-    final bool hasPlan = clientUser?.subscriptionPlan != null;
+    final bool hasPlan = athleteInfo.hasActivePlan;
     final now = DateTime.now();
     
-    // Usar clientUser.paymentStatus para determinar el estado
-    final bool needsPaymentAttention = clientUser == null || // Si no hay datos del cliente
-                                     !hasPlan || // Si no tiene plan asignado
-                                     clientUser.paymentStatus == PaymentStatus.overdue || // Si está en mora
-                                     (clientUser.paymentStatus == PaymentStatus.inactive && hasPlan); // Si está inactivo pero TIENE plan
+    // Usar athleteInfo.clientUser.paymentStatus para determinar el estado
+    final bool needsPaymentAttention = !hasPlan || // Si no tiene plan asignado
+                                     athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue || // Si está en mora
+                                     (athleteInfo.clientUser.paymentStatus == PaymentStatus.inactive && hasPlan); // Si está inactivo pero TIENE plan
 
-    final bool isInGracePeriod = clientUser?.paymentStatus == PaymentStatus.overdue && 
-                                 clientUser?.nextPaymentDate != null &&
-                                 now.isBefore(clientUser!.nextPaymentDate!.add(Duration(days: paymentConfig.gracePeriodDays))) &&
-                                 now.isAfter(clientUser.nextPaymentDate!);
+    final bool isInGracePeriod = athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue && 
+                                 athleteInfo.nextPaymentDate != null &&
+                                 now.isBefore(athleteInfo.nextPaymentDate!.add(Duration(days: paymentConfig.gracePeriodDays))) &&
+                                 now.isAfter(athleteInfo.nextPaymentDate!);
 
     // Calcular días restantes de manera unificada
     int? displayDaysRemaining;
     bool isEstimated = false;
     
-    if (clientUser?.nextPaymentDate != null) {
+    if (athleteInfo.nextPaymentDate != null) {
       // Usar fecha específica de próximo pago si está disponible (días reales)
-      displayDaysRemaining = clientUser!.nextPaymentDate!.difference(now).inDays;
+      displayDaysRemaining = athleteInfo.nextPaymentDate!.difference(now).inDays;
       isEstimated = false;
-    } else if (clientUser?.remainingDays != null && hasPlan && clientUser?.paymentStatus == PaymentStatus.active) {
+    } else if (athleteInfo.remainingDays > 0 && hasPlan && athleteInfo.clientUser.paymentStatus == PaymentStatus.active) {
       // Para planes asignados sin pago registrado, usar remainingDays como aproximación
-      displayDaysRemaining = clientUser!.remainingDays!;
-      isEstimated = clientUser.isEstimatedDays;
+      displayDaysRemaining = athleteInfo.remainingDays;
+      isEstimated = true; // Consideramos que los días calculados por períodos pueden ser aproximados
     }
 
     // Determinar si mostrar alerta visual (borde e icono superior)
     final bool showVisualAlert = needsPaymentAttention || 
                                isInGracePeriod ||
-                               (hasPlan && displayDaysRemaining != null && displayDaysRemaining < 5 && clientUser.paymentStatus == PaymentStatus.active);
+                               (hasPlan && displayDaysRemaining != null && displayDaysRemaining < 5 && athleteInfo.clientUser.paymentStatus == PaymentStatus.active);
 
     Color borderColor = Colors.transparent;
-    if (needsPaymentAttention && clientUser?.paymentStatus == PaymentStatus.overdue) { 
+    if (needsPaymentAttention && athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue) { 
       borderColor = AppTheme.bonfireRed; 
     } else if (needsPaymentAttention && !hasPlan) { 
       borderColor = AppTheme.goldTrophy;
@@ -386,7 +384,7 @@ class PaymentAvatarItem extends ConsumerWidget {
                   right: 0,
                   bottom: 0,
                   child: PaymentStatusIndicator(
-                    clientUser: clientUser,
+                    athleteInfo: athleteInfo,
                     hasPlan: hasPlan,
                     displayDaysRemaining: displayDaysRemaining,
                     isEstimated: isEstimated,
@@ -400,7 +398,7 @@ class PaymentAvatarItem extends ConsumerWidget {
                     right: 0,
                     top: 0,
                     child: PaymentAlertIndicator(
-                      clientUser: clientUser,
+                      athleteInfo: athleteInfo,
                       hasPlan: hasPlan,
                       isInGracePeriod: isInGracePeriod,
                       displayDaysRemaining: displayDaysRemaining,
@@ -536,7 +534,7 @@ class PaymentAvatarItem extends ConsumerWidget {
 
 /// Widget para el indicador de estado de pago en la esquina inferior del avatar
 class PaymentStatusIndicator extends StatelessWidget {
-  final ClientUserModel? clientUser;
+  final AthleteCompleteInfo athleteInfo;
   final bool hasPlan;
   final int? displayDaysRemaining;
   final bool isEstimated;
@@ -544,7 +542,7 @@ class PaymentStatusIndicator extends StatelessWidget {
 
   const PaymentStatusIndicator({
     super.key,
-    required this.clientUser,
+    required this.athleteInfo,
     required this.hasPlan,
     required this.displayDaysRemaining,
     required this.isEstimated,
@@ -558,16 +556,16 @@ class PaymentStatusIndicator extends StatelessWidget {
       'Construyendo PaymentStatusIndicator',
       className: 'PaymentStatusIndicator',
       params: {
-        'clientUser_id': clientUser?.id,
-        'clientUser_status': clientUser?.paymentStatus.toString(),
+        'clientUser_id': athleteInfo.clientUser.id,
+        'clientUser_status': athleteInfo.clientUser.paymentStatus.toString(),
         'hasPlan': hasPlan,
         'displayDaysRemaining': displayDaysRemaining,
         'isEstimated': isEstimated,
         'isInGracePeriod': isInGracePeriod,
-        'nextPaymentDate': clientUser?.nextPaymentDate?.toString(),
-        'lastPaymentDate': clientUser?.lastPaymentDate?.toString(),
-        'subscriptionPlan_id': clientUser?.subscriptionPlan?.id,
-        'subscriptionPlan_name': clientUser?.subscriptionPlan?.name,
+        'nextPaymentDate': athleteInfo.nextPaymentDate?.toString(),
+        'lastPaymentDate': athleteInfo.lastPaymentDate?.toString(),
+        'remainingDays': athleteInfo.remainingDays,
+        'hasActivePlan': athleteInfo.hasActivePlan,
       }
     );
 
@@ -589,13 +587,12 @@ class PaymentStatusIndicator extends StatelessWidget {
   }
 
   Widget _buildIndicatorContent() {
-    if (clientUser == null || !hasPlan) {
-      // No hay datos de cliente o no tiene plan
+    if (!hasPlan) {
+      // No tiene plan
       AppLogger.logInfo(
         'Mostrando indicador de asignar plan',
         className: 'PaymentStatusIndicator',
         params: {
-          'clientUser_null': clientUser == null,
           'hasPlan': hasPlan,
         }
       );
@@ -606,7 +603,7 @@ class PaymentStatusIndicator extends StatelessWidget {
       );
     }
 
-    final paymentStatus = clientUser!.paymentStatus;
+    final paymentStatus = athleteInfo.clientUser.paymentStatus;
     AppLogger.logInfo(
       'Determinando contenido del indicador según estado de pago',
       className: 'PaymentStatusIndicator',
@@ -694,14 +691,15 @@ class PaymentStatusIndicator extends StatelessWidget {
             ),
           );
         } else {
-          // Activo pero sin información de días
-          AppLogger.logWarning(
-            'Estado activo pero sin información de días restantes',
+          // Activo pero sin información de días restantes
+          // NOTA: Esto puede ser normal si el usuario tiene períodos activos pero no nextPaymentDate tradicional
+          AppLogger.logInfo(
+            'Estado activo pero sin información de días restantes - verificar si tiene períodos',
             className: 'PaymentStatusIndicator',
             params: {
-              'clientUser_id': clientUser!.id,
-              'nextPaymentDate': clientUser!.nextPaymentDate?.toString(),
-            }
+              'clientUser_id': athleteInfo.clientUser.id,
+              'paymentStatus': athleteInfo.clientUser.paymentStatus.name,
+            },
           );
           return const Icon(
             Icons.check_circle_outline,
@@ -715,14 +713,14 @@ class PaymentStatusIndicator extends StatelessWidget {
 
 /// Widget para el indicador de alerta en la esquina superior del avatar
 class PaymentAlertIndicator extends StatelessWidget {
-  final ClientUserModel? clientUser;
+  final AthleteCompleteInfo athleteInfo;
   final bool hasPlan;
   final bool isInGracePeriod;
   final int? displayDaysRemaining;
 
   const PaymentAlertIndicator({
     super.key,
-    required this.clientUser,
+    required this.athleteInfo,
     required this.hasPlan,
     required this.isInGracePeriod,
     required this.displayDaysRemaining,
@@ -745,9 +743,9 @@ class PaymentAlertIndicator extends StatelessWidget {
   }
 
   Color _getAlertColor() {
-    if (clientUser?.paymentStatus == PaymentStatus.overdue) {
+    if (athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue) {
       return AppTheme.bonfireRed;
-    } else if (!hasPlan || clientUser?.paymentStatus == PaymentStatus.inactive) {
+    } else if (!hasPlan || athleteInfo.clientUser.paymentStatus == PaymentStatus.inactive) {
       return AppTheme.goldTrophy; // Naranja para "atención requerida"
     } else if (isInGracePeriod) {
       return AppTheme.goldTrophy;
@@ -762,10 +760,10 @@ class PaymentAlertIndicator extends StatelessWidget {
 /// Clase auxiliar para almacenar datos de atleta con información de pago
 class _AthleteWithPaymentData {
   final AcademyUserModel athlete;
-  final ClientUserModel? clientUser;
+  final AthleteCompleteInfo? athleteInfo;
   
   _AthleteWithPaymentData({
     required this.athlete,
-    this.clientUser,
+    this.athleteInfo,
   });
 } 

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
 
 /// Widget para el formulario principal de registro de pago
 class PaymentForm extends StatelessWidget {
@@ -17,6 +18,7 @@ class PaymentForm extends StatelessWidget {
   final double? totalPlanAmount;
   final ClientUserModel? clientUser;
   final PaymentConfigModel? paymentConfig;
+  final AthleteCompleteInfo? athleteInfo;
   final List<String> currencies;
   final List<String> paymentMethods;
   final ValueChanged<String> onCurrencyChanged;
@@ -37,6 +39,7 @@ class PaymentForm extends StatelessWidget {
     this.totalPlanAmount,
     this.clientUser,
     this.paymentConfig,
+    this.athleteInfo,
     required this.currencies,
     required this.paymentMethods,
     required this.onCurrencyChanged,
@@ -67,33 +70,7 @@ class PaymentForm extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Fecha de pago (automática)
-          _buildPaymentDateField(context),
-          const SizedBox(height: 8),
-          
-          // Información sobre la fecha automática
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'La fecha de registro se establece automáticamente al momento de procesar el pago.',
-                    style: TextStyle(
-                      color: Colors.blue.shade700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildPaymentDateField(context),          
           const SizedBox(height: 16),
           
           // Método de pago
@@ -189,8 +166,12 @@ class PaymentForm extends StatelessWidget {
   }
 
   bool _isAmountReadOnly() {
-    return clientUser?.subscriptionPlan != null && 
-           !(paymentConfig?.earlyPaymentDiscount ?? false);
+    if (athleteInfo != null) {
+      return athleteInfo!.hasActivePlan && 
+             !(paymentConfig?.earlyPaymentDiscount ?? false);
+    }
+    
+    return false;
   }
 
   Widget _buildConceptField() {
@@ -213,8 +194,12 @@ class PaymentForm extends StatelessWidget {
   }
 
   bool _isConceptReadOnly() {
-    return clientUser?.subscriptionPlan != null && 
-           !(paymentConfig?.earlyPaymentDiscount ?? false);
+    if (athleteInfo != null) {
+      return athleteInfo!.hasActivePlan && 
+             !(paymentConfig?.earlyPaymentDiscount ?? false);
+    }
+    
+    return false;
   }
 
   Widget _buildPaymentDateField(BuildContext context) {

@@ -216,6 +216,7 @@ class PlanAssignmentForm extends ConsumerWidget {
 
   Widget _buildPlanDropdownItem(SubscriptionPlanModel plan) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 12,
@@ -226,7 +227,7 @@ class PlanAssignmentForm extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
+        Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -235,6 +236,7 @@ class PlanAssignmentForm extends ConsumerWidget {
                 plan.name,
                 style: const TextStyle(fontWeight: FontWeight.w500),
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
               Text(
                 '${plan.amount} ${plan.currency} - ${plan.billingCycle.displayName}',
@@ -243,6 +245,7 @@ class PlanAssignmentForm extends ConsumerWidget {
                   color: Colors.grey.shade600,
                 ),
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ],
           ),

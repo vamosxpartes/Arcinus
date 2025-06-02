@@ -1,7 +1,8 @@
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
-import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/presentation/screens/payment_history_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
@@ -9,6 +10,9 @@ import 'package:arcinus/core/auth/roles.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/period_providers.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 
 class AcademyUserDetailsScreen extends ConsumerStatefulWidget {
   final String academyId;
@@ -98,9 +102,12 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
   Widget _buildUserDetails(BuildContext context, WidgetRef ref, AcademyUserModel user, AppRole userRole) {
     final isAthlete = userRole == AppRole.atleta;
     
-    // Si es atleta, también cargamos la información de suscripción
-    final clientUserAsync = isAthlete 
-        ? ref.watch(clientUserProvider(user.id))
+    // Si es atleta, cargamos la información completa usando el nuevo sistema de períodos
+    final athleteCompleteInfoAsync = isAthlete 
+        ? ref.watch(athleteCompleteInfoProvider((
+            academyId: widget.academyId,
+            athleteId: user.id,
+          )))
         : null;
     
     return SingleChildScrollView(
@@ -171,299 +178,13 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
           const SizedBox(height: 16),
           
           // Tarjeta de suscripción para atletas
-          if (isAthlete && clientUserAsync != null)
-            clientUserAsync.when(
-              data: (clientUser) {
-                if (clientUser == null) {
-                  return const Card(
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No hay información de suscripción disponible'),
-                    ),
-                  );
-                }
-                
-                // Colores según estado de pago
-                final Color statusColor;
-                switch (clientUser.paymentStatus) {
-                  case PaymentStatus.active:
-                    statusColor = Colors.green;
-                    break;
-                  case PaymentStatus.overdue:
-                    statusColor = Colors.orange;
-                    break;
-                  case PaymentStatus.inactive:
-                  // ignore: unreachable_switch_default
-                  default:
-                    statusColor = Colors.grey;
-                    break;
-                }
-
-                return Card(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Encabezado
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: SizedBox(
-                          height: 100,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.payments, color: Theme.of(context).colorScheme.primary),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Suscripción Actual',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                              const Spacer(),
-                              SizedBox(
-                                width: 150,
-                                height: 50,
-                                child: TextButton.icon(
-                                  icon: const Icon(Icons.receipt_long),
-                                  label: const Text('Ver pagos'),
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => PaymentHistoryScreen(
-                                          academyId: widget.academyId,
-                                          athleteId: widget.userId,
-                                          athleteName: user.fullName,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      
-                      const Divider(height: 1),
-                      
-                      // Estado de pago
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: statusColor.withAlpha(30),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              clientUser.paymentStatus == PaymentStatus.active
-                                  ? Icons.check_circle
-                                  : (clientUser.paymentStatus == PaymentStatus.overdue
-                                      ? Icons.warning
-                                      : Icons.cancel),
-                              color: statusColor,
-                              size: 24,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Estado: ${clientUser.paymentStatus.displayName}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: statusColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // Detalles del plan
-                      if (clientUser.subscriptionPlan != null)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Plan: ${clientUser.subscriptionPlan!.name}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Monto: ${clientUser.subscriptionPlan!.amount} ${clientUser.subscriptionPlan!.currency}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              Text(
-                                'Ciclo: ${clientUser.subscriptionPlan!.billingCycle.displayName}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              if (clientUser.subscriptionPlan!.benefits.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                const Text(
-                                  'Beneficios:',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                ...clientUser.subscriptionPlan!.benefits.map((benefit) => 
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 8, top: 4),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.check, size: 14, color: Colors.green),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          benefit,
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      
-                      // Información de fechas y progreso
-                      if (clientUser.nextPaymentDate != null && clientUser.lastPaymentDate != null)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Información de Pago:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Último pago: ${DateFormat('dd/MM/yyyy').format(clientUser.lastPaymentDate!)}',
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                              Text(
-                                'Próximo pago: ${DateFormat('dd/MM/yyyy').format(clientUser.nextPaymentDate!)}',
-                                style: TextStyle(
-                                  fontSize: 14, 
-                                  fontWeight: FontWeight.bold,
-                                  color: clientUser.remainingDays != null && clientUser.remainingDays! < 5
-                                    ? Colors.red
-                                    : AppTheme.darkGray,
-                                ),
-                              ),
-                              
-                              // Barra de progreso
-                              if (clientUser.remainingDays != null) ...[
-                                const SizedBox(height: 12),
-                                
-                                // Cálculo para la barra de progreso
-                                Builder(
-                                  builder: (context) {
-                                    final now = DateTime.now();
-                                    final lastPayment = clientUser.lastPaymentDate!;
-                                    final nextPayment = clientUser.nextPaymentDate!;
-                                    
-                                    // Solo mostrar si las fechas son lógicas
-                                    if (nextPayment.isAfter(now) && nextPayment.isAfter(lastPayment)) {
-                                      // Cálculo de días totales y restantes
-                                      final totalDays = nextPayment.difference(lastPayment).inDays;
-                                      final daysElapsed = now.difference(lastPayment).inDays;
-                                      
-                                      // Evitar división por cero
-                                      final double progressPercent = totalDays > 0 
-                                          ? daysElapsed / totalDays 
-                                          : 0.0;
-                                      
-                                      // Límites para asegurar que está entre 0 y 1
-                                      final double clampedProgress = progressPercent.clamp(0.0, 1.0);
-                                      
-                                      // Color según días restantes
-                                      final Color progressColor;
-                                      if (clientUser.remainingDays! < 5) {
-                                        progressColor = Colors.red;
-                                      } else if (clientUser.remainingDays! < 15) {
-                                        progressColor = Colors.orange;
-                                      } else {
-                                        progressColor = Colors.green;
-                                      }
-                                      
-                                      return Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          // Información sobre días restantes
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                'Período actual:',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: AppTheme.darkGray,
-                                                ),
-                                              ),
-                                              Text(
-                                                '${clientUser.remainingDays} días restantes',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: clientUser.remainingDays! < 5 ? Colors.red : AppTheme.darkGray,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          
-                                          // Barra de progreso
-                                          const SizedBox(height: 4),
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(2),
-                                            child: LinearProgressIndicator(
-                                              value: clampedProgress,
-                                              backgroundColor: Colors.grey.withAlpha(60),
-                                              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                                              minHeight: 5,
-                                            ),
-                                          ),
-                                          
-                                          // Fechas de inicio y fin
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                DateFormat('dd/MM/yyyy').format(lastPayment),
-                                                style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
-                                              ),
-                                              Text(
-                                                DateFormat('dd/MM/yyyy').format(nextPayment),
-                                                style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      );
-                                    }
-                                    
-                                    return const SizedBox.shrink();
-                                  }
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
+          if (isAthlete && athleteCompleteInfoAsync != null)
+            athleteCompleteInfoAsync.when(
+              data: (athleteInfo) => _buildSubscriptionCard(context, ref, user, athleteInfo),
               loading: () => const Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
               ),
               error: (error, _) => Card(
@@ -533,6 +254,311 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
               _buildInfoRow(context, 'ID', user.id),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionCard(BuildContext context, WidgetRef ref, AcademyUserModel user, AthleteCompleteInfo athleteInfo) {
+    if (!athleteInfo.hasActivePlan) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text('No hay información de suscripción disponible'),
+        ),
+      );
+    }
+    
+    // Colores según estado de pago
+    final Color statusColor;
+    switch (athleteInfo.clientUser.paymentStatus) {
+      case PaymentStatus.active:
+        statusColor = Colors.green;
+        break;
+      case PaymentStatus.overdue:
+        statusColor = Colors.orange;
+        break;
+      case PaymentStatus.inactive:
+      // ignore: unreachable_switch_default
+      default:
+        statusColor = Colors.grey;
+        break;
+    }
+
+    // Obtener información del plan actual si existe
+    final currentPlanAsync = athleteInfo.currentSubscriptionPlanId != null
+        ? ref.watch(subscriptionPlanProvider((
+            academyId: widget.academyId,
+            planId: athleteInfo.currentSubscriptionPlanId!,
+          )))
+        : null;
+
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Encabezado
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              height: 100,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.payments, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Suscripción Actual',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.receipt_long),
+                      label: const Text('Ver pagos'),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => PaymentHistoryScreen(
+                              academyId: widget.academyId,
+                              athleteId: widget.userId,
+                              athleteName: user.fullName,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const Divider(height: 1),
+          
+          // Estado de pago
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: statusColor.withAlpha(30),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  athleteInfo.clientUser.paymentStatus == PaymentStatus.active
+                      ? Icons.check_circle
+                      : (athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue
+                          ? Icons.warning
+                          : Icons.cancel),
+                  color: statusColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Estado: ${athleteInfo.clientUser.paymentStatus.displayName}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Detalles del plan
+          if (currentPlanAsync != null)
+            currentPlanAsync.when(
+              data: (currentPlan) {
+                if (currentPlan == null) return const SizedBox.shrink();
+                
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Plan: ${currentPlan.name}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Monto: ${currentPlan.amount} ${currentPlan.currency}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      Text(
+                        'Ciclo: ${currentPlan.billingCycle.displayName}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      if (currentPlan.benefits.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Beneficios:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        ...currentPlan.benefits.map<Widget>((benefit) => 
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8, top: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check, size: 14, color: Colors.green),
+                                const SizedBox(width: 4),
+                                Text(
+                                  benefit,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+          
+          // Información de fechas y progreso
+          if (athleteInfo.nextPaymentDate != null && athleteInfo.lastPaymentDate != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Información de Pago:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Último pago: ${DateFormat('dd/MM/yyyy').format(athleteInfo.lastPaymentDate!)}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  Text(
+                    'Próximo pago: ${DateFormat('dd/MM/yyyy').format(athleteInfo.nextPaymentDate!)}',
+                    style: TextStyle(
+                      fontSize: 14, 
+                      fontWeight: FontWeight.bold,
+                      color: athleteInfo.remainingDays < 5
+                        ? Colors.red
+                        : AppTheme.darkGray,
+                    ),
+                  ),
+                  
+                  // Barra de progreso
+                  if (athleteInfo.remainingDays >= 0) ...[
+                    const SizedBox(height: 12),
+                    
+                    // Cálculo para la barra de progreso
+                    Builder(
+                      builder: (context) {
+                        final now = DateTime.now();
+                        final lastPayment = athleteInfo.lastPaymentDate!;
+                        final nextPayment = athleteInfo.nextPaymentDate!;
+                        
+                        // Solo mostrar si las fechas son lógicas
+                        if (nextPayment.isAfter(now) && nextPayment.isAfter(lastPayment)) {
+                          // Cálculo de días totales y restantes
+                          final totalDays = nextPayment.difference(lastPayment).inDays;
+                          final daysElapsed = now.difference(lastPayment).inDays;
+                          
+                          // Evitar división por cero
+                          final double progressPercent = totalDays > 0 
+                              ? daysElapsed / totalDays 
+                              : 0.0;
+                          
+                          // Límites para asegurar que está entre 0 y 1
+                          final double clampedProgress = progressPercent.clamp(0.0, 1.0);
+                          
+                          // Color según días restantes
+                          final Color progressColor;
+                          if (athleteInfo.remainingDays < 5) {
+                            progressColor = Colors.red;
+                          } else if (athleteInfo.remainingDays < 15) {
+                            progressColor = Colors.orange;
+                          } else {
+                            progressColor = Colors.green;
+                          }
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Información sobre días restantes
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Período actual:',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.darkGray,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${athleteInfo.remainingDays} días restantes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: athleteInfo.remainingDays < 5 ? Colors.red : AppTheme.darkGray,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              
+                              // Barra de progreso
+                              const SizedBox(height: 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(2),
+                                child: LinearProgressIndicator(
+                                  value: clampedProgress,
+                                  backgroundColor: Colors.grey.withAlpha(60),
+                                  valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                                  minHeight: 5,
+                                ),
+                              ),
+                              
+                              // Fechas de inicio y fin
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    DateFormat('dd/MM/yyyy').format(lastPayment),
+                                    style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
+                                  ),
+                                  Text(
+                                    DateFormat('dd/MM/yyyy').format(nextPayment),
+                                    style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          );
+                        }
+                        
+                        return const SizedBox.shrink();
+                      }
+                    ),
+                  ],
+                ],
+              ),
+            ),
         ],
       ),
     );

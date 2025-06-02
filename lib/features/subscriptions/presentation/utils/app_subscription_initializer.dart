@@ -1,4 +1,4 @@
-import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/app_subscription_model.dart';
 import 'package:arcinus/features/subscriptions/data/repositories/app_subscription_repository_impl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

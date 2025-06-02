@@ -2,6 +2,7 @@ import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_user_details_screen.dart';
@@ -10,6 +11,7 @@ import 'package:arcinus/features/memberships/presentation/widgets/payment_progre
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
 
 class AcademyUserCard extends ConsumerStatefulWidget {
   final AcademyUserModel user;
@@ -78,25 +80,28 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
     
     final isAthlete = userRole == AppRole.atleta;
     
-    // Usar el provider optimizado solo para atletas
-    final clientUserAsyncValue = isAthlete 
-        ? ref.watch(clientUserCachedProvider(widget.user.id)) 
+    // Para atletas, usar el provider completo de información
+    final athleteCompleteInfoAsync = isAthlete 
+        ? ref.watch(athleteCompleteInfoProvider((
+            academyId: widget.academyId,
+            athleteId: widget.user.id,
+          )))
         : null;
     
-    if (isAthlete && clientUserAsyncValue != null) {
+    if (isAthlete && athleteCompleteInfoAsync != null) {
       AppLogger.logInfo(
-        'Estado del clientUserCachedProvider en AcademyUserCard',
+        'Estado del athleteCompleteInfoProvider en AcademyUserCard',
         className: 'AcademyUserCard',
         params: {
           'userId': widget.user.id,
-          'isLoading': clientUserAsyncValue.isLoading,
-          'hasValue': clientUserAsyncValue.hasValue,
-          'hasError': clientUserAsyncValue.hasError,
-          'paymentStatus': clientUserAsyncValue.hasValue 
-              ? clientUserAsyncValue.value?.paymentStatus.toString() 
+          'isLoading': athleteCompleteInfoAsync.isLoading,
+          'hasValue': athleteCompleteInfoAsync.hasValue,
+          'hasError': athleteCompleteInfoAsync.hasError,
+          'paymentStatus': athleteCompleteInfoAsync.hasValue 
+              ? athleteCompleteInfoAsync.value?.clientUser.paymentStatus.toString() 
               : null,
-          'subscriptionPlan_exists': clientUserAsyncValue.hasValue 
-              ? (clientUserAsyncValue.value?.subscriptionPlan != null).toString()
+          'hasActivePlan': athleteCompleteInfoAsync.hasValue 
+              ? athleteCompleteInfoAsync.value?.hasActivePlan.toString()
               : null,
         }
       );
@@ -116,7 +121,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       context: context,
       userRole: userRole,
       isAthlete: isAthlete,
-      clientUserAsyncValue: clientUserAsyncValue,
+      athleteCompleteInfoAsync: athleteCompleteInfoAsync,
       groupPlaceholder: groupPlaceholder,
     );
   }
@@ -126,14 +131,14 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
     required BuildContext context,
     required AppRole userRole,
     required bool isAthlete,
-    required AsyncValue<ClientUserModel?>? clientUserAsyncValue,
+    required AsyncValue<AthleteCompleteInfo>? athleteCompleteInfoAsync,
     required String groupPlaceholder,
   }) {
     // Contenido de la tarjeta (memoizado)
     final cardContent = _buildCardContent(
       userRole: userRole,
       isAthlete: isAthlete,
-      clientUserAsyncValue: clientUserAsyncValue,
+      athleteCompleteInfoAsync: athleteCompleteInfoAsync,
       groupPlaceholder: groupPlaceholder,
     );
     
@@ -177,7 +182,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
   Widget _buildCardContent({
     required AppRole userRole,
     required bool isAthlete,
-    required AsyncValue<ClientUserModel?>? clientUserAsyncValue,
+    required AsyncValue<AthleteCompleteInfo>? athleteCompleteInfoAsync,
     required String groupPlaceholder,
   }) {
     return Padding(
@@ -195,7 +200,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Nombre del usuario y estado de pago para atletas
-                _buildNameAndStatusRow(isAthlete, clientUserAsyncValue),
+                _buildNameAndStatusRow(isAthlete, athleteCompleteInfoAsync),
                 
                 const SizedBox(height: 2),
                 
@@ -203,10 +208,14 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
                 _buildGroupAndRoleRow(groupPlaceholder, userRole),
                 
                 // Barra de progreso (solo para atletas con información de pago)
-                if (isAthlete && clientUserAsyncValue != null)
-                  PaymentProgressBar(
-                    userId: widget.user.id,
-                    userName: widget.user.fullName,
+                if (isAthlete && athleteCompleteInfoAsync != null)
+                  athleteCompleteInfoAsync.when(
+                    data: (athleteInfo) => PaymentProgressBar(
+                      clientUser: athleteInfo.clientUser,
+                      academyId: widget.academyId,
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
                   ),
               ],
             ),
@@ -261,7 +270,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
   /// Construye la fila con nombre y estado de pago
   Widget _buildNameAndStatusRow(
     bool isAthlete, 
-    AsyncValue<ClientUserModel?>? clientUserAsyncValue,
+    AsyncValue<AthleteCompleteInfo>? athleteCompleteInfoAsync,
   ) {
     return Row(
       children: [
@@ -279,22 +288,18 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
         ),
         
         // Indicador de estado de pago para atletas
-        if (isAthlete && clientUserAsyncValue != null)
-          _buildPaymentStatusIndicator(clientUserAsyncValue),
+        if (isAthlete && athleteCompleteInfoAsync != null)
+          _buildPaymentStatusIndicator(athleteCompleteInfoAsync),
       ],
     );
   }
 
   /// Construye el indicador de estado de pago
-  Widget _buildPaymentStatusIndicator(AsyncValue<ClientUserModel?> clientUserAsyncValue) {
-    return clientUserAsyncValue.when(
-      data: (clientUser) {
-        if (clientUser == null) {
-          return const SizedBox.shrink();
-        }
-        
+  Widget _buildPaymentStatusIndicator(AsyncValue<AthleteCompleteInfo> athleteCompleteInfoAsync) {
+    return athleteCompleteInfoAsync.when(
+      data: (athleteInfo) {
         // Determinar color y etiqueta según estado de pago
-        final (statusColor, statusText, statusIcon) = switch (clientUser.paymentStatus) {
+        final (statusColor, statusText, statusIcon) = switch (athleteInfo.clientUser.paymentStatus) {
           PaymentStatus.active => (AppTheme.courtGreen, 'Activo', Icons.check_circle),
           PaymentStatus.overdue => (AppTheme.bonfireRed, 'En mora', Icons.warning_amber),
           PaymentStatus.inactive || _ => (Colors.grey, 'Inactivo', Icons.cancel),

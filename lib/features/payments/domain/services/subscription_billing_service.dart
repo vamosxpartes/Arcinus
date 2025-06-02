@@ -1,6 +1,6 @@
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
-import 'package:arcinus/features/users/data/models/client_user_model.dart' as client_user;
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart' as client_user;
 import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Excepción personalizada para errores de facturación

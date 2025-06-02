@@ -1,10 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:arcinus/core/utils/timestamp_converter.dart';
-import 'package:arcinus/features/users/data/models/client_user_model.dart';
+
+// Importar BillingCycle desde la definición oficial
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
+
+// Importar PaymentStatus desde el módulo de usuarios  
 
 part 'app_subscription_model.freezed.dart';
 part 'app_subscription_model.g.dart';
+
+/// Función de deserialización para BillingCycle
+BillingCycle _billingCycleFromJson(String json) {
+  return BillingCycle.values.firstWhere(
+    (e) => e.name == json,
+    orElse: () => BillingCycle.monthly,
+  );
+}
 
 /// Enum para representar los tipos de planes de suscripción de la aplicación.
 enum AppSubscriptionPlanType {
@@ -94,7 +106,7 @@ class AppSubscriptionPlanModel with _$AppSubscriptionPlanModel {
     required AppSubscriptionPlanType planType,
     required double price,
     required String currency,
-    @JsonKey(fromJson: BillingCycleExtension.fromJson)
+    @JsonKey(fromJson: _billingCycleFromJson)
     required BillingCycle billingCycle,
     @Default(1) int maxAcademies,
     @Default(10) int maxUsersPerAcademy,

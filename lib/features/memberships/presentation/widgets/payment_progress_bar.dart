@@ -1,10 +1,11 @@
-import 'package:arcinus/core/theme/ux/app_theme.dart';
-import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
+// MIGRACIÓN: Importar nuevos providers y helpers
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
 
 /// Clase para encapsular los datos calculados de pago
 class PaymentCalculationData {
@@ -21,376 +22,306 @@ class PaymentCalculationData {
   });
 }
 
-class PaymentProgressBar extends ConsumerStatefulWidget {
-  final String userId;
-  final String userName;
+/// Widget que muestra una barra de progreso del estado de pago del usuario
+/// MIGRACIÓN: Ahora usa información de períodos en lugar de campos del usuario
+class PaymentProgressBar extends ConsumerWidget {
+  final ClientUserModel clientUser;
+  final String academyId;
+  final DateTime? nextPaymentDate; // OBSOLETO - para compatibilidad temporal
 
   const PaymentProgressBar({
     super.key,
-    required this.userId,
-    required this.userName,
+    required this.clientUser,
+    required this.academyId,
+    this.nextPaymentDate,
   });
 
   @override
-  ConsumerState<PaymentProgressBar> createState() => _PaymentProgressBarState();
-}
-
-class _PaymentProgressBarState extends ConsumerState<PaymentProgressBar> {
-  @override
-  void initState() {
-    super.initState();
+  Widget build(BuildContext context, WidgetRef ref) {
     AppLogger.logInfo(
-      'PaymentProgressBar initState',
-      className: 'PaymentProgressBar',
-      params: {
-        'userId': widget.userId,
-        'userName': widget.userName,
-      }
-    );
-  }
-
-  @override
-  void dispose() {
-    AppLogger.logInfo(
-      'PaymentProgressBar dispose',
-      className: 'PaymentProgressBar',
-      params: {
-        'userId': widget.userId,
-        'userName': widget.userName,
-      }
-    );
-    super.dispose();
-  }
-
-  String formatDate(DateTime date) {
-    return DateFormat('dd MMM yyyy').format(date);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Asegurar que las operaciones gráficas se ejecuten en el hilo principal
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Callback vacío para asegurar que el widget tree esté construido
-    });
-    
-    AppLogger.logProcessStart(
       'Construyendo PaymentProgressBar',
       className: 'PaymentProgressBar',
+      functionName: 'build',
       params: {
-        'userId': widget.userId,
-        'userName': widget.userName,
-        'timestamp': DateTime.now().toString(),
-        'widget_hashCode': widget.hashCode,
-        'state_hashCode': hashCode,
-      }
-    );
-    
-    // Usar el provider optimizado con caché
-    final clientUserAsyncValue = ref.watch(clientUserCachedProvider(widget.userId));
-    
-    AppLogger.logInfo(
-      'Estado actual del provider clientUserCachedProvider',
-      className: 'PaymentProgressBar',
-      params: {
-        'userId': widget.userId,
-        'isLoading': clientUserAsyncValue.isLoading,
-        'hasValue': clientUserAsyncValue.hasValue,
-        'hasError': clientUserAsyncValue.hasError,
-        'error': clientUserAsyncValue.hasError ? clientUserAsyncValue.error.toString() : null,
-        'provider_hashCode': clientUserAsyncValue.hashCode,
-      }
-    );
-    
-    return clientUserAsyncValue.when(
-      data: (clientUser) {
-        AppLogger.logInfo(
-          'Datos recibidos en PaymentProgressBar',
-          className: 'PaymentProgressBar',
-          params: {
-            'userId': widget.userId,
-            'clientUser_found': clientUser != null,
-            'paymentStatus': clientUser?.paymentStatus.toString(),
-            'subscriptionPlan_null': clientUser?.subscriptionPlan == null,
-            'nextPaymentDate': clientUser?.nextPaymentDate?.toString(),
-            'remainingDays': clientUser?.remainingDays?.toString(),
-          }
-        );
-
-        // Validar que tenemos datos válidos
-        if (clientUser == null) {
-          AppLogger.logWarning(
-            'ClientUser es null en PaymentProgressBar',
-            className: 'PaymentProgressBar',
-            params: {'userId': widget.userId}
-          );
-          return const SizedBox.shrink();
-        }
-
-        // Si no hay plan de suscripción, mostrar barra inactiva
-        if (clientUser.subscriptionPlan == null) {
-          AppLogger.logInfo(
-            'Mostrando barra inactiva: subscriptionPlan es null',
-            className: 'PaymentProgressBar',
-            params: {
-              'userId': widget.userId,
-              'paymentStatus': clientUser.paymentStatus.toString(),
-            }
-          );
-          return _buildInactiveBar();
-        }
-
-        // Calcular días restantes de forma optimizada
-        final calculatedData = _calculateOptimizedPaymentData(clientUser);
-        
-        AppLogger.logInfo(
-          'Datos calculados para PaymentProgressBar',
-          className: 'PaymentProgressBar',
-          params: {
-            'userId': widget.userId,
-            'calculatedDaysRemaining': calculatedData.daysRemaining,
-            'isOverdue': calculatedData.isOverdue,
-            'progressValue': calculatedData.progressValue,
-            'nextPaymentDate_calculated': calculatedData.nextPaymentDate?.toString(),
-          }
-        );
-
-        return _buildActiveProgressBar(clientUser, calculatedData);
+        'userId': clientUser.userId,
+        'paymentStatus': clientUser.paymentStatus.name,
+        'clientType': clientUser.clientType.name,
       },
-      loading: () {
-        AppLogger.logInfo(
-          'PaymentProgressBar en estado de carga',
-          className: 'PaymentProgressBar',
-          params: {'userId': widget.userId}
-        );
-        return const SizedBox.shrink(); // No mostrar nada durante la carga
-      },
+    );
+
+    // MIGRACIÓN: Usar el nuevo provider de información completa del atleta
+    final athleteInfoAsync = ref.watch(athleteCompleteInfoProvider((
+      academyId: academyId,
+      athleteId: clientUser.userId,
+    )));
+
+    return athleteInfoAsync.when(
+      data: (athleteInfo) => _buildProgressBar(context, athleteInfo),
+      loading: () => _buildLoadingProgressBar(),
       error: (error, stackTrace) {
         AppLogger.logError(
-          message: 'Error en PaymentProgressBar',
+          message: 'Error al cargar información del atleta para progress bar',
           error: error,
           stackTrace: stackTrace,
           className: 'PaymentProgressBar',
-          params: {'userId': widget.userId}
+          functionName: 'build',
         );
-        return const SizedBox.shrink(); // No mostrar nada en caso de error
+        return _buildErrorProgressBar();
       },
     );
   }
 
-  /// Calcula los datos de pago de forma optimizada y consistente
-  PaymentCalculationData _calculateOptimizedPaymentData(ClientUserModel clientUser) {
-    final now = DateTime.now();
-    
-    // Determinar la fecha de próximo pago
-    DateTime? nextPaymentDate = clientUser.nextPaymentDate;
-    
-    // Si no hay nextPaymentDate pero hay último pago, calcular basado en el ciclo del plan
-    if (nextPaymentDate == null && 
-        clientUser.lastPaymentDate != null && 
-        clientUser.subscriptionPlan != null) {
-      
-      final lastPayment = clientUser.lastPaymentDate!;
-      final billingCycle = clientUser.subscriptionPlan!.billingCycle;
-      
-      // Calcular próxima fecha basada en el ciclo de facturación
-      nextPaymentDate = _calculateNextPaymentFromCycle(lastPayment, billingCycle);
+  Widget _buildProgressBar(BuildContext context, AthleteCompleteInfo athleteInfo) {
+    try {
+      AppLogger.logInfo(
+        'Calculando datos de progreso de pago',
+        className: 'PaymentProgressBar',
+        functionName: '_buildProgressBar',
+        params: {
+          'hasActivePlan': athleteInfo.hasActivePlan,
+          'remainingDays': athleteInfo.remainingDays,
+          'nextPaymentDate': athleteInfo.nextPaymentDate?.toString(),
+          'activePeriods': athleteInfo.periodsInfo.activePeriodsCount,
+        },
+      );
+
+      // Si no hay plan activo, mostrar barra inactiva
+      if (!athleteInfo.hasActivePlan) {
+        AppLogger.logInfo(
+          'Mostrando barra inactiva: no hay plan activo',
+          className: 'PaymentProgressBar',
+          functionName: '_buildProgressBar',
+          params: {'userId': clientUser.userId},
+        );
+        return _buildInactiveProgressBar();
+      }
+
+      // Calcular datos de progreso usando la información de períodos
+      final progressData = _calculateProgressFromPeriods(athleteInfo);
       
       AppLogger.logInfo(
-        'Calculando nextPaymentDate desde lastPaymentDate',
+        'Datos de progreso calculados',
         className: 'PaymentProgressBar',
+        functionName: '_buildProgressBar',
         params: {
-          'userId': widget.userId,
-          'lastPaymentDate': lastPayment.toString(),
-          'billingCycle': billingCycle.toString(),
-          'calculatedNextPayment': nextPaymentDate.toString(),
-        }
+          'daysRemaining': progressData.daysRemaining,
+          'totalDays': progressData.totalDays,
+          'progress': progressData.progress,
+          'isOverdue': progressData.isOverdue,
+          'nextPaymentDate_calculated': progressData.nextPaymentDate?.toString(),
+        },
       );
+
+      // Determinar color basado en días restantes
+      Color progressColor;
+      if (progressData.isOverdue) {
+        progressColor = Colors.red;
+      } else if (progressData.daysRemaining <= 5) {
+        progressColor = Colors.orange;
+      } else if (progressData.daysRemaining <= 15) {
+        progressColor = Colors.yellow[700]!;
+      } else {
+        progressColor = Colors.green;
+      }
+
+      return _buildActiveProgressBar(
+        context: context,
+        athleteInfo: athleteInfo,
+        progressData: progressData,
+        progressColor: progressColor,
+      );
+    } catch (e) {
+      AppLogger.logError(
+        message: 'Error calculando progreso de pago',
+        error: e,
+        className: 'PaymentProgressBar',
+        functionName: '_buildProgressBar',
+      );
+      return _buildErrorProgressBar();
     }
-    
-    // Si aún no hay fecha, usar fecha por defecto (30 días desde ahora)
-    nextPaymentDate ??= now.add(const Duration(days: 30));
-    
-    // Calcular días restantes
+  }
+
+  Widget _buildActiveProgressBar({
+    required BuildContext context,
+    required AthleteCompleteInfo athleteInfo,
+    required ProgressData progressData,
+    required Color progressColor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Barra de progreso
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: FractionallySizedBox(
+            widthFactor: progressData.progress.clamp(0.0, 1.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: progressColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        
+        // Información de estado
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              progressData.isOverdue
+                  ? 'Vencido: ${_formatDate(progressData.nextPaymentDate!)}'
+                  : 'Próximo: ${_formatDate(progressData.nextPaymentDate!)}',
+              style: TextStyle(
+                fontSize: 12,
+                color: progressColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              '${progressData.daysRemaining} días',
+              style: TextStyle(
+                fontSize: 12,
+                color: progressColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInactiveProgressBar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Sin plan activo',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingProgressBar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const LinearProgressIndicator(
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Cargando...',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorProgressBar() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            color: Colors.red[300],
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Error al cargar datos',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.red,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Calcula datos de progreso basado en información de períodos
+  ProgressData _calculateProgressFromPeriods(AthleteCompleteInfo athleteInfo) {
+    final now = DateTime.now();
+    final nextPaymentDate = athleteInfo.nextPaymentDate ?? now.add(const Duration(days: 30));
     final daysRemaining = nextPaymentDate.difference(now).inDays;
     final isOverdue = daysRemaining < 0;
     
-    // Calcular progreso basado en el ciclo del plan
-    double progressValue = 0.0;
-    if (clientUser.subscriptionPlan != null && clientUser.lastPaymentDate != null) {
-      final totalDaysInCycle = _getDaysInBillingCycle(clientUser.subscriptionPlan!.billingCycle);
-      final daysSinceLastPayment = now.difference(clientUser.lastPaymentDate!).inDays;
-      progressValue = (daysSinceLastPayment / totalDaysInCycle).clamp(0.0, 1.0);
+    // Calcular el total de días en el ciclo actual
+    // Usar el período activo más cercano a vencer como referencia
+    int totalDaysInCycle = 30; // Valor por defecto
+    
+    if (athleteInfo.periodsInfo.currentPeriod != null) {
+      final currentPeriod = athleteInfo.periodsInfo.currentPeriod!;
+      totalDaysInCycle = currentPeriod.endDate.difference(currentPeriod.startDate).inDays;
+    } else if (athleteInfo.periodsInfo.activePeriods.isNotEmpty) {
+      final activePeriod = athleteInfo.periodsInfo.activePeriods.first;
+      totalDaysInCycle = activePeriod.endDate.difference(activePeriod.startDate).inDays;
     }
     
-    return PaymentCalculationData(
-      daysRemaining: daysRemaining,
+    // Calcular progreso (invertido: 1.0 = recién pagado, 0.0 = próximo a vencer)
+    final progress = isOverdue ? 0.0 : (daysRemaining / totalDaysInCycle);
+    
+    return ProgressData(
+      daysRemaining: daysRemaining.abs(),
+      totalDays: totalDaysInCycle,
+      progress: progress,
       isOverdue: isOverdue,
-      progressValue: progressValue,
       nextPaymentDate: nextPaymentDate,
     );
   }
 
-  /// Calcula la próxima fecha de pago basada en el ciclo de facturación
-  DateTime _calculateNextPaymentFromCycle(DateTime lastPayment, BillingCycle billingCycle) {
-    switch (billingCycle) {
-      case BillingCycle.monthly:
-        return DateTime(lastPayment.year, lastPayment.month + 1, lastPayment.day);
-      case BillingCycle.quarterly:
-        return DateTime(lastPayment.year, lastPayment.month + 3, lastPayment.day);
-      case BillingCycle.biannual:
-        return DateTime(lastPayment.year, lastPayment.month + 6, lastPayment.day);
-      case BillingCycle.annual:
-        return DateTime(lastPayment.year + 1, lastPayment.month, lastPayment.day);
-    }
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy').format(date);
   }
+}
 
-  /// Obtiene el número de días en un ciclo de facturación
-  int _getDaysInBillingCycle(BillingCycle billingCycle) {
-    switch (billingCycle) {
-      case BillingCycle.monthly:
-        return 30;
-      case BillingCycle.quarterly:
-        return 90;
-      case BillingCycle.biannual:
-        return 180;
-      case BillingCycle.annual:
-        return 365;
-    }
-  }
-
-  /// Construye la barra de progreso activa
-  Widget _buildActiveProgressBar(ClientUserModel clientUser, PaymentCalculationData calculatedData) {
-    final progressColor = _getProgressColor(calculatedData.daysRemaining, calculatedData.isOverdue);
-    
-    AppLogger.logInfo(
-      'Construyendo barra de progreso activa',
-      className: 'PaymentProgressBar',
-      params: {
-        'userId': widget.userId,
-        'daysRemaining': calculatedData.daysRemaining,
-        'isOverdue': calculatedData.isOverdue,
-        'progressValue': calculatedData.progressValue,
-        'nextPaymentDate': calculatedData.nextPaymentDate?.toString(),
-      }
-    );
-    
-    return _buildProgressBarWidget(
-      progress: calculatedData.progressValue,
-      progressColor: progressColor,
-      nextPaymentDate: calculatedData.nextPaymentDate!,
-      daysRemaining: calculatedData.daysRemaining,
-      isOverdue: calculatedData.isOverdue,
-    );
-  }
-
-  /// Construye el widget de la barra de progreso con información de pago
-  Widget _buildProgressBarWidget({
-    required double progress,
-    required Color progressColor,
-    required DateTime nextPaymentDate,
-    required int daysRemaining,
-    required bool isOverdue,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, right: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Barra de progreso
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              backgroundColor: Colors.grey.withAlpha(45),
-              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-              minHeight: 3,
-            ),
-          ),
-          
-          // Fecha de próximo pago
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isOverdue 
-                    ? 'Vencido: ${formatDate(nextPaymentDate)}'
-                    : 'Próximo: ${formatDate(nextPaymentDate)}',
-                style: TextStyle(
-                  fontSize: 10,
-                  letterSpacing: 0.4,
-                  color: _getTextColor(daysRemaining, isOverdue),
-                ),
-              ),
-              Text(
-                isOverdue 
-                    ? 'Pago pendiente'
-                    : '$daysRemaining días',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.4,
-                  color: _getTextColor(daysRemaining, isOverdue),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Construye la barra de progreso inactiva
-  Widget _buildInactiveBar() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8, right: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Barra gris inactiva
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: 0.0,
-              backgroundColor: Colors.grey.withAlpha(45),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.grey),
-              minHeight: 3,
-            ),
-          ),
-          
-          // Texto de inactivo
-          const SizedBox(height: 4),
-          const Text(
-            'Usuario inactivo',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey,
-              letterSpacing: 0.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+/// Datos calculados para el progreso de pago
+class ProgressData {
+  final int daysRemaining;
+  final int totalDays;
+  final double progress;
+  final bool isOverdue;
+  final DateTime nextPaymentDate;
   
-  /// Determina el color de la barra de progreso
-  Color _getProgressColor(int daysRemaining, bool isOverdue) {
-    if (isOverdue) {
-      return AppTheme.bonfireRed; // Rojo para vencido
-    } else if (daysRemaining < 5) {
-      return AppTheme.bonfireRed; // Rojo para casi vencido
-    } else if (daysRemaining < 15) {
-      return AppTheme.goldTrophy; // Amarillo/naranja para próximo a vencer
-    } else {
-      return AppTheme.courtGreen; // Verde para pago al día
-    }
-  }
-  
-  /// Determina el color del texto
-  Color _getTextColor(int daysRemaining, bool isOverdue) {
-    if (isOverdue || daysRemaining < 5) {
-      return AppTheme.bonfireRed;
-    }
-    return AppTheme.lightGray;
-  }
+  const ProgressData({
+    required this.daysRemaining,
+    required this.totalDays,
+    required this.progress,
+    required this.isOverdue,
+    required this.nextPaymentDate,
+  });
 } 

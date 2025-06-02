@@ -1,6 +1,9 @@
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
+import 'package:arcinus/features/subscriptions/domain/services/athlete_periods_helper.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_assignment_model.dart';
 import 'package:fpdart/fpdart.dart';
 
 // Abstracciones de los repositorios necesarios
@@ -18,6 +21,14 @@ abstract class ClientUserRepository {
   );
 }
 
+// Abstracción para el repositorio de períodos
+abstract class PeriodRepository {
+  Future<Either<Failure, List<SubscriptionAssignmentModel>>> getAthleteActivePeriods(
+    String academyId,
+    String athleteId,
+  );
+}
+
 // Define una clase básica de academia para el servicio
 class AcademyModel {
   final String? id;
@@ -32,8 +43,12 @@ abstract class AcademyRepository {
 class PaymentStatusService {
   static const String _className = 'PaymentStatusService';
   final ClientUserRepository _clientUserRepository;
+  final PeriodRepository _periodRepository;
   
-  PaymentStatusService(this._clientUserRepository);
+  PaymentStatusService(
+    this._clientUserRepository,
+    this._periodRepository,
+  );
   
   /// Verifica y actualiza los estados de pago de todos los usuarios de una academia
   Future<void> verifyPaymentStatuses(String academyId) async {
@@ -64,26 +79,51 @@ class PaymentStatusService {
         );
         
         for (final user in clientUsers) {
-          // Caso 1: Sin fecha de próximo pago - marcar como inactivo
-          if (user.nextPaymentDate == null) {
-            if (user.paymentStatus != PaymentStatus.inactive) {
-              await _updateUserPaymentStatus(user, PaymentStatus.inactive);
-            }
-            continue;
-          }
+          // Obtener períodos activos del atleta para calcular información de pago
+          final periodsResult = await _periodRepository.getAthleteActivePeriods(
+            academyId,
+            user.userId,
+          );
           
-          // Caso 2: Próximo pago vencido - marcar en mora
-          if (user.nextPaymentDate!.isBefore(today)) {
-            if (user.paymentStatus != PaymentStatus.overdue) {
-              await _updateUserPaymentStatus(user, PaymentStatus.overdue);
-            }
-            continue;
-          }
-          
-          // Caso 3: Próximo pago futuro pero estado incorrecto - corregir a activo
-          if (user.paymentStatus != PaymentStatus.active) {
-            await _updateUserPaymentStatus(user, PaymentStatus.active);
-          }
+          await periodsResult.fold(
+            (failure) async {
+              AppLogger.logError(
+                message: 'Error al obtener períodos del atleta ${user.userId}',
+                error: failure,
+                className: _className,
+                functionName: 'verifyPaymentStatuses',
+              );
+              // Si no se pueden obtener períodos, marcar como inactivo si no lo está ya
+              if (user.paymentStatus != PaymentStatus.inactive) {
+                await _updateUserPaymentStatus(user, PaymentStatus.inactive);
+              }
+            },
+            (periods) async {
+              // Usar AthletePeriodsHelper para calcular información de pago
+              final nextPaymentDate = AthletePeriodsHelper.calculateNextPaymentDate(periods);
+              
+              // Caso 1: Sin fecha de próximo pago - marcar como inactivo
+              if (nextPaymentDate == null) {
+                if (user.paymentStatus != PaymentStatus.inactive) {
+                  await _updateUserPaymentStatus(user, PaymentStatus.inactive);
+                }
+                return;
+              }
+              
+              // Caso 2: Próximo pago vencido - marcar en mora
+              if (nextPaymentDate.isBefore(today)) {
+                if (user.paymentStatus != PaymentStatus.overdue) {
+                  await _updateUserPaymentStatus(user, PaymentStatus.overdue);
+                }
+                return;
+              }
+              
+              // Caso 3: Próximo pago futuro pero estado incorrecto - corregir a activo
+              if (user.paymentStatus != PaymentStatus.active) {
+                await _updateUserPaymentStatus(user, PaymentStatus.active);
+              }
+            },
+          );
         }
       }
     );
@@ -128,6 +168,7 @@ class PaymentStatusService {
   /// Método para ejecutar la verificación en todas las academias
   static Future<void> verifyAllAcademies(
     ClientUserRepository clientUserRepository,
+    PeriodRepository periodRepository,
     AcademyRepository academyRepository
   ) async {
     AppLogger.logInfo(
@@ -136,7 +177,7 @@ class PaymentStatusService {
       functionName: 'verifyAllAcademies',
     );
     
-    final service = PaymentStatusService(clientUserRepository);
+    final service = PaymentStatusService(clientUserRepository, periodRepository);
     
     // Obtener todas las academias activas
     final academiesResult = await academyRepository.getAcademies();

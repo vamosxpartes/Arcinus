@@ -1,19 +1,24 @@
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/memberships/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/subscriptions/domain/services/athlete_periods_helper.dart';
 
 /// Widget para mostrar la información del atleta seleccionado
 class AthleteInfoCard extends StatelessWidget {
   final ClientUserModel? clientUser;
   final AcademyUserModel? academyUser;
+  final AthleteCompleteInfo? athleteInfo;
   final VoidCallback? onEditPlan;
 
   const AthleteInfoCard({
     super.key,
     this.clientUser,
     this.academyUser,
+    this.athleteInfo,
     this.onEditPlan,
   });
 
@@ -34,7 +39,7 @@ class AthleteInfoCard extends StatelessWidget {
   }
 
   Widget _buildAcademyUserInfo() {
-    final hasSubscription = clientUser?.subscriptionPlan != null;
+    final hasActivePlan = athleteInfo?.hasActivePlan ?? false;
     final isActive = clientUser?.paymentStatus.name == 'active';
 
     return Card(
@@ -49,9 +54,9 @@ class AthleteInfoCard extends StatelessWidget {
                 _buildAthleteAvatar(),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildAthleteBasicInfo(hasSubscription, isActive),
+                  child: _buildAthleteBasicInfo(hasActivePlan, isActive),
                 ),
-                if (hasSubscription && onEditPlan != null)
+                if (hasActivePlan && onEditPlan != null)
                   IconButton(
                     icon: const Icon(Icons.edit),
                     tooltip: 'Cambiar plan',
@@ -59,7 +64,7 @@ class AthleteInfoCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (hasSubscription) ...[
+            if (hasActivePlan) ...[
               const SizedBox(height: 16),
               _buildSubscriptionDetails(),
             ],
@@ -70,7 +75,7 @@ class AthleteInfoCard extends StatelessWidget {
   }
 
   Widget _buildClientUserInfo() {
-    final hasSubscription = clientUser!.subscriptionPlan != null;
+    final hasActivePlan = athleteInfo?.hasActivePlan ?? false;
 
     return Card(
       child: Padding(
@@ -96,11 +101,11 @@ class AthleteInfoCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        hasSubscription
-                            ? 'Plan: ${clientUser!.subscriptionPlan!.name}'
+                        hasActivePlan
+                            ? 'Tiene plan activo'
                             : 'Sin plan de suscripción',
                         style: TextStyle(
-                          color: hasSubscription ? Colors.green : Colors.orange,
+                          color: hasActivePlan ? Colors.green : Colors.orange,
                         ),
                       ),
                     ],
@@ -109,14 +114,14 @@ class AthleteInfoCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            if (hasSubscription) ...[
+            if (hasActivePlan) ...[
               const Divider(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Estado: ${clientUser!.paymentStatus.displayName}'),
-                  if (clientUser!.nextPaymentDate != null)
-                    Text('Próximo pago: ${DateFormat('dd/MM/yyyy').format(clientUser!.nextPaymentDate!)}'),
+                  if (athleteInfo?.nextPaymentDate != null)
+                    Text('Próximo pago: ${DateFormat('dd/MM/yyyy').format(athleteInfo!.nextPaymentDate!)}'),
                 ],
               ),
             ],
@@ -127,6 +132,9 @@ class AthleteInfoCard extends StatelessWidget {
   }
 
   Widget _buildAthleteAvatar() {
+    final hasActivePlan = athleteInfo?.hasActivePlan ?? false;
+    final isActive = clientUser?.paymentStatus.name == 'active';
+    
     return Stack(
       children: [
         CircleAvatar(
@@ -147,14 +155,14 @@ class AthleteInfoCard extends StatelessWidget {
             width: 16,
             height: 16,
             decoration: BoxDecoration(
-              color: clientUser?.subscriptionPlan != null && clientUser?.paymentStatus.name == 'active' 
+              color: hasActivePlan && isActive 
                   ? Colors.green 
                   : Colors.orange,
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 2),
             ),
             child: Icon(
-              clientUser?.subscriptionPlan != null && clientUser?.paymentStatus.name == 'active' 
+              hasActivePlan && isActive 
                   ? Icons.check 
                   : Icons.warning,
               size: 10,
@@ -166,7 +174,7 @@ class AthleteInfoCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAthleteBasicInfo(bool hasSubscription, bool isActive) {
+  Widget _buildAthleteBasicInfo(bool hasActivePlan, bool isActive) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -178,23 +186,23 @@ class AthleteInfoCard extends StatelessWidget {
         Row(
           children: [
             Icon(
-              hasSubscription ? Icons.card_membership : Icons.warning,
+              hasActivePlan ? Icons.card_membership : Icons.warning,
               size: 16,
-              color: hasSubscription ? Colors.green : Colors.orange,
+              color: hasActivePlan ? Colors.green : Colors.orange,
             ),
             const SizedBox(width: 4),
             Text(
-              hasSubscription
-                  ? clientUser!.subscriptionPlan!.name
+              hasActivePlan
+                  ? 'Plan activo'
                   : 'Sin plan de suscripción',
               style: TextStyle(
-                color: hasSubscription ? Colors.green : Colors.orange,
+                color: hasActivePlan ? Colors.green : Colors.orange,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
-        if (hasSubscription) ...[
+        if (hasActivePlan) ...[
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -217,6 +225,9 @@ class AthleteInfoCard extends StatelessWidget {
   }
 
   Widget _buildSubscriptionDetails() {
+    final totalValue = athleteInfo?.totalValue ?? 0.0;
+    final nextPaymentDate = athleteInfo?.nextPaymentDate;
+    
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -232,20 +243,20 @@ class AthleteInfoCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Monto del Plan', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const Text('Valor Total Períodos', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(
-                    '${clientUser!.subscriptionPlan!.amount} ${clientUser!.subscriptionPlan!.currency}',
+                    NumberFormat.currency(symbol: '\$', decimalDigits: 0, locale: 'es_CO').format(totalValue),
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              if (clientUser!.nextPaymentDate != null) ...[
+              if (nextPaymentDate != null) ...[
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text('Próximo Pago', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    const Text('Próximo Vencimiento', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     Text(
-                      DateFormat('dd/MM/yyyy').format(clientUser!.nextPaymentDate!),
+                      DateFormat('dd/MM/yyyy').format(nextPaymentDate),
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -255,7 +266,7 @@ class AthleteInfoCard extends StatelessWidget {
           ),
           
           // Mostrar días restantes si hay fecha de próximo pago
-          if (clientUser!.nextPaymentDate != null) ...[
+          if (nextPaymentDate != null) ...[
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 8),
@@ -267,11 +278,11 @@ class AthleteInfoCard extends StatelessWidget {
   }
 
   Widget _buildDaysRemainingIndicator() {
-    if (clientUser?.nextPaymentDate == null) {
+    final nextPaymentDate = athleteInfo?.nextPaymentDate;
+    if (nextPaymentDate == null) {
       return const SizedBox.shrink();
     }
     
-    final nextPaymentDate = clientUser!.nextPaymentDate!;
     final now = DateTime.now();
     final daysUntilPayment = nextPaymentDate.difference(now).inDays;
     

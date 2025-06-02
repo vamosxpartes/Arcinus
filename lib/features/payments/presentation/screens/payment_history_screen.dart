@@ -1,7 +1,10 @@
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +57,12 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
     final paymentsAsyncValue = ref.watch(
       athletePaymentsNotifierProvider(widget.athleteId),
     );
-    final clientUserAsyncValue = ref.watch(clientUserProvider(widget.athleteId));
+    
+    // Usar el nuevo provider de información completa del atleta
+    final athleteCompleteInfoAsync = ref.watch(athleteCompleteInfoProvider((
+      academyId: widget.academyId,
+      athleteId: widget.athleteId,
+    )));
 
     return PopScope(
       onPopInvokedWithResult: (didPop, result) {
@@ -66,7 +74,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
       child: Column(
         children: [
           // Información del atleta
-          _buildAthleteInfoCard(context, ref, clientUserAsyncValue),
+          _buildAthleteInfoCard(context, ref, athleteCompleteInfoAsync),
           
           // Lista de pagos
           Expanded(
@@ -85,7 +93,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
   Widget _buildAthleteInfoCard(
     BuildContext context, 
     WidgetRef ref, 
-    AsyncValue<ClientUserModel?> clientUserAsyncValue
+    AsyncValue<AthleteCompleteInfo> athleteCompleteInfoAsync
   ) {
     return Card(
       margin: const EdgeInsets.all(16.0),
@@ -135,8 +143,8 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
             
             // Información de suscripción
             const SizedBox(height: 16),
-            clientUserAsyncValue.when(
-              data: (clientUser) => _buildSubscriptionInfo(context, clientUser),
+            athleteCompleteInfoAsync.when(
+              data: (athleteInfo) => _buildSubscriptionInfo(context, ref, athleteInfo),
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(8.0),
@@ -155,8 +163,8 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
   }
 
   /// Construye la información de suscripción del atleta
-  Widget _buildSubscriptionInfo(BuildContext context, ClientUserModel? clientUser) {
-    if (clientUser?.subscriptionPlan == null) {
+  Widget _buildSubscriptionInfo(BuildContext context, WidgetRef ref, AthleteCompleteInfo athleteInfo) {
+    if (!athleteInfo.hasActivePlan) {
       return Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -173,8 +181,7 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
       );
     }
 
-    final plan = clientUser!.subscriptionPlan!;
-    final status = clientUser.paymentStatus;
+    final status = athleteInfo.clientUser.paymentStatus;
     
     Color statusColor;
     IconData statusIcon;
@@ -193,6 +200,14 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
         statusIcon = Icons.cancel;
         break;
     }
+
+    // Obtener información del plan actual si existe
+    final currentPlanAsync = athleteInfo.currentSubscriptionPlanId != null
+        ? ref.watch(subscriptionPlanProvider((
+            academyId: widget.academyId,
+            planId: athleteInfo.currentSubscriptionPlanId!,
+          )))
+        : null;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -218,17 +233,37 @@ class _PaymentHistoryScreenState extends ConsumerState<PaymentHistoryScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            'Plan: ${plan.name}',
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          Text(
-            'Monto: ${plan.amount} ${plan.currency}',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          if (clientUser.nextPaymentDate != null)
+          
+          // Información del plan
+          if (currentPlanAsync != null)
+            currentPlanAsync.when(
+              data: (currentPlan) {
+                if (currentPlan == null) return const SizedBox.shrink();
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Plan: ${currentPlan.name}',
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'Monto: ${currentPlan.amount} ${currentPlan.currency}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const Text('Error al cargar plan'),
+            )
+          else
+            const Text('Información de plan no disponible'),
+          
+          // Fechas de pago
+          if (athleteInfo.nextPaymentDate != null)
             Text(
-              'Próximo pago: ${DateFormat('dd/MM/yyyy').format(clientUser.nextPaymentDate!)}',
+              'Próximo pago: ${DateFormat('dd/MM/yyyy').format(athleteInfo.nextPaymentDate!)}',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
         ],

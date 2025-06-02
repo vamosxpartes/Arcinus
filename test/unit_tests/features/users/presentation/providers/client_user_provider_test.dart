@@ -4,6 +4,7 @@ import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/domain/repositories/client_user_repository.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,15 +23,16 @@ final testAcademy = AcademyModel(
   ownerId: 'owner-1',
 );
 
+// MIGRACIÓN: ClientUserModel ahora solo contiene campos básicos
+// La información de períodos se obtiene por separado usando AthletePeriodsHelper
 final testClientUser = ClientUserModel(
   id: 'client-1',
   userId: 'client-1',
   academyId: 'academy-id-1',
   clientType: AppRole.atleta,
   paymentStatus: PaymentStatus.active,
-  subscriptionPlanId: 'plan-1',
-  nextPaymentDate: DateTime.now().add(const Duration(days: 15)),
-  remainingDays: 15,
+  linkedAccounts: const [],
+  metadata: const {},
 );
 
 final testClientUser2 = ClientUserModel(
@@ -39,9 +41,8 @@ final testClientUser2 = ClientUserModel(
   academyId: 'academy-id-1',
   clientType: AppRole.padre,
   paymentStatus: PaymentStatus.overdue,
-  subscriptionPlanId: 'plan-2',
-  nextPaymentDate: DateTime.now().subtract(const Duration(days: 5)),
-  remainingDays: -5,
+  linkedAccounts: const [],
+  metadata: const {},
 );
 
 void main() {

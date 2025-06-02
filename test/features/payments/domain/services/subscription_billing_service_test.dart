@@ -1,8 +1,8 @@
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart' as client_user;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:arcinus/features/payments/domain/services/subscription_billing_service.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
-import 'package:arcinus/features/users/data/models/client_user_model.dart' as client_user;
 
 void main() {
   group('SubscriptionBillingService', () {
@@ -24,11 +24,12 @@ void main() {
         createdAt: DateTime.now(),
       );
       
-      clientTestPlan = const client_user.SubscriptionPlanModel(
+      clientTestPlan = client_user.SubscriptionPlanModel(
         name: 'Plan Mensual Cliente',
         amount: 100.0,
         currency: 'COP',
-        billingCycle: client_user.BillingCycle.monthly,
+        billingCycle: client_user.BillingCycle.monthly, 
+        createdAt: DateTime.now(),
       );
     });
 

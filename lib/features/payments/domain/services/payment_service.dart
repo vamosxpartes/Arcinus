@@ -2,7 +2,7 @@ import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart'
     as plan;
-import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 
 // Repositorios - interfaces solo para definir la estructura
 abstract class PaymentRepository {

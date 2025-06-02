@@ -275,8 +275,8 @@ void main() {
     });
   });
 
-  group('PaymentFormNotifier', () {
-    test('submitPayment() debería actualizar el estado correctamente en caso de éxito', () async {
+  group('AcademyPaymentsNotifier (Registro de pagos)', () {
+    test('registerPayment() debería actualizar el estado correctamente en caso de éxito', () async {
       // Arrange: Configurar el mock para registrar un pago con éxito
       final registeredPayment = PaymentModel(
         id: 'payment-id-1',
@@ -293,24 +293,22 @@ void main() {
           .thenAnswer((_) async => right(registeredPayment));
 
       when(() => paymentRepository.getPaymentsByAcademy('academy-id-1'))
-          .thenAnswer((_) async => right([]));
+          .thenAnswer((_) async => right([registeredPayment]));
 
       // Act: Enviar un formulario de pago
-      await container.read(paymentFormNotifierProvider.notifier).submitPayment(
+      await container.read(academyPaymentsNotifierProvider.notifier).registerPayment(
         athleteId: 'athlete-id-1',
         amount: 100.0,
         currency: 'USD',
         paymentDate: DateTime(2023, 5, 15),
       );
 
-      // Assert: Verificar que el estado se actualizó correctamente
-      final state = container.read(paymentFormNotifierProvider);
-      expect(state.isSubmitting, isFalse);
-      expect(state.isSuccess, isTrue);
-      expect(state.failure, isNull);
+      // Assert: Verificar que el pago se registró correctamente
+      final payments = await container.read(academyPaymentsNotifierProvider.future);
+      expect(payments, contains(registeredPayment));
     });
 
-    test('submitPayment() debería actualizar el estado correctamente en caso de error', () async {
+    test('registerPayment() debería lanzar un error en caso de falla', () async {
       // Arrange: Configurar el mock para fallar al registrar un pago
       final failure = Failure.serverError(message: 'Error al registrar el pago');
       
@@ -320,56 +318,16 @@ void main() {
       when(() => paymentRepository.getPaymentsByAcademy('academy-id-1'))
           .thenAnswer((_) async => right([]));
 
-      // Act: Enviar un formulario de pago que fallará
-      await container.read(paymentFormNotifierProvider.notifier).submitPayment(
-        athleteId: 'athlete-id-1',
-        amount: 100.0,
-        currency: 'USD',
-        paymentDate: DateTime(2023, 5, 15),
+      // Act & Assert: Verificar que se lance un error
+      expect(
+        () => container.read(academyPaymentsNotifierProvider.notifier).registerPayment(
+          athleteId: 'athlete-id-1',
+          amount: 100.0,
+          currency: 'USD',
+          paymentDate: DateTime(2023, 5, 15),
+        ),
+        throwsA(isA<Failure>()),
       );
-
-      // Assert: Verificar que el estado se actualizó con el error
-      final state = container.read(paymentFormNotifierProvider);
-      expect(state.isSubmitting, isFalse);
-      expect(state.isSuccess, isFalse);
-      expect(state.failure, isNotNull);
-    });
-
-    test('reset() debería restablecer el estado a los valores iniciales', () async {
-      // Arrange: Primero enviamos un formulario exitoso para cambiar el estado
-      when(() => paymentRepository.registerPayment(any()))
-          .thenAnswer((_) async => right(PaymentModel(
-                id: 'payment-id-1',
-                academyId: 'academy-id-1',
-                athleteId: 'athlete-id-1',
-                amount: 100.0,
-                currency: 'USD',
-                paymentDate: DateTime(2023, 5, 15),
-                registeredBy: 'user-id-1',
-                createdAt: DateTime(2023, 5, 15),
-              )));
-
-      when(() => paymentRepository.getPaymentsByAcademy('academy-id-1'))
-          .thenAnswer((_) async => right([]));
-
-      await container.read(paymentFormNotifierProvider.notifier).submitPayment(
-        athleteId: 'athlete-id-1',
-        amount: 100.0,
-        currency: 'USD',
-        paymentDate: DateTime(2023, 5, 15),
-      );
-
-      // Verificar que el estado cambió (isSuccess = true)
-      expect(container.read(paymentFormNotifierProvider).isSuccess, isTrue);
-
-      // Act: Resetear el estado
-      container.read(paymentFormNotifierProvider.notifier).reset();
-
-      // Assert: Verificar que el estado volvió a sus valores iniciales
-      final state = container.read(paymentFormNotifierProvider);
-      expect(state.isSubmitting, isFalse);
-      expect(state.isSuccess, isFalse);
-      expect(state.failure, isNull);
     });
   });
 } 

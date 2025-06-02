@@ -1,12 +1,17 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
+import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:fpdart/fpdart.dart';
 
 /// Interfaz para el repositorio de usuarios cliente
+/// MIGRACIÓN: Los campos de suscripción específicos se manejan ahora por separado con períodos
+/// Los planes de suscripción se gestionan en un repositorio separado
 abstract class ClientUserRepository {
   /// Obtiene un usuario cliente por su ID
-  Future<Either<Failure, ClientUserModel>> getClientUser(
+  /// Retorna null si el usuario no existe o no es un cliente (atleta/padre)
+  Future<Either<Failure, ClientUserModel?>> getClientUser(
     String academyId,
     String userId,
   );
@@ -18,20 +23,22 @@ abstract class ClientUserRepository {
     PaymentStatus? paymentStatus,
   });
   
-  /// Actualiza los datos de un usuario cliente
-  Future<Either<Failure, ClientUserModel>> updateClientUser(
+  /// Actualiza los datos generales de un usuario cliente (metadatos, cuentas vinculadas, etc.)
+  /// MIGRACIÓN: Ya no maneja fechas ni información específica de suscripción
+  Future<Either<Failure, bool>> updateClientUser(
     String academyId,
     String userId,
-    Map<String, dynamic> clientData,
+    Map<String, dynamic> updates,
   );
   
-  /// Asigna un plan de suscripción a un usuario
-  Future<Either<Failure, ClientUserModel>> assignSubscriptionPlan(
+  /// Asigna un plan de suscripción básico a un usuario
+  /// MIGRACIÓN: Solo asigna referencia básica, los períodos se manejan por separado
+  Future<Either<Failure, bool>> assignSubscriptionPlan(
     String academyId,
     String userId,
-    String planId,
+    String planId, {
     DateTime? startDate,
-  );
+  });
   
   /// Actualiza específicamente el estado de pago de un usuario
   Future<Either<Failure, bool>> updateClientUserPaymentStatus(
@@ -41,33 +48,10 @@ abstract class ClientUserRepository {
   );
 
   /// Obtiene todos los planes de suscripción disponibles
+  /// NOTA: Este método se mantendrá temporalmente para compatibilidad
+  /// En el futuro se migrará a un repositorio específico de planes
   Future<Either<Failure, List<SubscriptionPlanModel>>> getSubscriptionPlans(
     String academyId, {
     bool activeOnly = true,
   });
-
-  /// Obtiene un plan de suscripción específico
-  Future<Either<Failure, SubscriptionPlanModel>> getSubscriptionPlan(
-    String academyId,
-    String planId,
-  );
-
-  /// Crea un nuevo plan de suscripción
-  Future<Either<Failure, SubscriptionPlanModel>> createSubscriptionPlan(
-    String academyId,
-    SubscriptionPlanModel plan,
-  );
-
-  /// Actualiza un plan de suscripción existente
-  Future<Either<Failure, SubscriptionPlanModel>> updateSubscriptionPlan(
-    String academyId,
-    String planId,
-    SubscriptionPlanModel plan,
-  );
-
-  /// Elimina un plan de suscripción
-  Future<Either<Failure, Unit>> deleteSubscriptionPlan(
-    String academyId,
-    String planId,
-  );
 }

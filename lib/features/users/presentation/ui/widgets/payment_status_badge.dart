@@ -1,6 +1,6 @@
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:flutter/material.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
-import 'package:arcinus/features/users/data/models/client_user_model.dart';
 
 /// Widget que muestra un indicador visual del estado de pago de un usuario
 class PaymentStatusBadge extends StatelessWidget {

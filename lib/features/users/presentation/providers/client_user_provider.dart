@@ -1,6 +1,7 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
+import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/domain/repositories/client_user_repository_impl.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,7 +81,7 @@ final clientUserProvider = FutureProvider.family.autoDispose<ClientUserModel?, S
             'userId': userId,
             'academyId': academyId,
             'clientUser_found': clientUser ,
-            'paymentStatus': clientUser.paymentStatus.toString(),
+            'paymentStatus': clientUser?.paymentStatus.toString(),
           }
         );
         return clientUser;
@@ -217,8 +218,7 @@ class ClientUserNotifier extends StateNotifier<AsyncValue<ClientUserModel?>> {
             params: {
               'userId': _userId,
               'clientUser_found': clientUser,
-              'paymentStatus': clientUser.paymentStatus.toString(),
-              'subscriptionPlan_found': clientUser.subscriptionPlan != null,
+              'paymentStatus': clientUser?.paymentStatus.toString(),
             }
           );
           state = AsyncValue.data(clientUser);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:arcinus/features/users/data/models/client_user_model.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
 
 /// Widget para mostrar advertencias y validaciones relacionadas con el pago
 class PaymentWarnings extends StatelessWidget {
@@ -11,6 +12,7 @@ class PaymentWarnings extends StatelessWidget {
   final DateTime paymentDate;
   final ClientUserModel? clientUser;
   final PaymentConfigModel? paymentConfig;
+  final AthleteCompleteInfo? athleteInfo;
 
   const PaymentWarnings({
     super.key,
@@ -21,6 +23,7 @@ class PaymentWarnings extends StatelessWidget {
     required this.paymentDate,
     this.clientUser,
     this.paymentConfig,
+    this.athleteInfo,
   });
 
   @override
@@ -39,7 +42,7 @@ class PaymentWarnings extends StatelessWidget {
     }
     
     // Advertencia de descuento por pronto pago
-    if (paymentConfig != null && paymentConfig!.earlyPaymentDiscount && clientUser != null) {
+    if (paymentConfig != null && paymentConfig!.earlyPaymentDiscount && _hasPaymentInfo()) {
       final discountWidget = _buildEarlyPaymentDiscountInfo();
       if (discountWidget != null) {
         if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
@@ -48,7 +51,7 @@ class PaymentWarnings extends StatelessWidget {
     }
     
     // Advertencia si la fecha de pago está fuera del período de gracia
-    if (paymentConfig != null && clientUser != null && clientUser!.nextPaymentDate != null) {
+    if (paymentConfig != null && _hasPaymentInfo() && _getNextPaymentDate() != null) {
       final gracePeriodWidget = _buildGracePeriodWarning();
       if (gracePeriodWidget != null) {
         if (widgets.isNotEmpty) widgets.add(const SizedBox(height: 8));
@@ -57,6 +60,22 @@ class PaymentWarnings extends StatelessWidget {
     }
     
     return Column(children: widgets);
+  }
+
+  /// Verifica si hay información de pago disponible
+  bool _hasPaymentInfo() {
+    return athleteInfo != null || clientUser != null;
+  }
+
+  /// Obtiene la próxima fecha de pago usando la nueva estructura o fallback
+  DateTime? _getNextPaymentDate() {
+    if (athleteInfo?.nextPaymentDate != null) {
+      return athleteInfo!.nextPaymentDate;
+    }
+    
+    // Fallback: En el nuevo sistema, esta información se calcula dinámicamente
+    // por lo que si no tenemos AthleteCompleteInfo, no podemos determinarla
+    return null;
   }
 
   Widget _buildPartialPaymentWarning() {
@@ -174,7 +193,7 @@ class PaymentWarnings extends StatelessWidget {
   }
 
   Widget? _buildEarlyPaymentDiscountInfo() {
-    final nextPaymentDate = clientUser!.nextPaymentDate;
+    final nextPaymentDate = _getNextPaymentDate();
     
     if (nextPaymentDate == null) return null;
     
@@ -311,7 +330,9 @@ class PaymentWarnings extends StatelessWidget {
   }
 
   Widget? _buildGracePeriodWarning() {
-    final nextPaymentDate = clientUser!.nextPaymentDate!;
+    final nextPaymentDate = _getNextPaymentDate();
+    if (nextPaymentDate == null) return null;
+    
     final gracePeriodEnd = nextPaymentDate.add(Duration(days: paymentConfig!.gracePeriodDays));
     
     if (paymentDate.isAfter(gracePeriodEnd)) {
