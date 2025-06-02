@@ -5,27 +5,120 @@ import 'package:arcinus/features/academy_users_payments/payment_status.dart';
 import 'package:arcinus/features/academy_users/domain/repositories/academy_member_repository_impl.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final membersScreenSearchProvider = FutureProvider.family<List<AcademyUserModel>, ({String academyId, String searchTerm, AppRole? role})>(
   (ref, params) async {
-    final repository = ref.watch(academyUsersRepositoryProvider);
-    // Si getAcademyUsers devuelve un Stream, tomamos el primer evento para que sea un Future.
-    final List<AcademyUserModel> allUsers = await repository.getAcademyUsers(params.academyId).first;
-    
-    List<AcademyUserModel> filteredUsers = allUsers;
+    try {
+      AppLogger.logInfo(
+        'Ejecutando búsqueda de miembros',
+        className: 'MembersScreenSearchProvider',
+        functionName: 'membersScreenSearchProvider',
+        params: {
+          'academyId': params.academyId,
+          'searchTerm': params.searchTerm,
+          'role': params.role?.name,
+        },
+      );
 
-    if (params.role != null) {
-      filteredUsers = filteredUsers.where((user) => user.role == params.role!.name).toList();
-    }
+      final repository = ref.watch(academyUsersRepositoryProvider);
+      
+      // Envolver la obtención de usuarios en try-catch para manejar errores de conversión
+      List<AcademyUserModel> allUsers;
+      try {
+        allUsers = await repository.getAcademyUsers(params.academyId).first;
+      } catch (e, stackTrace) {
+        AppLogger.logError(
+          message: 'Error obteniendo usuarios de academia',
+          error: e,
+          stackTrace: stackTrace,
+          className: 'MembersScreenSearchProvider',
+          functionName: 'membersScreenSearchProvider',
+          params: {
+            'academyId': params.academyId,
+            'error_type': e.runtimeType.toString(),
+          },
+        );
+        
+        // En lugar de propagar el error, devolver lista vacía
+        return <AcademyUserModel>[];
+      }
+      
+      List<AcademyUserModel> filteredUsers = allUsers;
 
-    if (params.searchTerm.isNotEmpty) {
-      filteredUsers = filteredUsers.where((user) {
-        final searchTermLower = params.searchTerm.toLowerCase();
-        return user.fullName.toLowerCase().contains(searchTermLower);
-      }).toList();
+      // Filtrar por rol si se especifica
+      if (params.role != null) {
+        try {
+          filteredUsers = filteredUsers.where((user) => user.appRole == params.role).toList();
+        } catch (e, stackTrace) {
+          AppLogger.logError(
+            message: 'Error filtrando usuarios por rol',
+            error: e,
+            stackTrace: stackTrace,
+            className: 'MembersScreenSearchProvider',
+            params: {
+              'role': params.role?.name,
+              'userCount': filteredUsers.length,
+            },
+          );
+          // Continuar sin filtrar por rol
+        }
+      }
+
+      // Filtrar por término de búsqueda si se especifica
+      if (params.searchTerm.isNotEmpty) {
+        try {
+          filteredUsers = filteredUsers.where((user) {
+            final searchTermLower = params.searchTerm.toLowerCase();
+            return user.fullName.toLowerCase().contains(searchTermLower);
+          }).toList();
+        } catch (e, stackTrace) {
+          AppLogger.logError(
+            message: 'Error filtrando usuarios por búsqueda',
+            error: e,
+            stackTrace: stackTrace,
+            className: 'MembersScreenSearchProvider',
+            params: {
+              'searchTerm': params.searchTerm,
+              'userCount': filteredUsers.length,
+            },
+          );
+          // Continuar sin filtrar por búsqueda
+        }
+      }
+
+      AppLogger.logInfo(
+        'Búsqueda de miembros completada',
+        className: 'MembersScreenSearchProvider',
+        functionName: 'membersScreenSearchProvider',
+        params: {
+          'academyId': params.academyId,
+          'totalUsers': allUsers.length,
+          'filteredUsers': filteredUsers.length,
+          'searchTerm': params.searchTerm,
+          'role': params.role?.name,
+        },
+      );
+
+      return filteredUsers;
+    } catch (e, stackTrace) {
+      AppLogger.logError(
+        message: 'Error general en membersScreenSearchProvider',
+        error: e,
+        stackTrace: stackTrace,
+        className: 'MembersScreenSearchProvider',
+        functionName: 'membersScreenSearchProvider',
+        params: {
+          'academyId': params.academyId,
+          'searchTerm': params.searchTerm,
+          'role': params.role?.name,
+        },
+      );
+      
+      // En lugar de propagar el error, devolver lista vacía
+      return <AcademyUserModel>[];
     }
-    return filteredUsers;
   }
 ); 
 

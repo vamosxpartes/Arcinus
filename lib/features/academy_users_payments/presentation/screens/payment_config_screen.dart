@@ -3,7 +3,6 @@ import 'package:arcinus/features/academy_users_payments/data/models/payment_conf
 import 'package:arcinus/features/academy_users_payments/presentation/providers/payment_config_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:arcinus/features/academy_users_payments/presentation/ui/widgets/verify_payment_status_button.dart';
 
 /// Pantalla para configurar las opciones de pagos de una academia
 class PaymentConfigScreen extends ConsumerWidget {
@@ -36,44 +35,7 @@ class PaymentConfigScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sección para herramientas administrativas
-          Card(
-            elevation: 2,
-            margin: const EdgeInsets.only(bottom: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Herramientas administrativas',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Verificación de estados de pago',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Actualiza automáticamente los estados de pago de todos los usuarios según sus fechas de vencimiento.',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 12),
-                  const Center(child: VerifyPaymentStatusButton()),
-                ],
-              ),
-            ),
-          ),
+          const SizedBox(height: 16),
 
           // Formulario principal
           Card(

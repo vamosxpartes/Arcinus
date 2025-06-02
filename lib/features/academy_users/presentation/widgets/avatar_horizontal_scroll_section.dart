@@ -4,21 +4,21 @@ import 'package:arcinus/features/academy_users_payments/presentation/providers/p
 import 'package:arcinus/features/academy_users_payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/academy_users_subscriptions/domain/services/athlete_periods_helper.dart';
 import 'package:arcinus/features/academy_users_subscriptions/presentation/providers/athlete_periods_info_provider.dart';
-import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/core/auth/role_utils.dart';
 import 'package:arcinus/features/academy_users/presentation/screens/academy_user_details_screen.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 /// Widget modular para mostrar la sección horizontal de avatares de atletas
 /// con indicadores de estado de pago.
-class AcademyPaymentAvatarsSection extends ConsumerWidget {
+class AvatarHorizontalScrollSection extends ConsumerWidget {
   final List<AcademyUserModel> users;
   final String academyId;
 
-  const AcademyPaymentAvatarsSection({
+  const AvatarHorizontalScrollSection({
     super.key,
     required this.users,
     required this.academyId,
@@ -28,7 +28,7 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Filtramos atletas 
     final athleteUsers = users.where((user) => 
-      user.role == AppRole.atleta.name
+      user.role?.toLowerCase() == AppRole.atleta.name.toLowerCase()
     ).toList();
     
     // Si no hay atletas, no mostramos la sección
@@ -111,15 +111,23 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
     // Obtenemos datos de información completa para cada atleta
     for (final athlete in athletes) {
       try {
-        final athleteCompleteInfo = await ref.read(athleteCompleteInfoProvider((
-          academyId: academyId,
-          athleteId: athlete.id,
-        )).future);
-        
-        athleteData.add(_AthleteWithPaymentData(
-          athlete: athlete,
-          athleteInfo: athleteCompleteInfo,
-        ));
+        if (athlete.id != null) {
+          final athleteCompleteInfo = await ref.read(athleteCompleteInfoProvider((
+            academyId: academyId,
+            athleteId: athlete.id!,
+          )).future);
+          
+          athleteData.add(_AthleteWithPaymentData(
+            athlete: athlete,
+            athleteInfo: athleteCompleteInfo,
+          ));
+        } else {
+          // En caso de atleta sin ID, agregamos sin datos de pago
+          athleteData.add(_AthleteWithPaymentData(
+            athlete: athlete,
+            athleteInfo: null,
+          ));
+        }
       } catch (e) {
         // En caso de error, agregamos el atleta sin datos de pago
         athleteData.add(_AthleteWithPaymentData(
@@ -246,12 +254,15 @@ class PaymentAvatarItem extends ConsumerWidget {
     }
 
     final paymentConfigAsync = ref.watch(paymentConfigProvider(academyId));
-    final athleteCompleteInfoAsync = ref.watch(athleteCompleteInfoProvider((
-      academyId: academyId,
-      athleteId: athlete.id,
-    )));
+    final athleteCompleteInfoAsync = athlete.id != null 
+        ? ref.watch(athleteCompleteInfoProvider((
+            academyId: academyId,
+            athleteId: athlete.id!,
+          )))
+        : null;
     
-    return athleteCompleteInfoAsync.when(
+    return athleteCompleteInfoAsync != null 
+        ? athleteCompleteInfoAsync.when(
       data: (athleteInfo) => paymentConfigAsync.when(
         data: (paymentConfig) => _buildActiveAvatar(
           context, 
@@ -263,7 +274,8 @@ class PaymentAvatarItem extends ConsumerWidget {
       ),
       loading: () => _buildLoadingAvatar(),
       error: (_, __) => _buildErrorAvatar(),
-    );
+    )
+    : _buildLoadingAvatar();
   }
 
   Widget _buildActiveAvatar(
@@ -463,7 +475,7 @@ class PaymentAvatarItem extends ConsumerWidget {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterPaymentScreen(
-          athleteId: athlete.id,
+          athleteId: athlete.id!,
         ),
       ),
     );
@@ -500,7 +512,7 @@ class PaymentAvatarItem extends ConsumerWidget {
                 MaterialPageRoute(
                   builder: (context) => AcademyUserDetailsScreen(
                     academyId: academyId,
-                    userId: athlete.id,
+                    userId: athlete.id!,
                     initialUserData: athlete,
                   ),
                 ),

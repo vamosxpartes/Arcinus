@@ -3,6 +3,7 @@ import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 part 'academy_users_providers.g.dart';
 
@@ -45,7 +46,7 @@ Stream<List<AcademyUserModel>> academyUsers(Ref ref, String academyId) {
     },
   );
 
-  // Crear el stream y añadir logging a cada evento
+  // Crear el stream y añadir logging y manejo de errores a cada evento
   final stream = repository.getAcademyUsers(academyId);
   
   return stream.map((users) {
@@ -56,12 +57,28 @@ Stream<List<AcademyUserModel>> academyUsers(Ref ref, String academyId) {
       params: {
         'academyId': academyId,
         'userCount': users.length,
-        'userIds': users.map((u) => u.id).take(3).toList(), // Solo los primeros 3 IDs
+        'userIds': users.map((u) => u.id ?? 'null_id').take(3).toList(), // Manejar IDs nulos
         'timestamp': DateTime.now().toString(),
         'stream_event_hashCode': users.hashCode,
       },
     );
     return users;
+  }).handleError((error, StackTrace stackTrace) {
+    AppLogger.logError(
+      message: 'Error en stream de academyUsers',
+      error: error,
+      stackTrace: stackTrace,
+      className: 'AcademyUsersProviders',
+      functionName: 'academyUsers',
+      params: {
+        'academyId': academyId,
+        'error_type': error.runtimeType.toString(),
+      },
+    );
+    
+    // En lugar de propagar el error, emitir lista vacía
+    // Esto previene que la UI se rompa por errores de conversión
+    return <AcademyUserModel>[];
   });
 }
 
@@ -139,15 +156,15 @@ class SearchTermNotifier extends _$SearchTermNotifier {
 
 // Provider para resultados de búsqueda
 @riverpod
-Future<List<AcademyUserModel>> academyUsersSearch(
+Stream<List<AcademyUserModel>> academyUsersSearch(
   Ref ref,
   String academyId,
-) async {
+) {
   final searchTerm = ref.watch(searchTermNotifierProvider);
   
-  // Si el término de búsqueda está vacío, devolver lista vacía
+  // Si el término de búsqueda está vacío, devolver stream vacío
   if (searchTerm.isEmpty) {
-    return [];
+    return Stream.value([]);
   }
   
   AppLogger.logInfo(

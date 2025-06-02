@@ -12,6 +12,7 @@ dependencies:
   cloud_firestore: ^4.15.4
   equatable: ^2.0.5
   firebase_analytics: ^10.8.5
+  firebase_app_check: ^0.2.2+5
   firebase_auth: ^4.17.4
   firebase_core: ^2.25.4
   firebase_storage: ^11.7.7
@@ -76,6 +77,7 @@ flutter:
     - assets/icons/
     - assets/fonts/
     - assets/config/
+    - lib/l10n/app_es.arb
     - .env
     - env.file
   fonts:

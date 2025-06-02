@@ -99,15 +99,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     
     // Guardar datos del formulario actual
     if (_credentialsFormGroup.valid) {
-      notifier.updateEmail(_credentialsFormGroup.control('email').value as String?);
-      notifier.updatePassword(_credentialsFormGroup.control('password').value as String?);
+      final email = _credentialsFormGroup.control('email').value as String? ?? '';
+      if (email.isNotEmpty) {
+        notifier.updateEmail(email);
+      }
     }
     
     if (_profileFormGroup.valid) {
-      notifier.updateName(_profileFormGroup.control('displayName').value as String?);
-      notifier.updateLastName(_profileFormGroup.control('lastName').value as String?);
-      if (_profileFormGroup.control('phoneNumber').value != null) {
-        notifier.updatePhone(_profileFormGroup.control('phoneNumber').value as String?);
+      final displayName = _profileFormGroup.control('displayName').value as String? ?? '';
+      final lastName = _profileFormGroup.control('lastName').value as String? ?? '';
+      final phoneNumber = _profileFormGroup.control('phoneNumber').value as String?;
+      
+      if (displayName.isNotEmpty) {
+        notifier.updateDisplayName(displayName);
+      }
+      if (lastName.isNotEmpty) {
+        notifier.updateLastName(lastName);
+      }
+      if (phoneNumber != null && phoneNumber.isNotEmpty) {
+        notifier.updatePhoneNumber(phoneNumber);
       }
     }
   }

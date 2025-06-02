@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/academy_users/data/models/member/academy_member_model.dart';
-import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/academy_users_subscriptions/domain/services/athlete_periods_helper.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 /// Header de usuario para la pantalla de pagos
 /// Diseño compacto y moderno que muestra información esencial del atleta

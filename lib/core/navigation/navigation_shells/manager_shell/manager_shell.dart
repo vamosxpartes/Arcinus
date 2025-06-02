@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/core/navigation/navigation_shells/manager_shell/widgets/manager_drawer.dart';
 import 'package:arcinus/core/navigation/navigation_shells/manager_shell/widgets/manager_app_bar.dart';

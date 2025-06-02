@@ -1,6 +1,6 @@
 import 'package:arcinus/core/auth/app_permissions.dart';
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/core/models/user_model.dart';
+import 'package:arcinus/core/auth/data/models/user_model.dart';
 import 'package:arcinus/core/navigation/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/academy_users/data/models/membership_model.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +29,7 @@ class _MemberDetailsScreenState extends ConsumerState<MemberDetailsScreen> {
     super.initState();
     // Actualizar el título en el OwnerShell
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final memberName = widget.userProfile?.name ?? 'Usuario ${widget.membership.userId}';
+      final memberName = widget.userProfile?.displayName ?? 'Usuario ${widget.membership.userId}';
       ref.read(currentScreenTitleProvider.notifier).state = 'Detalles de $memberName';
     });
   }
@@ -79,8 +79,8 @@ class _MemberDetailsScreenState extends ConsumerState<MemberDetailsScreen> {
                               radius: 40,
                               backgroundColor: _getRoleColor(widget.membership.role),
                               child: Text(
-                                widget.userProfile?.name != null && widget.userProfile!.name!.isNotEmpty
-                                    ? widget.userProfile!.name![0].toUpperCase()
+                                widget.userProfile?.displayName != null && widget.userProfile!.displayName!.isNotEmpty
+                                    ? widget.userProfile!.displayName![0].toUpperCase()
                                     : widget.membership.role.name[0].toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 24,
@@ -92,10 +92,10 @@ class _MemberDetailsScreenState extends ConsumerState<MemberDetailsScreen> {
                           ),
                           const SizedBox(height: 16),
                           if (widget.userProfile != null) ...[
-                            if (widget.userProfile!.name != null)
+                            if (widget.userProfile!.displayName != null)
                               Center(
                                 child: Text(
-                                  widget.userProfile!.name!,
+                                  widget.userProfile!.displayName!,
                                   style: Theme.of(context).textTheme.titleLarge,
                                   textAlign: TextAlign.center,
                                 ),

@@ -1,7 +1,6 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/academy_users/data/models/manager/academy_manager_permission.dart';
 import 'package:arcinus/features/academy_users/data/models/manager/academy_manager_status.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:arcinus/core/utils/timestamp_converter.dart';
 

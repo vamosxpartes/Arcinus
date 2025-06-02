@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:arcinus/core/utils/timestamp_converter.dart';
 
 part 'academy_time_series_model.freezed.dart';

@@ -1,93 +1,7 @@
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-class AcademyUserModel {
-  final String id;
-  final String firstName;
-  final String lastName;
-  final DateTime? birthDate;
-  final String? phoneNumber;
-  final double? heightCm;
-  final double? weightKg;
-  final String? profileImageUrl;
-  final String? allergies;
-  final String? medicalConditions;
-  final Map<String, dynamic>? emergencyContact;
-  final String? position;
-  final String? role;
-  final String createdBy;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  AcademyUserModel({
-    required this.id,
-    required this.firstName,
-    required this.lastName,
-    this.birthDate,
-    this.phoneNumber,
-    this.heightCm,
-    this.weightKg,
-    this.profileImageUrl,
-    this.allergies,
-    this.medicalConditions,
-    this.emergencyContact,
-    this.position,
-    this.role,
-    required this.createdBy,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory AcademyUserModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    
-    return AcademyUserModel(
-      id: doc.id,
-      firstName: data['firstName']?.toString() ?? '',
-      lastName: data['lastName']?.toString() ?? '',
-      birthDate: data['birthDate'] != null ? (data['birthDate'] as Timestamp).toDate() : null,
-      phoneNumber: data['phoneNumber']?.toString(),
-      heightCm: data['heightCm'] != null ? (data['heightCm'] as num).toDouble() : null,
-      weightKg: data['weightKg'] != null ? (data['weightKg'] as num).toDouble() : null,
-      profileImageUrl: data['profileImageUrl']?.toString(),
-      allergies: data['allergies']?.toString(),
-      medicalConditions: data['medicalConditions']?.toString(),
-      emergencyContact: data['emergencyContact'] as Map<String, dynamic>?,
-      position: data['position']?.toString(),
-      role: data['role']?.toString(),
-      createdBy: data['createdBy']?.toString() ?? '',
-      createdAt: data['createdAt'] != null 
-          ? (data['createdAt'] as Timestamp).toDate() 
-          : DateTime.now(),
-      updatedAt: data['updatedAt'] != null 
-          ? (data['updatedAt'] as Timestamp).toDate() 
-          : DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toFirestore() {
-    return {
-      'firstName': firstName,
-      'lastName': lastName,
-      'birthDate': birthDate != null ? Timestamp.fromDate(birthDate!) : null,
-      'phoneNumber': phoneNumber,
-      'heightCm': heightCm,
-      'weightKg': weightKg,
-      'profileImageUrl': profileImageUrl,
-      'allergies': allergies,
-      'medicalConditions': medicalConditions,
-      'emergencyContact': emergencyContact,
-      'position': position,
-      'role': role,
-      'createdBy': createdBy,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': FieldValue.serverTimestamp(),
-    };
-  }
-  
-  String get fullName => '$firstName $lastName';
-}
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 class AcademyUsersRepository {
   final FirebaseFirestore _firestore;
@@ -101,6 +15,97 @@ class AcademyUsersRepository {
     return _firestore.collection('academies').doc(academyId).collection('users');
   }
 
+  // Método helper para convertir DocumentSnapshot a AcademyUserModel
+  AcademyUserModel _fromFirestore(DocumentSnapshot doc) {
+    try {
+      final data = doc.data() as Map<String, dynamic>?;
+      
+      if (data == null) {
+        AppLogger.logWarning(
+          'Documento sin datos',
+          className: _className,
+          functionName: '_fromFirestore',
+          params: {'docId': doc.id},
+        );
+        
+        // Crear un modelo básico válido
+        return AcademyUserModel(
+          id: doc.id,
+          firstName: 'Nombre no disponible',
+          lastName: 'Apellido no disponible',
+          createdBy: 'sistema',
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }
+      
+      // Convertir Timestamps a DateTime antes de pasarlos al modelo
+      final convertedData = Map<String, dynamic>.from(data);
+      
+      // Convertir campos de fecha de Timestamp a DateTime y luego a String ISO8601
+      for (final dateField in ['birthDate', 'createdAt', 'updatedAt']) {
+        if (convertedData[dateField] is Timestamp) {
+          convertedData[dateField] = (convertedData[dateField] as Timestamp).toDate().toIso8601String();
+        } else if (convertedData[dateField] is DateTime) { // Asegurarse de que si ya es DateTime, también se convierta
+          convertedData[dateField] = (convertedData[dateField] as DateTime).toIso8601String();
+        }
+      }
+      
+      // Log datos para debugging
+      AppLogger.logInfo(
+        'Convirtiendo documento de Firestore a AcademyUserModel',
+        className: _className,
+        functionName: '_fromFirestore',
+        params: {
+          'docId': doc.id,
+          'hasData': data.isNotEmpty,
+          'dataKeys': data.keys.toList(),
+          'birthDateType': convertedData['birthDate']?.runtimeType.toString(),
+          'createdAtType': convertedData['createdAt']?.runtimeType.toString(),
+          'updatedAtType': convertedData['updatedAt']?.runtimeType.toString(),
+        },
+      );
+      
+      // Usar el método fromJsonSafe que maneja mejor los errores
+      return AcademyUserModel.fromJsonSafe(convertedData).copyWith(id: doc.id);
+    } catch (e, stackTrace) {
+      AppLogger.logError(
+        message: 'Error convirtiendo documento de Firestore',
+        error: e,
+        stackTrace: stackTrace,
+        className: _className,
+        functionName: '_fromFirestore',
+        params: {
+          'docId': doc.id,
+          'docData': doc.data(),
+        },
+      );
+      
+      // En lugar de fallar completamente, crear un modelo básico válido
+      final data = doc.data() as Map<String, dynamic>? ?? {};
+      return AcademyUserModel(
+        id: doc.id,
+        firstName: data['firstName']?.toString() ?? 'Nombre no disponible',
+        lastName: data['lastName']?.toString() ?? 'Apellido no disponible',
+        createdBy: data['createdBy']?.toString() ?? 'sistema',
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
+  }
+
+  // Método helper para convertir AcademyUserModel a Map para Firestore
+  Map<String, dynamic> _toFirestore(AcademyUserModel user) {
+    final json = user.toJson();
+    // Convertir DateTime a Timestamp para Firestore
+    if (user.birthDate != null) {
+      json['birthDate'] = Timestamp.fromDate(user.birthDate!);
+    }
+    json['createdAt'] = Timestamp.fromDate(user.createdAt);
+    json['updatedAt'] = FieldValue.serverTimestamp();
+    return json;
+  }
+
   // Obtener todos los usuarios de una academia
   Stream<List<AcademyUserModel>> getAcademyUsers(String academyId) {
     return _usersCollection(academyId)
@@ -108,7 +113,7 @@ class AcademyUsersRepository {
         .snapshots()
         .map((snapshot) {
           final users = snapshot.docs
-              .map((doc) => AcademyUserModel.fromFirestore(doc))
+              .map((doc) => _fromFirestore(doc))
               .toList();
           
           AppLogger.logInfo(
@@ -136,7 +141,7 @@ class AcademyUsersRepository {
         .snapshots()
         .map((snapshot) {
           final users = snapshot.docs
-              .map((doc) => AcademyUserModel.fromFirestore(doc))
+              .map((doc) => _fromFirestore(doc))
               .toList();
           
           // Log detallado de la consulta
@@ -179,7 +184,7 @@ class AcademyUsersRepository {
       final docSnapshot = await _usersCollection(academyId).doc(userId).get();
       
       if (docSnapshot.exists) {
-        return AcademyUserModel.fromFirestore(docSnapshot);
+        return _fromFirestore(docSnapshot);
       }
       
       return null;
@@ -197,9 +202,9 @@ class AcademyUsersRepository {
   }
 
   // Crear un nuevo usuario
-  Future<String?> createUser(String academyId, Map<String, dynamic> userData) async {
+  Future<String?> createUser(String academyId, AcademyUserModel user) async {
     try {
-      final docRef = await _usersCollection(academyId).add(userData);
+      final docRef = await _usersCollection(academyId).add(_toFirestore(user));
       
       AppLogger.logInfo(
         'Usuario creado con éxito',
@@ -223,12 +228,9 @@ class AcademyUsersRepository {
   }
 
   // Actualizar un usuario existente
-  Future<bool> updateUser(String academyId, String userId, Map<String, dynamic> updatedData) async {
+  Future<bool> updateUser(String academyId, String userId, AcademyUserModel user) async {
     try {
-      // Asegurar que el campo updatedAt siempre se actualice
-      updatedData['updatedAt'] = FieldValue.serverTimestamp();
-      
-      await _usersCollection(academyId).doc(userId).update(updatedData);
+      await _usersCollection(academyId).doc(userId).update(_toFirestore(user));
       
       AppLogger.logInfo(
         'Usuario actualizado con éxito',
@@ -277,75 +279,60 @@ class AcademyUsersRepository {
     }
   }
 
-  // Buscar usuarios por nombre o apellido
-  Future<List<AcademyUserModel>> searchUsersByName(String academyId, String searchTerm) async {
+  // Buscar usuarios por nombre
+  Stream<List<AcademyUserModel>> searchUsersByName(String academyId, String searchTerm) {
+    return _usersCollection(academyId)
+        .where('firstName', isGreaterThanOrEqualTo: searchTerm)
+        .where('firstName', isLessThan: '${searchTerm}z')
+        .snapshots()
+        .map((snapshot) {
+          final users = snapshot.docs
+              .map((doc) => _fromFirestore(doc))
+              .toList();
+          
+          AppLogger.logInfo(
+            'Búsqueda completada: ${users.length} usuarios encontrados',
+            className: _className,
+            functionName: 'searchUsersByName',
+            params: {'academyId': academyId, 'searchTerm': searchTerm},
+          );
+          
+          return users;
+        });
+  }
+
+  // Obtener estadísticas de usuarios
+  Future<Map<String, int>> getUserStats(String academyId) async {
     try {
-      // Normalizar término de búsqueda (convertir a minúsculas)
-      final normalizedTerm = searchTerm.toLowerCase();
+      final snapshot = await _usersCollection(academyId).get();
+      final users = snapshot.docs.map((doc) => _fromFirestore(doc)).toList();
+      
+      final stats = <String, int>{
+        'total': users.length,
+        'atletas': users.where((u) => u.isAthlete).length,
+        'padres': users.where((u) => u.isParent).length,
+        'con_info_medica': users.where((u) => u.hasMedicalInfo).length,
+        'con_contacto_emergencia': users.where((u) => u.hasEmergencyContact).length,
+      };
       
       AppLogger.logInfo(
-        'Iniciando búsqueda por nombre con término: "$normalizedTerm"',
+        'Estadísticas de usuarios obtenidas',
         className: _className,
-        functionName: 'searchUsersByName',
-        params: {'academyId': academyId, 'searchTerm': searchTerm},
+        functionName: 'getUserStats',
+        params: {'academyId': academyId, 'stats': stats},
       );
       
-      // Log de la consulta actual para usuarios
-      final allUsers = await _usersCollection(academyId).get();
-      AppLogger.logInfo(
-        'Total usuarios en colección: ${allUsers.docs.length}',
-        className: _className,
-        functionName: 'searchUsersByName',
-        params: {'academyId': academyId},
-      );
-      
-      for (var doc in allUsers.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final firstName = (data['firstName'] ?? '').toString().toLowerCase();
-        final lastName = (data['lastName'] ?? '').toString().toLowerCase();
-        
-        AppLogger.logInfo(
-          'Usuario en DB: ${doc.id}',
-          className: _className,
-          functionName: 'searchUsersByName',
-          params: {
-            'firstName': firstName,
-            'lastName': lastName,
-            'matchesFirstName': firstName.contains(normalizedTerm),
-            'matchesLastName': lastName.contains(normalizedTerm),
-          },
-        );
-      }
-      
-      // Modificamos el enfoque de búsqueda para ser más flexible
-      final results = allUsers.docs
-          .where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final firstName = (data['firstName'] ?? '').toString().toLowerCase();
-            final lastName = (data['lastName'] ?? '').toString().toLowerCase();
-            return firstName.contains(normalizedTerm) || lastName.contains(normalizedTerm);
-          })
-          .map((doc) => AcademyUserModel.fromFirestore(doc))
-          .toList();
-      
-      AppLogger.logInfo(
-        'Búsqueda completada, encontrados ${results.length} usuarios',
-        className: _className,
-        functionName: 'searchUsersByName',
-        params: {'academyId': academyId, 'searchTerm': searchTerm},
-      );
-      
-      return results;
+      return stats;
     } catch (e, s) {
       AppLogger.logError(
-        message: 'Error al buscar usuarios por nombre',
+        message: 'Error al obtener estadísticas de usuarios',
         error: e,
         stackTrace: s,
         className: _className,
-        functionName: 'searchUsersByName',
-        params: {'academyId': academyId, 'searchTerm': searchTerm},
+        functionName: 'getUserStats',
+        params: {'academyId': academyId},
       );
-      return [];
+      return {};
     }
   }
 }

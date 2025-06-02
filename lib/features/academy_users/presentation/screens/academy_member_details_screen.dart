@@ -1,4 +1,3 @@
-import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/features/academy_users_subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/academy_users_payments/payment_status.dart';
 import 'package:arcinus/features/academy_users_payments/presentation/screens/register_payment_screen.dart';
@@ -11,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:arcinus/core/navigation/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:arcinus/features/academy_users_subscriptions/presentation/providers/athlete_periods_info_provider.dart';
 import 'package:arcinus/features/academy_users_subscriptions/presentation/providers/subscription_plans_provider.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 class AcademyMemberDetailsScreen extends ConsumerStatefulWidget {
   final String academyId;
@@ -101,10 +101,10 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyMemberDetailsS
     final isAthlete = userRole == AppRole.atleta;
     
     // Si es atleta, cargamos la información completa usando el nuevo sistema de períodos
-    final athleteCompleteInfoAsync = isAthlete 
+    final athleteCompleteInfoAsync = isAthlete && user.id != null
         ? ref.watch(athleteCompleteInfoProvider((
             academyId: widget.academyId,
-            athleteId: user.id,
+            athleteId: user.id!,
           )))
         : null;
     
@@ -228,14 +228,14 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyMemberDetailsS
           const SizedBox(height: 16),
           
           // Contacto de emergencia
-          if (user.emergencyContact != null && user.emergencyContact!.isNotEmpty)
+          if (user.emergencyContact.isNotEmpty)
             _buildSectionCard(
               context,
               'Contacto de Emergencia',
               Icons.emergency,
               [
-                _buildInfoRow(context, 'Nombre', user.emergencyContact!['name']?.toString() ?? 'No disponible'),
-                _buildInfoRow(context, 'Teléfono', user.emergencyContact!['phone']?.toString() ?? 'No disponible'),
+                _buildInfoRow(context, 'Nombre', user.emergencyContact['name']?.toString() ?? 'No disponible'),
+                _buildInfoRow(context, 'Teléfono', user.emergencyContact['phone']?.toString() ?? 'No disponible'),
               ],
             ),
             
@@ -249,7 +249,7 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyMemberDetailsS
             [
               _buildInfoRow(context, 'Miembro desde', DateFormat('dd/MM/yyyy').format(user.createdAt)),
               _buildInfoRow(context, 'Última actualización', DateFormat('dd/MM/yyyy').format(user.updatedAt)),
-              _buildInfoRow(context, 'ID', user.id),
+              _buildInfoRow(context, 'ID', user.id ?? 'No disponible'),
             ],
           ),
         ],
@@ -304,13 +304,15 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyMemberDetailsS
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => RegisterPaymentScreen(
-                          athleteId: widget.userId,
+                    if (user.id != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => RegisterPaymentScreen(
+                            athleteId: user.id!,
+                          ),
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                   icon: const Icon(Icons.add_card, color: AppTheme.magnoliaWhite),
                   label: const Text(
@@ -451,13 +453,15 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyMemberDetailsS
                   ),
                   child: IconButton(
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => RegisterPaymentScreen(
-                            athleteId: widget.userId,
+                      if (user.id != null) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => RegisterPaymentScreen(
+                              athleteId: user.id!,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
                     },
                     icon: const Icon(
                       Icons.payment,
@@ -834,13 +838,15 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyMemberDetailsS
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => RegisterPaymentScreen(
-                              athleteId: widget.userId,
+                        if (user.id != null) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => RegisterPaymentScreen(
+                                athleteId: user.id!,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
                       icon: const Icon(Icons.payment, color: AppTheme.magnoliaWhite),
                       label: const Text(

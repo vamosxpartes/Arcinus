@@ -248,6 +248,7 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
       }
       
       // 2. Crear el documento del atleta/usuario en Firestore
+      // CORREGIDO: Usar solo los campos que espera el modelo AcademyUserModel
       final userData = {
         'firstName': state.firstName,
         'lastName': state.lastName,
@@ -255,13 +256,9 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
         'phoneNumber': state.phoneNumber,
         'heightCm': state.heightCm,
         'weightKg': state.weightKg,
-        'profileImageUrl': profileImageUrl, // Se usará la URL obtenida de Firebase Storage
+        'profileImageUrl': profileImageUrl,
         'allergies': state.allergies,
         'medicalConditions': state.medicalConditions,
-        'emergencyContact': {
-          'name': state.emergencyContactName,
-          'phone': state.emergencyContactPhone,
-        },
         'position': state.position,
         'role': 'atleta', // Establecer explícitamente el rol como atleta (en minúsculas)
         'createdBy': userId, // ID del usuario que crea este registro
@@ -269,32 +266,60 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
         'updatedAt': FieldValue.serverTimestamp(),
       };
       
-      // Preparar la información deportiva
-      if (state.position != null && state.position!.isNotEmpty) {
-        userData['sportData'] = {
-          'position': state.position,
-          'experience': state.experience,
-          'specialization': state.specialization,
+      // Información de contacto de emergencia en el formato correcto
+      if (state.emergencyContactName?.isNotEmpty == true || 
+          state.emergencyContactPhone?.isNotEmpty == true) {
+        userData['emergencyContact'] = {
+          'name': state.emergencyContactName ?? '',
+          'phone': state.emergencyContactPhone ?? '',
+        };
+      } else {
+        userData['emergencyContact'] = <String, dynamic>{};
+      }
+      
+      // Metadatos adicionales para información que no está directamente en el modelo
+      final metadata = <String, dynamic>{};
+      
+      // Agregar información deportiva a metadata si existe
+      if (state.position != null || state.experience != null || state.specialization != null) {
+        metadata['sportData'] = {
+          if (state.position != null) 'position': state.position,
+          if (state.experience != null) 'experience': state.experience,
+          if (state.specialization != null) 'specialization': state.specialization,
         };
       }
       
-      // Información física como métricas
-      userData['metrics'] = {
-        'height': state.heightCm,
-        'weight': state.weightKg,
-      };
+      // Agregar métricas físicas a metadata si existen
+      if (state.heightCm != null || state.weightKg != null) {
+        metadata['metrics'] = {
+          if (state.heightCm != null) 'height': state.heightCm,
+          if (state.weightKg != null) 'weight': state.weightKg,
+        };
+      }
       
-      // Información médica
-      userData['medicalInfo'] = {
-        'allergies': state.allergies,
-        'conditions': state.medicalConditions,
-      };
+      // Agregar información médica a metadata si existe
+      if (state.allergies?.isNotEmpty == true || state.medicalConditions?.isNotEmpty == true) {
+        metadata['medicalInfo'] = {
+          if (state.allergies?.isNotEmpty == true) 'allergies': state.allergies,
+          if (state.medicalConditions?.isNotEmpty == true) 'conditions': state.medicalConditions,
+        };
+      }
       
-      // Información de contacto
-      userData['contactInfo'] = {
-        'emergencyName': state.emergencyContactName,
-        'emergencyPhone': state.emergencyContactPhone,
-      };
+      // Agregar información de contacto a metadata si existe
+      if (state.emergencyContactName?.isNotEmpty == true || 
+          state.emergencyContactPhone?.isNotEmpty == true) {
+        metadata['contactInfo'] = {
+          if (state.emergencyContactName?.isNotEmpty == true) 'emergencyName': state.emergencyContactName,
+          if (state.emergencyContactPhone?.isNotEmpty == true) 'emergencyPhone': state.emergencyContactPhone,
+        };
+      }
+      
+      // Solo agregar metadata si tiene contenido
+      if (metadata.isNotEmpty) {
+        userData['metadata'] = metadata;
+      } else {
+        userData['metadata'] = <String, dynamic>{};
+      }
       
       // Información de cliente para pagos/suscripciones
       if (state.subscriptionPlanId != null) {
@@ -309,26 +334,22 @@ class AddAthleteStateNotifier extends StateNotifier<AddAthleteState> {
         );
         
         // Datos de cliente base (se actualizarán completos al asignar plan)
-        userData['clientData'] = {
+        metadata['clientData'] = {
           'subscriptionPlanId': state.subscriptionPlanId,
           'paymentStatus': 'active', // Marcamos como activo inicialmente
         };
-      } else {
-        AppLogger.logInfo(
-          'No se seleccionó plan de suscripción para el atleta',
-          className: _className,
-          functionName: 'submitForm'
-        );
+        userData['metadata'] = metadata;
       }
       
       AppLogger.logInfo(
-        'Guardando atleta con datos',
+        'Guardando atleta con datos compatibles con AcademyUserModel',
         className: _className,
         functionName: 'submitForm',
         params: {
           'academyId': academyId, 
           'userId': userId,
-          'userData': userData
+          'userData': userData,
+          'hasMetadata': metadata.isNotEmpty,
         },
       );
       

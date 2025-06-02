@@ -102,7 +102,7 @@ class ManagerDrawer extends ConsumerWidget {
                       if (userId != null && userProfileAsyncValue != null)
                         userProfileAsyncValue.when(
                           data: (userProfile) => Text(
-                            userProfile?.name?.isNotEmpty == true ? userProfile!.name! : (authState.user?.email ?? 'Usuario'),
+                            userProfile?.displayName?.isNotEmpty == true ? userProfile!.displayName! : (authState.user?.email ?? 'Usuario'),
                             style: TextStyle(
                               color: AppTheme.magnoliaWhite,
                               fontSize: AppTheme.bodySize,

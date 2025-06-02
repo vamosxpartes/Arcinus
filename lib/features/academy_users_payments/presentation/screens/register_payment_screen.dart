@@ -35,6 +35,9 @@ import 'package:arcinus/features/academy_users_payments/presentation/providers/e
 import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/features/academy_users/presentation/providers/academy_member_provider.dart';
 
+// Importar modelo de usuario de academia
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
+
 part 'register_payment_screen.g.dart';
 
 /// Pantalla refactorizada para gestión de períodos y pagos

@@ -1,4 +1,4 @@
-import 'package:arcinus/core/models/user_model.dart';
+import 'package:arcinus/core/auth/data/models/user_model.dart';
 import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/core/auth/presentation/providers/user_profile_provider.dart';
 import 'package:flutter/material.dart';
@@ -35,7 +35,7 @@ class ProfileScreen extends ConsumerWidget {
               _buildProfileDetailItem(
                 icon: Icons.person_outline,
                 label: 'Nombre Completo',
-                value: userProfile.name ?? 'No especificado',
+                value: userProfile.displayName ?? 'No especificado',
               ),
               _buildProfileDetailItem(
                 icon: Icons.email_outlined,
@@ -87,10 +87,10 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildProfileHeader(BuildContext context, UserModel userProfile) {
     Widget avatarChild;
-    if (userProfile.profilePictureUrl != null && userProfile.profilePictureUrl!.isNotEmpty) {
+    if (userProfile.photoUrl != null && userProfile.photoUrl!.isNotEmpty) {
       avatarChild = ClipOval(
         child: Image.network(
-          userProfile.profilePictureUrl!,
+          userProfile.photoUrl!,
           fit: BoxFit.cover,
           width: 100,
           height: 100,
@@ -109,7 +109,7 @@ class ProfileScreen extends ConsumerWidget {
       );
     } else {
       avatarChild = Text(
-        userProfile.name?.isNotEmpty == true ? userProfile.name![0].toUpperCase() : 'U',
+        userProfile.displayName?.isNotEmpty == true ? userProfile.displayName![0].toUpperCase() : 'U',
         style: TextStyle(
           fontSize: 40,
           fontWeight: FontWeight.bold,
@@ -127,7 +127,7 @@ class ProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          userProfile.name ?? 'Nombre de Usuario',
+          userProfile.displayName ?? 'Nombre de Usuario',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),

@@ -1,4 +1,4 @@
-import 'package:arcinus/core/models/user_model.dart';
+import 'package:arcinus/core/auth/data/models/user_model.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
@@ -8,7 +8,53 @@ UserModel? createSafeUserModel(Map<String, dynamic>? data, String userId) {
   if (data == null) return null;
   
   try {
-    return UserModel.fromJson(data);
+    // Validar campos requeridos primero
+    if (!data.containsKey('email') || data['email'] == null) {
+      AppLogger.logWarning(
+        'Campo email faltante o null en UserModel, usando email por defecto',
+        className: 'userProfileProvider',
+        functionName: 'createSafeUserModel',
+        params: {'userId': userId, 'data': data}
+      );
+      data['email'] = 'usuario_$userId@temporal.com';
+    }
+
+    // Sanitizar campos string que podrían ser null
+    final sanitizedData = Map<String, dynamic>.from(data);
+    
+    // Asegurar que email es string
+    sanitizedData['email'] = sanitizedData['email']?.toString() ?? 'usuario_$userId@temporal.com';
+    
+    // Asegurar que displayName es string o null (no otro tipo)
+    final displayName = sanitizedData['displayName'];
+    if (displayName != null && displayName is! String) {
+      sanitizedData['displayName'] = displayName.toString();
+    }
+    
+    // Asegurar que photoUrl es string o null
+    final photoUrl = sanitizedData['photoUrl'];
+    if (photoUrl != null && photoUrl is! String) {
+      sanitizedData['photoUrl'] = photoUrl.toString();
+    }
+    
+    // Manejar fechas de creación
+    if (!sanitizedData.containsKey('createdAt') || sanitizedData['createdAt'] == null) {
+      sanitizedData['createdAt'] = DateTime.now();
+    }
+    
+    AppLogger.logInfo(
+      'Datos sanitizados para UserModel',
+      className: 'userProfileProvider',
+      functionName: 'createSafeUserModel',
+      params: {
+        'userId': userId,
+        'sanitizedKeys': sanitizedData.keys.toList(),
+        'emailType': sanitizedData['email'].runtimeType.toString(),
+        'displayNameType': sanitizedData['displayName']?.runtimeType.toString(),
+      }
+    );
+    
+    return UserModel.fromJson(sanitizedData);
   } catch (e, s) {
     // Intentar crear un modelo básico
     try {
@@ -16,15 +62,19 @@ UserModel? createSafeUserModel(Map<String, dynamic>? data, String userId) {
         'Error al parsear UserModel, creando modelo básico',
         error: e,
         className: 'userProfileProvider',
-        functionName: 'createSafeUserModel'
+        functionName: 'createSafeUserModel',
+        params: {
+          'userId': userId,
+          'originalError': e.toString(),
+        }
       );
       
       // Crear manualmente un modelo con la información mínima
       return UserModel(
         id: userId,
-        email: data['email'] as String? ?? 'unknown@email.com',
-        name: data['displayName'] as String? ?? data['name'] as String?,
-        profilePictureUrl: data['photoUrl'] as String?,
+        email: _extractSafeString(data, 'email') ?? 'unknown@email.com',
+        displayName: _extractSafeString(data, 'displayName') ?? _extractSafeString(data, 'name'),
+        photoUrl: _extractSafeString(data, 'photoUrl'),
         createdAt: data['createdAt'] != null 
           ? (data['createdAt'] is DateTime 
               ? data['createdAt'] as DateTime 
@@ -37,11 +87,20 @@ UserModel? createSafeUserModel(Map<String, dynamic>? data, String userId) {
         error: e2,
         stackTrace: s,
         className: 'userProfileProvider',
-        functionName: 'createSafeUserModel'
+        functionName: 'createSafeUserModel',
+        params: {'userId': userId}
       );
       return null;
     }
   }
+}
+
+/// Helper para extraer strings de forma segura
+String? _extractSafeString(Map<String, dynamic> data, String key) {
+  final value = data[key];
+  if (value == null) return null;
+  if (value is String) return value.isEmpty ? null : value;
+  return value.toString().isEmpty ? null : value.toString();
 }
 
 /// Provider that provides a stream of the user's profile data.
@@ -93,7 +152,7 @@ final userProfileProvider =
         return UserModel(
           id: userId,
           email: 'error@parsing.model',
-          name: 'Usuario temporal',
+          displayName: 'Usuario temporal',
         );
       }
     } else {

@@ -18,10 +18,12 @@ import 'package:arcinus/features/academy_users_subscriptions/presentation/provid
 import 'package:arcinus/features/academy_users/presentation/providers/academy_users_providers.dart';
 
 //widgets
-import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
-import 'package:arcinus/features/academy_users/presentation/widgets/academy_payment_avatars_section.dart';
+import 'package:arcinus/features/academy_users/presentation/widgets/avatar_horizontal_scroll_section.dart';
 import 'package:arcinus/features/academy_users/presentation/screens/add_athlete_screen.dart';
 import 'package:arcinus/features/academy_users/presentation/widgets/academy_user_card.dart';
+
+//models
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 /// Pantalla de miembros de la academia con actualización automática de datos
 /// 
@@ -230,18 +232,18 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> wit
     usersAsyncValue.whenData((users) {
       // Refrescar información completa para cada atleta
       for (final user in users) {
-        if (user.role == AppRole.atleta.name) {
+        if (user.appRole == AppRole.atleta) {
           // ignore: unused_result
           ref.refresh(athleteCompleteInfoProvider((
             academyId: widget.academyId,
-            athleteId: user.id,
+            athleteId: user.id ?? '',
           )));
           
           // También refrescar los providers de períodos individuales
           // ignore: unused_result
           ref.refresh(athleteActivePeriodsProvider((
             academyId: widget.academyId,
-            athleteId: user.id,
+            athleteId: user.id ?? '',
           )));
         }
       }
@@ -421,7 +423,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> wit
                   'academyId': widget.academyId,
                   'userCount': users.length,
                   'searchTerm': _searchTerm,
-                  'userIds': users.map((u) => u.id).take(5).toList(), // Solo los primeros 5 IDs
+                  'userIds': users.map((u) => u.id ?? '').take(5).toList(), // Solo los primeros 5 IDs
                   'timestamp': DateTime.now().toString(),
                 }
               );
@@ -482,7 +484,7 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> wit
                     // Scroll horizontal de avatares (solo si no hay búsqueda activa)
                     if (_searchTerm.isEmpty)
                       SliverToBoxAdapter(
-                        child: AcademyPaymentAvatarsSection(
+                        child: AvatarHorizontalScrollSection(
                           users: users,
                           academyId: widget.academyId,
                         ),

@@ -1,6 +1,5 @@
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/features/academy_users_payments/presentation/screens/manager_payment_detail_screen.dart';
-import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/academy_users_payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/academy_users/presentation/screens/academy_user_details_screen.dart';
@@ -10,6 +9,7 @@ import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/academy_users_subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 
 class AcademyUserCard extends ConsumerStatefulWidget {
   final AcademyUserModel user;
@@ -33,7 +33,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       'AcademyUserCard initState',
       className: 'AcademyUserCard',
       params: {
-        'userId': widget.user.id,
+        'userId': widget.user.id ?? 'null',
         'userName': widget.user.fullName,
         'academyId': widget.academyId,
       }
@@ -46,7 +46,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       'AcademyUserCard dispose',
       className: 'AcademyUserCard',
       params: {
-        'userId': widget.user.id,
+        'userId': widget.user.id ?? 'null',
         'userName': widget.user.fullName,
         'academyId': widget.academyId,
       }
@@ -56,6 +56,21 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Verificar que el usuario tenga un ID válido
+    if (widget.user.id == null) {
+      return Card(
+        elevation: AppTheme.elevationLow,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Error: Usuario sin ID válido',
+            style: TextStyle(color: AppTheme.bonfireRed),
+          ),
+        ),
+      );
+    }
+    
     AppLogger.logInfo(
       'Construyendo AcademyUserCard',
       className: 'AcademyUserCard',
@@ -68,21 +83,14 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       }
     );
     
-    // Determinamos el rol del usuario (memoizado para evitar recálculos)
-    final userRole = widget.user.role != null
-        ? AppRole.values.firstWhere(
-            (r) => r.name == widget.user.role,
-            orElse: () => AppRole.atleta,
-          )
-        : AppRole.atleta;
-    
+    final userRole = widget.user.appRole;
     final isAthlete = userRole == AppRole.atleta;
     
     // Para atletas, usar el provider completo de información
     final athleteCompleteInfoAsync = isAthlete 
         ? ref.watch(athleteCompleteInfoProvider((
             academyId: widget.academyId,
-            athleteId: widget.user.id,
+            athleteId: widget.user.id!,
           )))
         : null;
     
@@ -91,7 +99,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
         'Estado del athleteCompleteInfoProvider en AcademyUserCard',
         className: 'AcademyUserCard',
         params: {
-          'userId': widget.user.id,
+          'userId': widget.user.id!,
           'isLoading': athleteCompleteInfoAsync.isLoading,
           'hasValue': athleteCompleteInfoAsync.hasValue,
           'hasError': athleteCompleteInfoAsync.hasError,
@@ -168,7 +176,6 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
           borderRadius: BorderRadius.circular(AppTheme.cardRadius),
         ),
         child: InkWell(
-          onTap: () => _navigateToDetails(context),
           borderRadius: BorderRadius.circular(AppTheme.cardRadius),
           child: cardContent,
         ),
@@ -561,7 +568,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       MaterialPageRoute(
         builder: (context) => AcademyUserDetailsScreen(
           academyId: widget.academyId,
-          userId: widget.user.id,
+          userId: widget.user.id!,
           initialUserData: widget.user,
         ),
       ),
@@ -574,7 +581,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       'Navegando a pantalla de pagos',
       className: 'AcademyUserCard',
       params: {
-        'athleteId': widget.user.id,
+        'athleteId': widget.user.id!,
         'athleteName': widget.user.fullName,
         'academyId': widget.academyId,
       }
@@ -583,7 +590,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterPaymentScreen(
-          athleteId: widget.user.id,
+          athleteId: widget.user.id!,
         ),
       ),
     );
@@ -594,7 +601,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
         'Pago registrado exitosamente, invalidando providers del atleta',
         className: 'AcademyUserCard',
         params: {
-          'athleteId': widget.user.id,
+          'athleteId': widget.user.id!,
           'academyId': widget.academyId,
           'result': result.toString(),
         }
@@ -604,10 +611,10 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       if (mounted) {
         ref.invalidate(athleteCompleteInfoProvider((
           academyId: widget.academyId,
-          athleteId: widget.user.id,
+          athleteId: widget.user.id!,
         )));
         
-        ref.invalidate(clientUserProvider(widget.user.id));
+        ref.invalidate(clientUserProvider(widget.user.id!));
         
         // Forzar reconstrucción del widget
         if (mounted) {

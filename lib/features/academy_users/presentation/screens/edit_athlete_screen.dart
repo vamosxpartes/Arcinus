@@ -1,4 +1,5 @@
 import 'package:arcinus/features/academy_users/data/repositories/academy_users_repository.dart';
+import 'package:arcinus/features/academy_users/data/models/academy_user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -63,18 +64,13 @@ class _EditAthleteScreenState extends ConsumerState<EditAthleteScreen> {
     _birthDate = widget.initialUserData.birthDate;
     
     // Inicializar datos de contacto de emergencia
-    if (widget.initialUserData.emergencyContact != null) {
-      _emergencyNameController = TextEditingController(
-        text: widget.initialUserData.emergencyContact!['name']?.toString() ?? '',
-      );
-      _emergencyPhoneController = TextEditingController(
-        text: widget.initialUserData.emergencyContact!['phone']?.toString() ?? '',
-      );
-    } else {
-      _emergencyNameController = TextEditingController();
-      _emergencyPhoneController = TextEditingController();
-    }
-    
+    _emergencyNameController = TextEditingController(
+      text: widget.initialUserData.emergencyContact['name']?.toString() ?? '',
+    );
+    _emergencyPhoneController = TextEditingController(
+      text: widget.initialUserData.emergencyContact['phone']?.toString() ?? '',
+    );
+      
     // Añadir listeners para detectar cambios
     _addChangeListeners();
   }
@@ -142,65 +138,38 @@ class _EditAthleteScreenState extends ConsumerState<EditAthleteScreen> {
     
     try {
       // Preparar datos actualizados
-      final Map<String, dynamic> updatedData = {
-        'firstName': _firstNameController.text.trim(),
-        'lastName': _lastNameController.text.trim(),
-        'updatedAt': DateTime.now(),
-      };
-      
-      // Añadir campos opcionales
       final phoneText = _phoneController.text.trim();
-      if (phoneText.isNotEmpty) {
-        updatedData['phoneNumber'] = phoneText;
-      }
-      
       final positionText = _positionController.text.trim();
-      if (positionText.isNotEmpty) {
-        updatedData['position'] = positionText;
-      }
-      
       final heightText = _heightController.text.trim();
-      if (heightText.isNotEmpty) {
-        final heightValue = int.tryParse(heightText);
-        if (heightValue != null) {
-          updatedData['heightCm'] = heightValue;
-        }
-      }
-      
       final weightText = _weightController.text.trim();
-      if (weightText.isNotEmpty) {
-        final weightValue = int.tryParse(weightText);
-        if (weightValue != null) {
-          updatedData['weightKg'] = weightValue;
-        }
-      }
-      
-      if (_birthDate != null) {
-        updatedData['birthDate'] = _birthDate;
-      }
-      
       final allergiesText = _allergiesController.text.trim();
-      if (allergiesText.isNotEmpty) {
-        updatedData['allergies'] = allergiesText;
-      }
-      
       final medicalText = _medicalConditionsController.text.trim();
-      if (medicalText.isNotEmpty) {
-        updatedData['medicalConditions'] = medicalText;
-      }
-      
       final emergencyNameText = _emergencyNameController.text.trim();
       final emergencyPhoneText = _emergencyPhoneController.text.trim();
-      if (emergencyNameText.isNotEmpty || emergencyPhoneText.isNotEmpty) {
-        updatedData['emergencyContact'] = {
-          'name': emergencyNameText,
-          'phone': emergencyPhoneText,
-        };
-      }
+      
+      // Crear objeto AcademyUserModel actualizado
+      final updatedUser = widget.initialUserData.copyWith(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        phoneNumber: phoneText.isNotEmpty ? phoneText : null,
+        position: positionText.isNotEmpty ? positionText : null,
+        heightCm: heightText.isNotEmpty ? int.tryParse(heightText)?.toDouble() : null,
+        weightKg: weightText.isNotEmpty ? int.tryParse(weightText)?.toDouble() : null,
+        birthDate: _birthDate,
+        allergies: allergiesText.isNotEmpty ? allergiesText : null,
+        medicalConditions: medicalText.isNotEmpty ? medicalText : null,
+        emergencyContact: (emergencyNameText.isNotEmpty || emergencyPhoneText.isNotEmpty) 
+            ? <String, dynamic>{
+                'name': emergencyNameText,
+                'phone': emergencyPhoneText,
+              } 
+            : <String, dynamic>{},
+        updatedAt: DateTime.now(),
+      );
       
       // Guardar en Firestore
       final repository = ref.read(academyUsersRepositoryProvider);
-      await repository.updateUser(widget.academyId, widget.userId, updatedData);
+      await repository.updateUser(widget.academyId, widget.userId, updatedUser);
       
       if (mounted) {
         // Mostrar mensaje de éxito

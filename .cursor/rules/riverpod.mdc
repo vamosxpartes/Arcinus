@@ -1,7 +1,0 @@
----
-description: Riverpod
-globs: 
-alwaysApply: false
----
-'AuthRepositoryRef' is deprecated and shouldn't be used. Will be removed in 3.0. Use Ref instead.
-Try replacing the use of the deprecated member with the replacement.
