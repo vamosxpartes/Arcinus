@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_users_payments/data/models/payment_model.dart';
 import 'package:arcinus/features/academy_users_payments/domain/repositories/payment_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

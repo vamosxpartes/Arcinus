@@ -1,4 +1,4 @@
-import 'package:arcinus/core/sports/data/repositories/sports_repository.dart';
+import 'package:arcinus/features/academy_sports/data/repositories/sports_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 

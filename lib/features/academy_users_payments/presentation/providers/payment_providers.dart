@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';

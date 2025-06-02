@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart'; // Para Firestore
 import 'package:arcinus/features/academy_users/data/models/membership_model.dart';
 import 'package:arcinus/features/academy_users/domain/repositories/membership_repository.dart';

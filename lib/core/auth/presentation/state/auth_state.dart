@@ -1,5 +1,5 @@
 import 'package:arcinus/core/auth/user.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 
 /// Estado posible de la autenticación
 enum AuthStatus {

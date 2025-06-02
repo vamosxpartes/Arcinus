@@ -1,4 +1,4 @@
-import 'package:arcinus/core/constants/app_assets.dart';
+import 'package:arcinus/core/utils/constants/app_assets.dart';
 import 'package:arcinus/core/navigation/app_routes.dart';
 import 'package:arcinus/core/theme/ux/arcinus_colors.dart';
 import 'package:flutter/material.dart';

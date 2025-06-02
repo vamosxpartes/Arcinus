@@ -1,5 +1,5 @@
-import 'package:arcinus/core/sports/data/models/sport_model.dart';
-import 'package:arcinus/core/sports/models/sport_characteristics.dart';
+import 'package:arcinus/features/academy_sports/data/models/sport_model.dart';
+import 'package:arcinus/features/academy_sports/models/sport_characteristics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Repositorio para gestionar los deportes en Firestore

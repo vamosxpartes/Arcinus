@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'edit_academy_state.freezed.dart';

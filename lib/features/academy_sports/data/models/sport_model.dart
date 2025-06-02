@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:arcinus/core/sports/models/sport_characteristics.dart';
+import 'package:arcinus/features/academy_sports/models/sport_characteristics.dart';
 
 part 'sport_model.freezed.dart';
 part 'sport_model.g.dart';

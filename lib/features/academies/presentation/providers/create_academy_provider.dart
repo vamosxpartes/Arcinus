@@ -14,7 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importar FirebaseAuth
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:arcinus/core/error/failures.dart'; // Asumiendo ubicación
+import 'package:arcinus/core/utils/error/failures.dart'; // Asumiendo ubicación
 import 'package:arcinus/core/auth/roles.dart'; // Needed for AppRole
 import 'package:arcinus/features/academy_users/data/models/membership_model.dart'; // Importar MembershipModel
 import 'package:arcinus/core/utils/app_logger.dart';

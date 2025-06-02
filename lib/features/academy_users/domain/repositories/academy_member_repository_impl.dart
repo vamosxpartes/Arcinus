@@ -1,5 +1,5 @@
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_users_subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/academy_users/data/models/member/academy_member_model.dart';
 import 'package:arcinus/features/academy_users_payments/domain/repositories/academy_member_repository.dart';

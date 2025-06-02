@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:fpdart/fpdart.dart';
 import 'dart:io';

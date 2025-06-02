@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_users/data/models/membership_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

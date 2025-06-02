@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:arcinus/core/error/failures.dart'; // Asumiendo ubicación
+import 'package:arcinus/core/utils/error/failures.dart'; // Asumiendo ubicación
 
 part 'create_academy_state.freezed.dart';
 

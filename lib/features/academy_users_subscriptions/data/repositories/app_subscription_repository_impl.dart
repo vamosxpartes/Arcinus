@@ -1,4 +1,4 @@
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:arcinus/features/academies/domain/repositories/academy_repository.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';

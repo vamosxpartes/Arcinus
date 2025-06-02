@@ -2,7 +2,7 @@ import 'package:arcinus/core/auth/data/models/user_model.dart';
 import 'package:arcinus/core/auth/data/repositories/user_repository_impl.dart';
 import 'package:arcinus/core/auth/domain/repositories/user_repository.dart';
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_users/data/models/membership_model.dart';
 import 'package:arcinus/features/academy_users/data/repositories/membership_repository_impl.dart'; // Provider Repo Membresías
 import 'package:arcinus/features/academy_users/domain/repositories/membership_repository.dart';

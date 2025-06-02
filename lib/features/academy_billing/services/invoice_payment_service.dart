@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_billing/data/models/invoice_model.dart';
 import 'package:arcinus/features/academy_billing/data/models/billing_config_model.dart';
 import 'package:arcinus/features/academy_users_payments/data/models/payment_model.dart';

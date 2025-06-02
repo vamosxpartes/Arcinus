@@ -10,7 +10,7 @@ import 'package:arcinus/core/auth/presentation/ui/screens/member_access_screen.d
 import 'package:arcinus/core/auth/presentation/ui/screens/register_screen.dart';
 import 'package:arcinus/core/auth/presentation/ui/screens/welcome_screen.dart';
 import 'package:arcinus/core/auth/presentation/providers/auth_state.dart';
-import 'package:arcinus/core/splash/splash_screen.dart';
+import 'package:arcinus/core/utils/splash/splash_screen.dart';
 import 'package:arcinus/core/utils/screen_under_development.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';

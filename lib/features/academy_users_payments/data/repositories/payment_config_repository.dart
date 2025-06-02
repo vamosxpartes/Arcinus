@@ -3,7 +3,7 @@ import 'package:arcinus/features/academy_users_payments/data/models/payment_conf
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'payment_config_repository.g.dart';

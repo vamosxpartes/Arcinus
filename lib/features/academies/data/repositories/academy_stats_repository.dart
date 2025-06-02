@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/academies/data/models/academy_stats_model.dart';
 import 'package:arcinus/features/academies/data/models/academy_time_series_model.dart';

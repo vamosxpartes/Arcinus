@@ -10,7 +10,7 @@ import 'package:arcinus/core/providers/firebase_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:arcinus/features/academy_users_subscriptions/presentation/providers/period_providers.dart';

@@ -1,6 +1,6 @@
 import 'package:arcinus/core/auth/roles.dart'; // Importar roles
 import 'package:arcinus/core/auth/user.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Para Firestore
 import 'package:firebase_auth/firebase_auth.dart'
     as firebase_auth; // Alias para evitar conflictos

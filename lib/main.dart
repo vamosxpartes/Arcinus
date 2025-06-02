@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/core/sports/scripts/initialize_sports_collection.dart';
+import 'package:arcinus/features/academy_sports/scripts/initialize_sports_collection.dart';
 import 'package:arcinus/core/auth/presentation/providers/registration_form_provider.dart';
 import 'package:arcinus/features/academy_users_payments/presentation/providers/payment_status_verification_provider.dart';
 import 'firebase_options.dart';

@@ -1,5 +1,5 @@
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/auth/data/models/user_model.dart'; // Importar UserModel
 import 'package:arcinus/features/academy_users/data/models/manager/academy_manager_permission.dart';
 import 'package:arcinus/features/academy_users/data/models/member/academy_member_model.dart';

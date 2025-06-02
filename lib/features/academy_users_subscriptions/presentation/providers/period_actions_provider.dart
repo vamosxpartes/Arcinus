@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_users_subscriptions/data/models/subscription_assignment_model.dart';
 import 'package:arcinus/features/academy_users_subscriptions/domain/repositories/period_repository.dart';
 import 'package:arcinus/features/academy_users_subscriptions/data/repositories/period_repository_impl.dart';

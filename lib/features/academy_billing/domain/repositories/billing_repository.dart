@@ -1,5 +1,5 @@
 import 'package:fpdart/fpdart.dart';
-import 'package:arcinus/core/error/failures.dart';
+import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/features/academy_billing/data/models/billing_config_model.dart';
 import 'package:arcinus/features/academy_billing/data/models/invoice_model.dart';
 

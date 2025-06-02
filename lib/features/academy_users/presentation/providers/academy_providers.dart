@@ -1,5 +1,5 @@
-import 'package:arcinus/core/sports/data/repositories/sports_repository.dart';
-import 'package:arcinus/core/sports/models/sport_characteristics.dart';
+import 'package:arcinus/features/academy_sports/data/repositories/sports_repository.dart';
+import 'package:arcinus/features/academy_sports/models/sport_characteristics.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
