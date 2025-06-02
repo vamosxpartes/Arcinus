@@ -5,7 +5,7 @@ import 'package:arcinus/features/academies/presentation/providers/current_academ
 import 'package:arcinus/features/academies/presentation/providers/academy_stats_provider.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/core/navigation/navigation_shells/manager_shell/manager_shell.dart';
 
 /// Provider para obtener anuncios de la aplicación
 final appAnnouncementsProvider = FutureProvider<List<AppAnnouncement>>((ref) async {

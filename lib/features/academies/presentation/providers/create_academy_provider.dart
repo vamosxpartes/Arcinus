@@ -5,18 +5,18 @@ import 'package:arcinus/features/academies/domain/repositories/academy_repositor
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart'; // Provider del Repo
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart'; // Current Academy ID
 import 'package:arcinus/features/academies/presentation/providers/state/create_academy_state.dart';
-import 'package:arcinus/features/memberships/data/repositories/membership_repository_impl.dart'; // Provider del Repo de Membresías
-import 'package:arcinus/features/memberships/domain/repositories/membership_repository.dart'; // Interfaz Repo Membresías
-import 'package:arcinus/features/subscriptions/data/models/subscription_model.dart'; // Subscription model
-import 'package:arcinus/features/subscriptions/domain/repositories/subscription_repository.dart'; // Importar Repo Subs
-import 'package:arcinus/features/subscriptions/data/repositories/subscription_repository_impl.dart'; // Importar Provider Repo Subs
+import 'package:arcinus/features/academy_users/data/repositories/membership_repository_impl.dart'; // Provider del Repo de Membresías
+import 'package:arcinus/features/academy_users/domain/repositories/membership_repository.dart'; // Interfaz Repo Membresías
+import 'package:arcinus/features/academy_users_subscriptions/data/models/subscription_model.dart'; // Subscription model
+import 'package:arcinus/features/academy_users_subscriptions/domain/repositories/subscription_repository.dart'; // Importar Repo Subs
+import 'package:arcinus/features/academy_users_subscriptions/data/repositories/subscription_repository_impl.dart'; // Importar Provider Repo Subs
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importar FirebaseAuth
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:arcinus/core/error/failures.dart'; // Asumiendo ubicación
 import 'package:arcinus/core/auth/roles.dart'; // Needed for AppRole
-import 'package:arcinus/features/memberships/data/models/membership_model.dart'; // Importar MembershipModel
+import 'package:arcinus/features/academy_users/data/models/membership_model.dart'; // Importar MembershipModel
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'dart:io'; // Para File
 import 'package:image_picker/image_picker.dart'; // Para ImageSource

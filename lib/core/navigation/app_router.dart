@@ -4,41 +4,39 @@ import 'package:arcinus/features/academies/presentation/providers/owner_academie
 import 'package:arcinus/features/academies/presentation/ui/screens/create_academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/manager_create_academy_screen.dart';
-import 'package:arcinus/features/auth/presentation/providers/auth_providers.dart';
-import 'package:arcinus/features/auth/presentation/ui/screens/login_screen.dart';
-import 'package:arcinus/features/auth/presentation/ui/screens/member_access_screen.dart';
-import 'package:arcinus/features/auth/presentation/ui/screens/register_screen.dart';
-import 'package:arcinus/features/auth/presentation/ui/screens/welcome_screen.dart';
-import 'package:arcinus/features/auth/presentation/providers/auth_state.dart';
-import 'package:arcinus/core/splash/presentation/screens/splash_screen.dart';
+import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';
+import 'package:arcinus/core/auth/presentation/ui/screens/login_screen.dart';
+import 'package:arcinus/core/auth/presentation/ui/screens/member_access_screen.dart';
+import 'package:arcinus/core/auth/presentation/ui/screens/register_screen.dart';
+import 'package:arcinus/core/auth/presentation/ui/screens/welcome_screen.dart';
+import 'package:arcinus/core/auth/presentation/providers/auth_state.dart';
+import 'package:arcinus/core/splash/splash_screen.dart';
 import 'package:arcinus/core/utils/screen_under_development.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:arcinus/features/memberships/presentation/screens/invite_member_screen.dart';
-import 'package:arcinus/features/memberships/presentation/screens/add_athlete_screen.dart';
+import 'package:arcinus/features/academy_users/presentation/screens/add_athlete_screen.dart';
 import 'package:arcinus/features/academies/presentation/screens/edit_academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_provider.dart';
-import 'package:arcinus/features/memberships/presentation/screens/academy_members_screen.dart';
-import 'package:arcinus/features/memberships/presentation/screens/edit_permissions_screen.dart';
+import 'package:arcinus/features/academy_users/presentation/screens/academy_users_manage_screen.dart';
+import 'package:arcinus/features/academy_users/presentation/screens/edit_permissions_screen.dart';
 import 'package:arcinus/core/theme/ui/feedback/error_display.dart';
-import 'package:arcinus/features/payments/presentation/screens/payments_screen.dart';
-import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
+import 'package:arcinus/features/academy_users_payments/presentation/screens/payments_screen.dart';
+import 'package:arcinus/features/academy_users_payments/presentation/screens/register_payment_screen.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 
 // Importar providers necesarios
-import 'package:arcinus/features/memberships/presentation/providers/membership_providers.dart';
+import 'package:arcinus/features/academy_users/presentation/providers/membership_providers.dart';
 
 // Importar los nuevos Shell Widgets
-import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
-import 'package:arcinus/features/navigation_shells/super_admin_shell/super_admin_shell.dart';
-import 'package:arcinus/features/users/presentation/ui/screens/profile_screen.dart';
-import 'package:arcinus/features/subscriptions/presentation/screens/subscription_plans_screen.dart';
+import 'package:arcinus/core/navigation/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/core/navigation/navigation_shells/super_admin_shell/super_admin_shell.dart';
+import 'package:arcinus/features/academy_users/presentation/screens/profile_screen.dart';
+import 'package:arcinus/features/academy_users_subscriptions/presentation/screens/subscription_plans_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/manager_dashboard_screen.dart';
-import 'package:arcinus/features/dev_tools/presentation/screens/use_case_test_screen.dart';
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -409,14 +407,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                        },
                       routes: [
                          GoRoute(
-                            path: 'invite',
-                            name: AppRoutes.ownerInviteMember,
-                             builder: (context, state) {
-                               final academyId = state.pathParameters['academyId']!;
-                               return InviteMemberScreen(academyId: academyId);
-                             },
-                         ),
-                         GoRoute(
                             path: AppRoutes.ownerEditMemberPermissions.split('/').last, // 'permissions'
                             name: 'ownerEditMemberPermissions',
                              builder: (context, state) {
@@ -639,11 +629,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               path: '/manager/settings',
               name: 'managerSettings',
               builder: (_, __) => const ScreenUnderDevelopment(message: 'Configuración'),
-            ),
-            GoRoute(
-              path: '/manager/dev-tools/use-case-test',
-              name: 'managerUseCaseTest',
-              builder: (_, __) => const UseCaseTestScreen(),
             ),
             // Añadir ruta para crear academia dentro del shell manager
             GoRoute(

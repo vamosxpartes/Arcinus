@@ -1,5 +1,5 @@
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
-import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/core/navigation/navigation_shells/manager_shell/manager_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
@@ -8,9 +8,9 @@ import 'package:arcinus/features/academies/presentation/providers/current_academ
 import 'package:arcinus/features/academies/presentation/providers/academy_stats_provider.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/academies/presentation/ui/widgets/custom_segmented_tabbar.dart'; // Importar el nuevo widget
-import 'package:arcinus/features/subscriptions/presentation/screens/subscription_plans_screen.dart';
-import 'package:arcinus/features/payments/presentation/screens/payment_config_screen.dart';
-import 'package:arcinus/features/billing/presentation/screens/billing_config_screen.dart';
+import 'package:arcinus/features/academy_users_subscriptions/presentation/screens/subscription_plans_screen.dart';
+import 'package:arcinus/features/academy_users_payments/presentation/screens/payment_config_screen.dart';
+import 'package:arcinus/features/academy_billing/presentation/screens/billing_config_screen.dart';
 
 /// Pantalla que muestra los detalles de una academia deportiva.
 ///

@@ -78,7 +78,6 @@ flutter:
     - assets/config/
     - .env
     - env.file
-    - lib/l10n/
   fonts:
     - family: Roboto
       fonts:

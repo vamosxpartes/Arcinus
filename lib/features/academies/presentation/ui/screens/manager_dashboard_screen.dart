@@ -5,7 +5,7 @@ import 'package:arcinus/features/academies/presentation/providers/academy_stats_
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.dart';
+import 'package:arcinus/core/navigation/navigation_shells/manager_shell/manager_shell.dart';
 
 /// Pantalla de Dashboard para el Manager con métricas detalladas
 class ManagerDashboardScreen extends ConsumerStatefulWidget {
