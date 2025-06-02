@@ -6,20 +6,90 @@ import 'package:arcinus/features/payments/data/models/payment_config_model.dart'
 import 'package:arcinus/features/subscriptions/presentation/providers/subscription_plans_provider.dart';
 import 'package:intl/intl.dart';
 
-/// Estados del widget de agregar período
-enum AddPeriodState {
-  initial,     // Estado inicial: botón de agregar
-  configuring, // Configurando: selección de plan, períodos, fecha
-  payment,     // Modo pago: formulario de pago
+/// Controlador para manejar el estado del AddPeriodCardWidget desde el exterior
+class AddPeriodCardController {
+  _AddPeriodCardWidgetState? _state;
+  
+  /// Vincula el controlador con el estado del widget
+  void _attachState(_AddPeriodCardWidgetState state) {
+    _state = state;
+  }
+  
+  /// Desvincular el controlador cuando el widget se destruye
+  void _detachState() {
+    _state = null;
+  }
+  
+  /// Resetea el widget al estado inicial
+  void resetToInitial() {
+    _state?.resetToInitial();
+  }
+  
+  /// Indica que el pago está siendo procesado
+  void setPaymentPending() {
+    _state?.setPaymentPending();
+  }
+  
+  /// Indica que el pago fue exitoso
+  void setPaymentSuccess() {
+    _state?.setPaymentSuccess();
+  }
+  
+  /// Indica que hubo un error en el pago
+  void setPaymentError(String? errorMessage) {
+    _state?.setPaymentError(errorMessage);
+  }
+  
+  /// Verifica si el controlador está vinculado a un widget activo
+  bool get isAttached => _state != null;
+  
+  /// Obtiene el estado actual del widget (si está vinculado)
+  AddPeriodState? get currentState => _state?._currentState;
 }
 
-/// Widget para agregar nuevos períodos que cambia de estado
+/// Estados del widget de agregar período con state machine mejorado
+enum AddPeriodState {
+  initial,         // Estado inicial: botón de agregar
+  expanding,       // Transición: expandiendo el contenido
+  configuring,     // Configurando: selección de plan, períodos, fecha
+  validating,      // Validando: verificando configuración
+  readyToPay,      // Listo para pago: configuración completada
+  paymentPending,  // Pago pendiente: esperando procesamiento
+  success,         // Éxito: pago procesado exitosamente
+  error,           // Error: problema en el proceso
+  collapsing,      // Transición: colapsando hacia estado inicial
+}
+
+/// Información de cada estado del state machine
+class StateInfo {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final bool isTransition;
+  final bool showCloseButton;
+  final bool isExpandedState;
+
+  const StateInfo({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    this.isTransition = false,
+    this.showCloseButton = true,
+    this.isExpandedState = true,
+  });
+}
+
+/// Widget para agregar nuevos períodos con state machine optimizado
 class AddPeriodCardWidget extends ConsumerStatefulWidget {
   final String academyId;
   final PaymentConfigModel? config;
   final String currency;
   final ValueChanged<Map<String, dynamic>>? onPeriodConfigured;
   final VoidCallback? onPaymentRequired;
+  final VoidCallback? onStateChanged; // Nuevo callback para notificar cambios de estado
+  final AddPeriodCardController? controller; // Nuevo controlador
 
   const AddPeriodCardWidget({
     super.key,
@@ -28,6 +98,8 @@ class AddPeriodCardWidget extends ConsumerStatefulWidget {
     this.currency = 'COP',
     this.onPeriodConfigured,
     this.onPaymentRequired,
+    this.onStateChanged,
+    this.controller,
   });
 
   @override
@@ -35,47 +107,223 @@ class AddPeriodCardWidget extends ConsumerStatefulWidget {
 }
 
 class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
+  
+  // ==================== VARIABLES DE ESTADO ====================
   AddPeriodState _currentState = AddPeriodState.initial;
-  late AnimationController _animationController;
+  late AnimationController _expandController;
+  late AnimationController _pulseController;
   late Animation<double> _expandAnimation;
-
+  late Animation<double> _pulseAnimation;
+  
   // Variables de configuración
   String? _selectedPlanId;
   SubscriptionPlanModel? _selectedPlan;
   int _numberOfPeriods = 1;
   DateTime? _startDate;
   DateTime? _endDate;
+  String? _errorMessage;
+  
+  // ==================== CONFIGURACIÓN DEL STATE MACHINE ====================
+  static const Map<AddPeriodState, StateInfo> _stateInfoMap = {
+    AddPeriodState.initial: StateInfo(
+      icon: Icons.add_circle_outline,
+      title: 'Agregar Período',
+      subtitle: 'Toca para agregar un nuevo período de suscripción',
+      color: AppTheme.goldTrophy,
+      showCloseButton: false,
+      isExpandedState: false,
+    ),
+    AddPeriodState.expanding: StateInfo(
+      icon: Icons.expand_more,
+      title: 'Expandiendo...',
+      subtitle: 'Preparando configuración',
+      color: AppTheme.nbaBluePrimary,
+      isTransition: true,
+      isExpandedState: true,
+    ),
+    AddPeriodState.configuring: StateInfo(
+      icon: Icons.settings,
+      title: 'Configurar Período',
+      subtitle: 'Selecciona plan, duración y fecha de inicio',
+      color: AppTheme.nbaBluePrimary,
+      isExpandedState: true,
+    ),
+    AddPeriodState.validating: StateInfo(
+      icon: Icons.check_circle_outline,
+      title: 'Validando...',
+      subtitle: 'Verificando configuración',
+      color: AppTheme.courtGreen,
+      isTransition: true,
+      isExpandedState: true,
+    ),
+    AddPeriodState.readyToPay: StateInfo(
+      icon: Icons.payment,
+      title: 'Listo para Pago',
+      subtitle: 'Configuración completada, procede al pago',
+      color: AppTheme.bonfireRed,
+      isExpandedState: true,
+    ),
+    AddPeriodState.paymentPending: StateInfo(
+      icon: Icons.hourglass_empty,
+      title: 'Procesando Pago...',
+      subtitle: 'Registrando el pago y creando períodos',
+      color: AppTheme.goldTrophy,
+      isTransition: true,
+      showCloseButton: false,
+      isExpandedState: true,
+    ),
+    AddPeriodState.success: StateInfo(
+      icon: Icons.check_circle,
+      title: '¡Pago Exitoso!',
+      subtitle: 'El período ha sido creado correctamente',
+      color: AppTheme.courtGreen,
+      isTransition: true,
+      showCloseButton: false,
+      isExpandedState: true,
+    ),
+    AddPeriodState.error: StateInfo(
+      icon: Icons.error_outline,
+      title: 'Error en el Proceso',
+      subtitle: 'Ha ocurrido un problema, intenta nuevamente',
+      color: AppTheme.bonfireRed,
+      isExpandedState: true,
+    ),
+    AddPeriodState.collapsing: StateInfo(
+      icon: Icons.expand_less,
+      title: 'Finalizando...',
+      subtitle: 'Regresando al estado inicial',
+      color: AppTheme.lightGray,
+      isTransition: true,
+      showCloseButton: false,
+      isExpandedState: false,
+    ),
+  };
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+    _initializeAnimations();
+    if (widget.controller != null) {
+      widget.controller!._attachState(this);
+    }
+  }
+
+  void _initializeAnimations() {
+    // Animación de expansión/contracción
+    _expandController = AnimationController(
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     _expandAnimation = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
+      parent: _expandController,
+      curve: Curves.easeInOutCubic,
     );
+
+    // Animación de pulso para estados de transición
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _pulseAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _expandController.dispose();
+    _pulseController.dispose();
+    if (widget.controller != null) {
+      widget.controller!._detachState();
+    }
     super.dispose();
   }
 
-  void _changeState(AddPeriodState newState) {
-    setState(() {
-      _currentState = newState;
-      if (newState == AddPeriodState.initial) {
-        _animationController.reverse();
-        _resetConfiguration();
-      } else {
-        _animationController.forward();
+  // ==================== MÉTODOS PÚBLICOS ====================
+  
+  /// Método público para resetear el widget al estado inicial
+  void resetToInitial() {
+    _transitionToState(AddPeriodState.collapsing);
+    
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _transitionToState(AddPeriodState.initial);
       }
     });
+  }
+
+  /// Método público para indicar que el pago está siendo procesado
+  void setPaymentPending() {
+    _transitionToState(AddPeriodState.paymentPending);
+  }
+
+  /// Método público para indicar que el pago fue exitoso
+  void setPaymentSuccess() {
+    _transitionToState(AddPeriodState.success);
+    
+    // Auto-reset después de 2 segundos
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted) {
+        resetToInitial();
+      }
+    });
+  }
+
+  /// Método público para indicar que hubo un error en el pago
+  void setPaymentError(String? errorMessage) {
+    setState(() {
+      _errorMessage = errorMessage;
+    });
+    _transitionToState(AddPeriodState.error);
+  }
+
+  // ==================== MÉTODOS PRIVADOS DE ESTADO ====================
+  
+  void _transitionToState(AddPeriodState newState) {
+    if (_currentState == newState) return;
+    
+    final wasExpanded = _stateInfoMap[_currentState]?.isExpandedState ?? false;
+    final willBeExpanded = _stateInfoMap[newState]?.isExpandedState ?? false;
+    
+    setState(() {
+      _currentState = newState;
+    });
+    
+    // Manejar animaciones según transición
+    _handleStateAnimations(wasExpanded, willBeExpanded, newState);
+    
+    // Resetear configuración si volvemos al estado inicial
+    if (newState == AddPeriodState.initial) {
+      _resetConfiguration();
+    }
+    
+    // Notificar cambio de estado al padre
+    widget.onStateChanged?.call();
+  }
+
+  void _handleStateAnimations(bool wasExpanded, bool willBeExpanded, AddPeriodState newState) {
+    // Detener animación de pulso si no es estado de transición
+    if (!(_stateInfoMap[newState]?.isTransition ?? false)) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+    
+    // Manejar expansión/contracción
+    if (!wasExpanded && willBeExpanded) {
+      _expandController.forward();
+    } else if (wasExpanded && !willBeExpanded) {
+      _expandController.reverse();
+    }
+    
+    // Iniciar pulso para estados de transición
+    if (_stateInfoMap[newState]?.isTransition ?? false) {
+      _pulseController.repeat(reverse: true);
+    }
   }
 
   void _resetConfiguration() {
@@ -84,88 +332,147 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
     _numberOfPeriods = 1;
     _startDate = null;
     _endDate = null;
+    _errorMessage = null;
   }
+
+  // ==================== MÉTODOS DE INTERACCIÓN ====================
+  
+  void _handleInitialTap() {
+    if (_currentState == AddPeriodState.initial) {
+      _transitionToState(AddPeriodState.expanding);
+      
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          _transitionToState(AddPeriodState.configuring);
+        }
+      });
+    }
+  }
+
+  void _handleCloseTap() {
+    if (_currentState == AddPeriodState.error) {
+      // Desde error, permitir volver a configurar
+      _transitionToState(AddPeriodState.configuring);
+    } else {
+      // Desde cualquier otro estado, volver al inicial
+      resetToInitial();
+    }
+  }
+
+  void _validateAndProceed() {
+    final isConfigComplete = _selectedPlan != null && 
+                            _startDate != null && 
+                            _endDate != null;
+    
+    if (!isConfigComplete) {
+      setState(() {
+        _errorMessage = 'Debes completar toda la configuración antes de continuar';
+      });
+      _transitionToState(AddPeriodState.error);
+      return;
+    }
+    
+    // Transición a validando
+    _transitionToState(AddPeriodState.validating);
+    
+    // Simular validación
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        _proceedToPayment();
+      }
+    });
+  }
+
+  void _proceedToPayment() {
+    if (_selectedPlan == null || _startDate == null || _endDate == null) {
+      _transitionToState(AddPeriodState.error);
+      return;
+    }
+    
+    try {
+      // Notificar configuración completada
+      widget.onPeriodConfigured?.call({
+        'planId': _selectedPlanId!,
+        'plan': _selectedPlan!,
+        'numberOfPeriods': _numberOfPeriods,
+        'startDate': _startDate!,
+        'endDate': _endDate!,
+        'totalAmount': _selectedPlan!.amount * _numberOfPeriods,
+      });
+      
+      // Cambiar a estado listo para pago
+      _transitionToState(AddPeriodState.readyToPay);
+      
+      // Notificar que se requiere pago
+      widget.onPaymentRequired?.call();
+      
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error al configurar el período: ${e.toString()}';
+      });
+      _transitionToState(AddPeriodState.error);
+    }
+  }
+
+  // ==================== MÉTODOS DE UI ====================
+
+  StateInfo get _currentStateInfo => _stateInfoMap[_currentState]!;
+
+  Color get _borderColor => _currentStateInfo.color.withAlpha(50);
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppTheme.mediumGray,
-      elevation: _currentState == AddPeriodState.initial 
-          ? AppTheme.elevationLow 
-          : AppTheme.elevationMedium,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-        side: BorderSide(
-          color: _getBorderColor(),
-          width: _currentState == AddPeriodState.initial ? 2 : 1.5,
-        ),
-      ),
-      child: Column(
-        children: [
-          _buildHeader(),
-          AnimatedBuilder(
-            animation: _expandAnimation,
-            builder: (context, child) {
-              return ClipRect(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  heightFactor: _expandAnimation.value,
-                  child: child,
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: (_stateInfoMap[_currentState]?.isTransition ?? false) 
+              ? _pulseAnimation.value 
+              : 1.0,
+          child: Card(
+            color: AppTheme.mediumGray,
+            elevation: _currentState == AddPeriodState.initial 
+                ? AppTheme.elevationLow 
+                : AppTheme.elevationMedium,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+              side: BorderSide(
+                color: _borderColor,
+                width: _currentState == AddPeriodState.initial ? 2 : 1.5,
+              ),
+            ),
+            child: Column(
+              children: [
+                _buildHeader(),
+                AnimatedBuilder(
+                  animation: _expandAnimation,
+                  builder: (context, child) {
+                    return ClipRect(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        heightFactor: _expandAnimation.value,
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: _buildExpandedContent(),
                 ),
-              );
-            },
-            child: _buildExpandedContent(),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Color _getBorderColor() {
-    switch (_currentState) {
-      case AddPeriodState.initial:
-        return AppTheme.goldTrophy.withAlpha(50);
-      case AddPeriodState.configuring:
-        return AppTheme.nbaBluePrimary.withAlpha(50);
-      case AddPeriodState.payment:
-        return AppTheme.bonfireRed.withAlpha(50);
-    }
-  }
-
   Widget _buildHeader() {
-    IconData headerIcon;
-    String headerTitle;
-    String headerSubtitle;
-    Color headerColor;
-
-    switch (_currentState) {
-      case AddPeriodState.initial:
-        headerIcon = Icons.add_circle_outline;
-        headerTitle = 'Agregar Período';
-        headerSubtitle = 'Toca para agregar un nuevo período de suscripción';
-        headerColor = AppTheme.goldTrophy;
-        break;
-      case AddPeriodState.configuring:
-        headerIcon = Icons.settings;
-        headerTitle = 'Configurar Período';
-        headerSubtitle = 'Selecciona plan, duración y fecha de inicio';
-        headerColor = AppTheme.nbaBluePrimary;
-        break;
-      case AddPeriodState.payment:
-        headerIcon = Icons.payment;
-        headerTitle = 'Registrar Pago';
-        headerSubtitle = 'Completa la información del pago';
-        headerColor = AppTheme.bonfireRed;
-        break;
-    }
-
+    final stateInfo = _currentStateInfo;
+    
     return InkWell(
-      onTap: _currentState == AddPeriodState.initial 
-          ? () => _changeState(AddPeriodState.configuring)
-          : null,
+      onTap: _currentState == AddPeriodState.initial ? _handleInitialTap : null,
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(AppTheme.cardRadius),
-        bottom: _currentState == AddPeriodState.initial 
+        bottom: !stateInfo.isExpandedState 
             ? Radius.circular(AppTheme.cardRadius)
             : Radius.zero,
       ),
@@ -179,19 +486,30 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    headerColor,
-                    headerColor.withAlpha(200),
+                    stateInfo.color,
+                    stateInfo.color.withAlpha(200),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(AppTheme.spacingSm),
               ),
-              child: Icon(
-                headerIcon,
-                color: AppTheme.magnoliaWhite,
-                size: 24,
-              ),
+              child: stateInfo.isTransition
+                  ? const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.magnoliaWhite),
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      stateInfo.icon,
+                      color: AppTheme.magnoliaWhite,
+                      size: 24,
+                    ),
             ),
             const SizedBox(width: AppTheme.spacingMd),
             Expanded(
@@ -199,7 +517,7 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    headerTitle,
+                    stateInfo.title,
                     style: const TextStyle(
                       fontSize: AppTheme.subtitleSize,
                       fontWeight: FontWeight.w600,
@@ -208,20 +526,24 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
                   ),
                   const SizedBox(height: AppTheme.spacingXs),
                   Text(
-                    headerSubtitle,
+                    _currentState == AddPeriodState.error && _errorMessage != null
+                        ? _errorMessage!
+                        : stateInfo.subtitle,
                     style: TextStyle(
                       fontSize: AppTheme.secondarySize,
-                      color: AppTheme.lightGray,
+                      color: _currentState == AddPeriodState.error 
+                          ? AppTheme.bonfireRed 
+                          : AppTheme.lightGray,
                     ),
                   ),
                 ],
               ),
             ),
-            if (_currentState != AddPeriodState.initial)
+            if (stateInfo.showCloseButton && _currentState != AddPeriodState.initial)
               IconButton(
-                onPressed: () => _changeState(AddPeriodState.initial),
-                icon: const Icon(
-                  Icons.close,
+                onPressed: _handleCloseTap,
+                icon: Icon(
+                  _currentState == AddPeriodState.error ? Icons.refresh : Icons.close,
                   color: AppTheme.lightGray,
                 ),
               ),
@@ -234,12 +556,139 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
   Widget _buildExpandedContent() {
     switch (_currentState) {
       case AddPeriodState.initial:
+      case AddPeriodState.collapsing:
         return const SizedBox.shrink();
+        
+      case AddPeriodState.expanding:
+      case AddPeriodState.validating:
+      case AddPeriodState.paymentPending:
+      case AddPeriodState.success:
+        return _buildTransitionContent();
+        
       case AddPeriodState.configuring:
+      case AddPeriodState.error:
         return _buildConfigurationContent();
-      case AddPeriodState.payment:
-        return _buildPaymentContent();
+        
+      case AddPeriodState.readyToPay:
+        return _buildReadyToPayContent();
     }
+  }
+
+  Widget _buildTransitionContent() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppTheme.darkGray.withAlpha(50),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppTheme.cardRadius),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        child: Center(
+          child: Column(
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(_currentStateInfo.color),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              Text(
+                _currentStateInfo.subtitle,
+                style: TextStyle(
+                  fontSize: AppTheme.bodySize,
+                  color: AppTheme.lightGray,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReadyToPayContent() {
+    if (_selectedPlan == null || _startDate == null || _endDate == null) {
+      return const SizedBox.shrink();
+    }
+
+    final totalAmount = _selectedPlan!.amount * _numberOfPeriods;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppTheme.darkGray.withAlpha(50),
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(AppTheme.cardRadius),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              decoration: BoxDecoration(
+                color: AppTheme.bonfireRed.withAlpha(20),
+                borderRadius: BorderRadius.circular(AppTheme.spacingSm),
+                border: Border.all(
+                  color: AppTheme.bonfireRed.withAlpha(50),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.payment,
+                    color: AppTheme.bonfireRed,
+                    size: 32,
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  Text(
+                    'Configuración Completada',
+                    style: TextStyle(
+                      fontSize: AppTheme.subtitleSize,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.magnoliaWhite,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingXs),
+                  Text(
+                    'Total a pagar: ${NumberFormat.currency(symbol: '\$', decimalDigits: 0, locale: 'es_CO').format(totalAmount)} ${widget.currency}',
+                    style: TextStyle(
+                      fontSize: AppTheme.bodySize,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.goldTrophy,
+                    ),
+                  ),
+                  const SizedBox(height: AppTheme.spacingXs),
+                  Text(
+                    'Completa el formulario de pago para finalizar',
+                    style: TextStyle(
+                      fontSize: AppTheme.secondarySize,
+                      color: AppTheme.lightGray,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppTheme.spacingMd),
+            ElevatedButton(
+              onPressed: () => _transitionToState(AddPeriodState.configuring),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.nbaBluePrimary,
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+              ),
+              child: const Text(
+                'Volver a Configuración',
+                style: TextStyle(color: AppTheme.magnoliaWhite),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildConfigurationContent() {
@@ -568,7 +1017,7 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
       children: [
         Expanded(
           child: OutlinedButton(
-            onPressed: () => _changeState(AddPeriodState.initial),
+            onPressed: () => _transitionToState(AddPeriodState.initial),
             style: OutlinedButton.styleFrom(
               side: BorderSide(color: AppTheme.lightGray),
               padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
@@ -580,7 +1029,7 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
         Expanded(
           flex: 2,
           child: ElevatedButton(
-            onPressed: isConfigComplete ? _proceedToPayment : null,
+            onPressed: isConfigComplete ? _validateAndProceed : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.courtGreen,
               padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
@@ -592,46 +1041,6 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPaymentContent() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppTheme.darkGray.withAlpha(50),
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(AppTheme.cardRadius),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        child: Column(
-          children: [
-            Center(
-              child: Text(
-                'Configuración completada. El pago se procesará con la información del formulario principal.',
-                style: TextStyle(
-                  fontSize: AppTheme.bodySize,
-                  color: AppTheme.lightGray,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-            ElevatedButton(
-              onPressed: () => _changeState(AddPeriodState.configuring),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.nbaBluePrimary,
-              ),
-              child: const Text(
-                'Volver a Configuración',
-                style: TextStyle(color: AppTheme.magnoliaWhite),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -672,26 +1081,6 @@ class _AddPeriodCardWidgetState extends ConsumerState<AddPeriodCardWidget>
       });
       _calculateDates();
     }
-  }
-
-  void _proceedToPayment() {
-    if (_selectedPlan == null || _startDate == null || _endDate == null) return;
-    
-    // Notificar configuración completada
-    widget.onPeriodConfigured?.call({
-      'planId': _selectedPlanId!,
-      'plan': _selectedPlan!,
-      'numberOfPeriods': _numberOfPeriods,
-      'startDate': _startDate!,
-      'endDate': _endDate!,
-      'totalAmount': _selectedPlan!.amount * _numberOfPeriods,
-    });
-    
-    // Cambiar a estado de pago
-    _changeState(AddPeriodState.payment);
-    
-    // Notificar que se requiere pago
-    widget.onPaymentRequired?.call();
   }
 
   String _formatDate(DateTime date) {

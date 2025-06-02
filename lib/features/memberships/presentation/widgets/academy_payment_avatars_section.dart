@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/subscriptions/domain/services/athlete_periods_helper.dart';
 
 /// Widget modular para mostrar la sección horizontal de avatares de atletas
 /// con indicadores de estado de pago.
@@ -104,7 +105,7 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
     );
   }
 
-  /// Ordena atletas por proximidad de fecha de pago usando el nuevo sistema de períodos
+  /// Ordena atletas por proximidad de fecha de pago usando únicamente información de períodos
   Future<List<AcademyUserModel>> _sortAthletesByPaymentProximity(
     List<AcademyUserModel> athletes, 
     WidgetRef ref
@@ -132,7 +133,7 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
       }
     }
     
-    // Ordenamos por prioridad de pago
+    // Ordenamos por prioridad usando únicamente información de períodos
     athleteData.sort((a, b) {
       final now = DateTime.now();
       
@@ -140,76 +141,56 @@ class AcademyPaymentAvatarsSection extends ConsumerWidget {
       int getPriority(_AthleteWithPaymentData data) {
         final athleteInfo = data.athleteInfo;
         
-        // Si no hay datos del atleta o no tiene plan: prioridad muy alta (necesita asignación)
-        if (athleteInfo == null || !athleteInfo.hasActivePlan) {
+        // Si no hay datos del atleta: prioridad muy alta (necesita revisión)
+        if (athleteInfo == null) {
           return 0;
         }
         
-        // Si está vencido (overdue): prioridad máxima
-        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue) {
+        // Si no hay información de períodos: prioridad alta (necesita configuración)
+        if (athleteInfo.periodsInfo == null) {
           return 1;
         }
         
-        // Si está inactivo pero tiene plan: prioridad alta (necesita pago)
-        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.inactive) {
+        final periodsInfo = athleteInfo.periodsInfo!;
+        
+        // Sin plan activo: prioridad muy alta (necesita asignación)
+        if (!periodsInfo.hasActivePlan) {
           return 2;
         }
         
-        // Si está activo y tiene fecha de pago específica
-        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.active && 
-            athleteInfo.nextPaymentDate != null) {
-          final daysRemaining = athleteInfo.nextPaymentDate!.difference(now).inDays;
-          
-          // Menor a 0 días (vencido pero no marcado como overdue): prioridad muy alta
-          if (daysRemaining < 0) {
-            return 1;
-          }
-          // Menor a 5 días: prioridad alta
-          if (daysRemaining < 5) {
-            return 3;
-          }
-          // Menor a 15 días: prioridad media
-          if (daysRemaining < 15) {
-            return 4;
-          }
-          // Más de 15 días: prioridad baja pero ordenado por días restantes
-          return 5000 + daysRemaining;
+        // Período vencido: prioridad máxima
+        if (periodsInfo.isExpired) {
+          return 3;
         }
         
-        // Si está activo pero no tiene nextPaymentDate (plan asignado sin pago registrado)
-        // Usar remainingDays como aproximación si está disponible
-        if (athleteInfo.clientUser.paymentStatus == PaymentStatus.active && 
-            athleteInfo.remainingDays > 0) {
-          final remainingDays = athleteInfo.remainingDays;
-          
-          // Aplicar lógica similar pero con menos prioridad que fechas específicas
-          if (remainingDays < 5) {
-            return 6; // Prioridad alta pero menor que fechas específicas
-          }
-          if (remainingDays < 15) {
-            return 7; // Prioridad media-alta
-          }
-          return 8000 + remainingDays; // Prioridad baja
+        // Próximo a vencer: prioridad alta
+        if (periodsInfo.isNearExpiry) {
+          return 4;
         }
         
-        // Activo sin fecha de próximo pago ni remainingDays: prioridad más baja
-        return 10000;
+        // Plan activo: ordenar por días restantes
+        final remainingDays = periodsInfo.totalRemainingDays;
+        
+        // Menos de 5 días: prioridad alta
+        if (remainingDays < 5) {
+          return 100 + remainingDays;
+        }
+        // Menos de 15 días: prioridad media
+        if (remainingDays < 15) {
+          return 200 + remainingDays;
+        }
+        // Más de 15 días: prioridad baja pero ordenado por días
+        return 1000 + remainingDays;
       }
       
       final priorityA = getPriority(a);
       final priorityB = getPriority(b);
       
-      // Si tienen la misma prioridad, ordenamos por días restantes (si disponible)
+      // Si tienen la misma prioridad, ordenamos por días restantes
       if (priorityA == priorityB) {
-        // Calcular días restantes para ordenamiento
         int? getDaysRemaining(_AthleteWithPaymentData data) {
           final athleteInfo = data.athleteInfo;
-          if (athleteInfo?.nextPaymentDate != null) {
-            return athleteInfo!.nextPaymentDate!.difference(now).inDays;
-          } else if (athleteInfo?.remainingDays != null) {
-            return athleteInfo!.remainingDays;
-          }
-          return null;
+          return athleteInfo?.periodsInfo?.totalRemainingDays;
         }
         
         final daysA = getDaysRemaining(a);
@@ -300,45 +281,61 @@ class PaymentAvatarItem extends ConsumerWidget {
     AthleteCompleteInfo athleteInfo,
     PaymentConfigModel paymentConfig,
   ) {
-    final bool hasPlan = athleteInfo.hasActivePlan;
     final now = DateTime.now();
     
-    // Usar athleteInfo.clientUser.paymentStatus para determinar el estado
-    final bool needsPaymentAttention = !hasPlan || // Si no tiene plan asignado
-                                     athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue || // Si está en mora
-                                     (athleteInfo.clientUser.paymentStatus == PaymentStatus.inactive && hasPlan); // Si está inactivo pero TIENE plan
-
-    final bool isInGracePeriod = athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue && 
-                                 athleteInfo.nextPaymentDate != null &&
-                                 now.isBefore(athleteInfo.nextPaymentDate!.add(Duration(days: paymentConfig.gracePeriodDays))) &&
-                                 now.isAfter(athleteInfo.nextPaymentDate!);
-
-    // Calcular días restantes de manera unificada
-    int? displayDaysRemaining;
-    bool isEstimated = false;
-    
-    if (athleteInfo.nextPaymentDate != null) {
-      // Usar fecha específica de próximo pago si está disponible (días reales)
-      displayDaysRemaining = athleteInfo.nextPaymentDate!.difference(now).inDays;
-      isEstimated = false;
-    } else if (athleteInfo.remainingDays > 0 && hasPlan && athleteInfo.clientUser.paymentStatus == PaymentStatus.active) {
-      // Para planes asignados sin pago registrado, usar remainingDays como aproximación
-      displayDaysRemaining = athleteInfo.remainingDays;
-      isEstimated = true; // Consideramos que los días calculados por períodos pueden ser aproximados
+    // ÚNICAMENTE usar información de períodos
+    if (athleteInfo.periodsInfo == null) {
+      // Sin información de períodos - mostrar estado neutral
+      return _buildNeutralAvatar(context);
     }
-
-    // Determinar si mostrar alerta visual (borde e icono superior)
-    final bool showVisualAlert = needsPaymentAttention || 
-                               isInGracePeriod ||
-                               (hasPlan && displayDaysRemaining != null && displayDaysRemaining < 5 && athleteInfo.clientUser.paymentStatus == PaymentStatus.active);
-
+    
+    final periodsInfo = athleteInfo.periodsInfo!;
+    
+    // Determinar estado basándose únicamente en información de períodos
+    final bool hasPlan = periodsInfo.hasActivePlan;
+    bool needsPaymentAttention = false;
+    bool isInGracePeriod = false;
+    int? displayDaysRemaining;
     Color borderColor = Colors.transparent;
-    if (needsPaymentAttention && athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue) { 
-      borderColor = AppTheme.bonfireRed; 
-    } else if (needsPaymentAttention && !hasPlan) { 
+    bool showVisualAlert = false;
+    
+    if (periodsInfo.isExpired) {
+      needsPaymentAttention = true;
+      showVisualAlert = true;
+      borderColor = AppTheme.bonfireRed;
+      displayDaysRemaining = 0;
+    } else if (periodsInfo.isNearExpiry) {
+      needsPaymentAttention = true;
+      showVisualAlert = true;
       borderColor = AppTheme.goldTrophy;
-    } else if (isInGracePeriod) {
+      displayDaysRemaining = periodsInfo.totalRemainingDays;
+    } else if (periodsInfo.hasActivePlan) {
+      needsPaymentAttention = false;
+      displayDaysRemaining = periodsInfo.totalRemainingDays;
+      
+      // Determinar alerta visual basándose en días restantes
+      if (periodsInfo.totalRemainingDays < 5) {
+        showVisualAlert = true;
+        borderColor = AppTheme.goldTrophy;
+      } else if (periodsInfo.totalRemainingDays < 15) {
+        showVisualAlert = false; // No mostrar borde para alertas menores
+      }
+    } else {
+      needsPaymentAttention = true;
+      showVisualAlert = true;
       borderColor = AppTheme.goldTrophy;
+      displayDaysRemaining = null;
+    }
+    
+    // Verificar período de gracia si hay próxima fecha de pago
+    if (periodsInfo.nextPaymentDate != null) {
+      final gracePeriodEnd = periodsInfo.nextPaymentDate!.add(Duration(days: paymentConfig.gracePeriodDays));
+      isInGracePeriod = now.isAfter(periodsInfo.nextPaymentDate!) && now.isBefore(gracePeriodEnd);
+      
+      if (isInGracePeriod) {
+        showVisualAlert = true;
+        borderColor = AppTheme.goldTrophy;
+      }
     }
 
     return GestureDetector(
@@ -384,10 +381,9 @@ class PaymentAvatarItem extends ConsumerWidget {
                   right: 0,
                   bottom: 0,
                   child: PaymentStatusIndicator(
-                    athleteInfo: athleteInfo,
+                    periodsInfo: periodsInfo,
                     hasPlan: hasPlan,
                     displayDaysRemaining: displayDaysRemaining,
-                    isEstimated: isEstimated,
                     isInGracePeriod: isInGracePeriod,
                   ),
                 ),
@@ -398,12 +394,88 @@ class PaymentAvatarItem extends ConsumerWidget {
                     right: 0,
                     top: 0,
                     child: PaymentAlertIndicator(
-                      athleteInfo: athleteInfo,
+                      periodsInfo: periodsInfo,
                       hasPlan: hasPlan,
                       isInGracePeriod: isInGracePeriod,
                       displayDaysRemaining: displayDaysRemaining,
                     ),
                   ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${athlete.firstName.split(' ')[0]}.',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Widget para avatares sin información de períodos
+  Widget _buildNeutralAvatar(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _navigateToPayments(context),
+      onLongPress: () => _showContextMenu(context),
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: AppTheme.lightGray,
+                  backgroundImage: athlete.profileImageUrl != null
+                      ? NetworkImage(athlete.profileImageUrl!)
+                      : null,
+                  child: athlete.profileImageUrl == null
+                      ? Text(
+                          athlete.firstName.isNotEmpty ? athlete.firstName[0].toUpperCase() : 'A',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        )
+                      : null,
+                ),
+                
+                // Indicador de carga
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppTheme.blackSwarm,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Center(
+                      child: SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppTheme.lightGray),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -474,14 +546,40 @@ class PaymentAvatarItem extends ConsumerWidget {
     );
   }
 
-  void _navigateToPayments(BuildContext context) {
-    Navigator.of(context).push(
+  Future<void> _navigateToPayments(BuildContext context) async {
+    AppLogger.logInfo(
+      'Navegando a pantalla de pagos desde AcademyPaymentAvatarsSection',
+      className: 'PaymentAvatarItem',
+      params: {
+        'athleteId': athlete.id,
+        'athleteName': athlete.firstName,
+        'academyId': academyId,
+      }
+    );
+    
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterPaymentScreen(
           athleteId: athlete.id,
         ),
       ),
     );
+    
+    // *** NUEVO: Si se registró un pago, notificar para refresh de la sección ***
+    if (result == true || result == 'payment_registered') {
+      AppLogger.logInfo(
+        'Pago registrado exitosamente desde avatar section, refrescando datos',
+        className: 'PaymentAvatarItem',
+        params: {
+          'athleteId': athlete.id,
+          'academyId': academyId,
+          'result': result.toString(),
+        }
+      );
+      
+      // El widget padre (AcademyMembersScreen) ya manejará el refresh global
+      // pero podemos forzar una reconstrucción local si es necesario
+    }
   }
 
   void _showContextMenu(BuildContext context) {
@@ -509,9 +607,9 @@ class PaymentAvatarItem extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.payment),
             title: const Text('Gestionar pagos'),
-            onTap: () {
+            onTap: () async {
               Navigator.pop(context);
-              _navigateToPayments(context);
+              await _navigateToPayments(context);
             },
           ),
           ListTile(
@@ -534,38 +632,33 @@ class PaymentAvatarItem extends ConsumerWidget {
 
 /// Widget para el indicador de estado de pago en la esquina inferior del avatar
 class PaymentStatusIndicator extends StatelessWidget {
-  final AthleteCompleteInfo athleteInfo;
+  final AthletePeriodsInfo periodsInfo;
   final bool hasPlan;
   final int? displayDaysRemaining;
-  final bool isEstimated;
   final bool isInGracePeriod;
 
   const PaymentStatusIndicator({
     super.key,
-    required this.athleteInfo,
+    required this.periodsInfo,
     required this.hasPlan,
     required this.displayDaysRemaining,
-    required this.isEstimated,
     required this.isInGracePeriod,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Log detallado del estado del indicador
+    // Log detallado del estado del indicador usando información de períodos
     AppLogger.logInfo(
-      'Construyendo PaymentStatusIndicator',
+      'Construyendo PaymentStatusIndicator con información de períodos',
       className: 'PaymentStatusIndicator',
       params: {
-        'clientUser_id': athleteInfo.clientUser.id,
-        'clientUser_status': athleteInfo.clientUser.paymentStatus.toString(),
         'hasPlan': hasPlan,
         'displayDaysRemaining': displayDaysRemaining,
-        'isEstimated': isEstimated,
         'isInGracePeriod': isInGracePeriod,
-        'nextPaymentDate': athleteInfo.nextPaymentDate?.toString(),
-        'lastPaymentDate': athleteInfo.lastPaymentDate?.toString(),
-        'remainingDays': athleteInfo.remainingDays,
-        'hasActivePlan': athleteInfo.hasActivePlan,
+        'isExpired': periodsInfo.isExpired,
+        'isNearExpiry': periodsInfo.isNearExpiry,
+        'totalRemainingDays': periodsInfo.totalRemainingDays,
+        'activePeriodsCount': periodsInfo.activePeriodsCount,
       }
     );
 
@@ -603,22 +696,43 @@ class PaymentStatusIndicator extends StatelessWidget {
       );
     }
 
-    final paymentStatus = athleteInfo.clientUser.paymentStatus;
+    // Usar únicamente información de períodos para determinar el contenido
     AppLogger.logInfo(
-      'Determinando contenido del indicador según estado de pago',
+      'Determinando contenido del indicador según información de períodos',
       className: 'PaymentStatusIndicator',
       params: {
-        'paymentStatus': paymentStatus.toString(),
+        'isExpired': periodsInfo.isExpired,
+        'isNearExpiry': periodsInfo.isNearExpiry,
         'displayDaysRemaining': displayDaysRemaining,
         'isInGracePeriod': isInGracePeriod,
       }
     );
 
-    switch (paymentStatus) {
-      case PaymentStatus.overdue:
-        AppLogger.logInfo(
-          'Mostrando indicador de pago vencido',
-          className: 'PaymentStatusIndicator'
+    if (periodsInfo.isExpired) {
+      AppLogger.logInfo(
+        'Mostrando indicador de período vencido',
+        className: 'PaymentStatusIndicator'
+      );
+      return const Text(
+        '!',
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.bonfireRed,
+        ),
+      );
+    }
+
+    if (displayDaysRemaining != null) {
+      // Si displayDaysRemaining es negativo, mostrar alerta
+      if (displayDaysRemaining! < 0 && !isInGracePeriod) {
+        AppLogger.logWarning(
+          'Días restantes negativos sin período de gracia',
+          className: 'PaymentStatusIndicator',
+          params: {
+            'displayDaysRemaining': displayDaysRemaining,
+            'isInGracePeriod': isInGracePeriod,
+          }
         );
         return const Text(
           '!',
@@ -628,99 +742,65 @@ class PaymentStatusIndicator extends StatelessWidget {
             color: AppTheme.bonfireRed,
           ),
         );
-      case PaymentStatus.inactive:
-        // Inactivo pero con plan implica que necesita pagar para activar
-        AppLogger.logInfo(
-          'Mostrando indicador de pago inactivo',
-          className: 'PaymentStatusIndicator'
-        );
-        return const Icon(
-          Icons.attach_money, 
-          size: 12,
-          color: AppTheme.bonfireRed,
-        );
-      case PaymentStatus.active:
-        if (displayDaysRemaining != null) {
-          // Si displayDaysRemaining es negativo, mostrar alerta
-          if (displayDaysRemaining! < 0 && !isInGracePeriod) {
-            AppLogger.logWarning(
-              'Días restantes negativos sin período de gracia',
-              className: 'PaymentStatusIndicator',
-              params: {
-                'displayDaysRemaining': displayDaysRemaining,
-                'isInGracePeriod': isInGracePeriod,
-              }
-            );
-            return const Text(
-              '!',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.bonfireRed,
-              ),
-            );
-          }
-          
-          // Determinar color basado en días restantes
-          Color daysColor;
-          if (displayDaysRemaining! < 5) {
-            daysColor = AppTheme.bonfireRed;
-          } else if (displayDaysRemaining! < 15) {
-            daysColor = AppTheme.goldTrophy;
-          } else {
-            daysColor = Colors.black;
-          }
-          
-          AppLogger.logInfo(
-            'Mostrando días restantes en indicador',
-            className: 'PaymentStatusIndicator',
-            params: {
-              'displayDaysRemaining': displayDaysRemaining,
-              'isEstimated': isEstimated,
-              'color': daysColor.toString(),
-            }
-          );
-          
-          // Mostrar días restantes con color apropiado
-          return Text(
-            isEstimated ? '~$displayDaysRemaining' : '$displayDaysRemaining',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: daysColor,
-            ),
-          );
-        } else {
-          // Activo pero sin información de días restantes
-          // NOTA: Esto puede ser normal si el usuario tiene períodos activos pero no nextPaymentDate tradicional
-          AppLogger.logInfo(
-            'Estado activo pero sin información de días restantes - verificar si tiene períodos',
-            className: 'PaymentStatusIndicator',
-            params: {
-              'clientUser_id': athleteInfo.clientUser.id,
-              'paymentStatus': athleteInfo.clientUser.paymentStatus.name,
-            },
-          );
-          return const Icon(
-            Icons.check_circle_outline,
-            size: 12,
-            color: Colors.green,
-          );
+      }
+      
+      // Determinar color basado en días restantes
+      Color daysColor;
+      if (displayDaysRemaining! < 5) {
+        daysColor = AppTheme.bonfireRed;
+      } else if (displayDaysRemaining! < 15) {
+        daysColor = AppTheme.goldTrophy;
+      } else {
+        daysColor = Colors.black;
+      }
+      
+      AppLogger.logInfo(
+        'Mostrando días restantes en indicador',
+        className: 'PaymentStatusIndicator',
+        params: {
+          'displayDaysRemaining': displayDaysRemaining,
+          'color': daysColor.toString(),
         }
+      );
+      
+      // Mostrar días restantes con color apropiado
+      return Text(
+        '$displayDaysRemaining',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: daysColor,
+        ),
+      );
+    } else {
+      // Activo pero sin información de días restantes
+      AppLogger.logInfo(
+        'Estado activo pero sin información específica de días restantes',
+        className: 'PaymentStatusIndicator',
+        params: {
+          'hasPlan': hasPlan,
+          'totalRemainingDays': periodsInfo.totalRemainingDays,
+        },
+      );
+      return const Icon(
+        Icons.check_circle_outline,
+        size: 12,
+        color: Colors.green,
+      );
     }
   }
 }
 
 /// Widget para el indicador de alerta en la esquina superior del avatar
 class PaymentAlertIndicator extends StatelessWidget {
-  final AthleteCompleteInfo athleteInfo;
+  final AthletePeriodsInfo periodsInfo;
   final bool hasPlan;
   final bool isInGracePeriod;
   final int? displayDaysRemaining;
 
   const PaymentAlertIndicator({
     super.key,
-    required this.athleteInfo,
+    required this.periodsInfo,
     required this.hasPlan,
     required this.isInGracePeriod,
     required this.displayDaysRemaining,
@@ -743,10 +823,11 @@ class PaymentAlertIndicator extends StatelessWidget {
   }
 
   Color _getAlertColor() {
-    if (athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue) {
+    // Usar únicamente información de períodos
+    if (periodsInfo.isExpired) {
       return AppTheme.bonfireRed;
-    } else if (!hasPlan || athleteInfo.clientUser.paymentStatus == PaymentStatus.inactive) {
-      return AppTheme.goldTrophy; // Naranja para "atención requerida"
+    } else if (!hasPlan) {
+      return AppTheme.goldTrophy; // Dorado para "atención requerida"
     } else if (isInGracePeriod) {
       return AppTheme.goldTrophy;
     } else if (displayDaysRemaining != null && displayDaysRemaining! < 5) {

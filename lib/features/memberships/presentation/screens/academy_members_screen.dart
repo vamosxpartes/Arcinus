@@ -8,9 +8,20 @@ import 'package:arcinus/features/navigation_shells/manager_shell/manager_shell.d
 import 'package:arcinus/core/utils/screen_under_development.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/core/auth/roles.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/subscriptions/presentation/providers/period_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Pantalla de miembros de la academia con actualización automática de datos
+/// 
+/// MEJORAS IMPLEMENTADAS para actualización después de pagos:
+/// 1. Listener de lifecycle de la app para detectar cuando regresa al foreground
+/// 2. Refresh automático de providers al regresar de pantallas de pago
+/// 3. Pull-to-refresh manual para actualización bajo demanda
+/// 4. Invalidación específica de providers de atletas después de pagos
+/// 5. Timestamps para evitar refreshes excesivos
 class AcademyMembersScreen extends ConsumerStatefulWidget {
   final String academyId;
 
@@ -20,13 +31,18 @@ class AcademyMembersScreen extends ConsumerStatefulWidget {
   ConsumerState<AcademyMembersScreen> createState() => _AcademyMembersScreenState();
 }
 
-class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
+class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> with WidgetsBindingObserver {
   late TextEditingController _searchController;
   String _searchTerm = '';
+  bool _shouldRefreshAfterPayment = false;
+  DateTime? _lastRefreshTime;
 
   @override
   void initState() {
     super.initState();
+    
+    // *** NUEVO: Agregar observer para detectar cambios en el lifecycle de la app ***
+    WidgetsBinding.instance.addObserver(this);
     
     AppLogger.logProcessStart(
       'Inicializando AcademyMembersScreen',
@@ -66,6 +82,37 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
         );
       }
     });
+  }
+
+  // *** NUEVO: Detectar cambios en el lifecycle de la app ***
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    if (state == AppLifecycleState.resumed) {
+      // La app regresó al foreground
+      final now = DateTime.now();
+      
+      // Si han pasado más de 5 segundos desde el último refresh, ejecutar uno nuevo
+      if (_lastRefreshTime == null || 
+          now.difference(_lastRefreshTime!).inSeconds > 5) {
+        
+        AppLogger.logInfo(
+          'App regresó al foreground, ejecutando refresh de datos',
+          className: 'AcademyMembersScreen',
+          params: {
+            'academyId': widget.academyId,
+            'lastRefreshTime': _lastRefreshTime?.toString(),
+            'timeSinceLastRefresh': _lastRefreshTime != null 
+                ? now.difference(_lastRefreshTime!).inSeconds.toString()
+                : 'null',
+          }
+        );
+        
+        _refreshDataAfterPaymentUpdate();
+        _lastRefreshTime = now;
+      }
+    }
   }
 
   void _clearSearch() {
@@ -153,6 +200,47 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
     );
   }
 
+  void _refreshDataAfterPaymentUpdate() {
+    AppLogger.logInfo(
+      'Refrescando datos después de actualización de pagos',
+      className: 'AcademyMembersScreen',
+      params: {
+        'academyId': widget.academyId,
+        'timestamp': DateTime.now().toIso8601String(),
+      }
+    );
+    
+    // Refrescar el provider principal de usuarios de la academia
+    ref.refresh(academyUsersProvider(widget.academyId));
+    
+    // CRÍTICO: Refrescar también todos los providers de información completa de atletas
+    // Esto es importante porque los widgets como AcademyUserCard y AcademyPaymentAvatarsSection 
+    // dependen de athleteCompleteInfoProvider
+    final usersAsyncValue = ref.read(academyUsersProvider(widget.academyId));
+    usersAsyncValue.whenData((users) {
+      // Refrescar información completa para cada atleta
+      for (final user in users) {
+        if (user.role == AppRole.atleta.name) {
+          ref.refresh(athleteCompleteInfoProvider((
+            academyId: widget.academyId,
+            athleteId: user.id,
+          )));
+          
+          // También refrescar los providers de períodos individuales
+          ref.refresh(athleteActivePeriodsProvider((
+            academyId: widget.academyId,
+            athleteId: user.id,
+          )));
+        }
+      }
+    });
+    
+    setState(() {
+      _shouldRefreshAfterPayment = false;
+      _lastRefreshTime = DateTime.now();
+    });
+  }
+
   Widget _buildAlphabeticalList(List<AcademyUserModel> users) {
     // Ordenamos los usuarios alfabéticamente por nombre
     final sortedUsers = [...users];
@@ -206,6 +294,13 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // *** NUEVO: Listener para detectar cuando se regresa a la pantalla ***
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _shouldRefreshAfterPayment) {
+        _refreshDataAfterPaymentUpdate();
+      }
+    });
+    
     AppLogger.logInfo(
       'Construyendo AcademyMembersScreen',
       className: 'AcademyMembersScreen',
@@ -358,22 +453,35 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
                 }
               );
               
-              return CustomScrollView(
-                slivers: [
-                  // Scroll horizontal de avatares (solo si no hay búsqueda activa)
-                  if (_searchTerm.isEmpty)
-                    SliverToBoxAdapter(
-                      child: AcademyPaymentAvatarsSection(
-                        users: users,
-                        academyId: widget.academyId,
+              return RefreshIndicator(
+                onRefresh: () async {
+                  AppLogger.logInfo(
+                    'Ejecutando pull-to-refresh manual',
+                    className: 'AcademyMembersScreen',
+                    params: {
+                      'academyId': widget.academyId,
+                      'userCount': users.length,
+                    }
+                  );
+                  _refreshDataAfterPaymentUpdate();
+                },
+                child: CustomScrollView(
+                  slivers: [
+                    // Scroll horizontal de avatares (solo si no hay búsqueda activa)
+                    if (_searchTerm.isEmpty)
+                      SliverToBoxAdapter(
+                        child: AcademyPaymentAvatarsSection(
+                          users: users,
+                          academyId: widget.academyId,
+                        ),
                       ),
+                      
+                    // Lista alfabética
+                    SliverToBoxAdapter(
+                      child: _buildAlphabeticalList(users),
                     ),
-                    
-                  // Lista alfabética
-                  SliverToBoxAdapter(
-                    child: _buildAlphabeticalList(users),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
             loading: () {
@@ -420,6 +528,10 @@ class _AcademyMembersScreenState extends ConsumerState<AcademyMembersScreen> {
         'timestamp': DateTime.now().toString(),
       }
     );
+    
+    // *** NUEVO: Remover observer ***
+    WidgetsBinding.instance.removeObserver(this);
+    
     _searchController.dispose();
     super.dispose();
   }

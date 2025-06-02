@@ -7,9 +7,7 @@ import 'package:arcinus/features/subscriptions/presentation/providers/period_pro
 import 'package:arcinus/features/payments/data/models/payment_model.dart';
 import 'package:arcinus/features/payments/data/models/payment_config_model.dart';
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
-import 'package:arcinus/core/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:fpdart/fpdart.dart';
 import 'package:arcinus/features/payments/domain/services/payment_service.dart' as payment_service;
 import 'package:arcinus/features/payments/domain/repositories/payment_repository.dart' as repo;
 

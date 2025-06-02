@@ -9,7 +9,6 @@ import 'package:arcinus/features/academies/presentation/providers/current_academ
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
 import 'package:arcinus/features/memberships/presentation/screens/academy_user_details_screen.dart';
 import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
-import 'package:arcinus/features/payments/presentation/screens/payment_history_screen.dart';
 import 'package:arcinus/features/dev_tools/presentation/widgets/title_monitor_widget.dart';
 
 /// Modelo para representar un paso de navegación en la prueba
@@ -130,14 +129,6 @@ class _AppBarTitleIntegrationTestScreenState extends ConsumerState<AppBarTitleIn
         description: 'Navegar a los detalles de un usuario específico',
         action: () {
           _navigateToUserDetails();
-        },
-      ),
-      NavigationStep(
-        stepName: 'Historial de Pagos',
-        expectedTitle: 'Historial de pagos',
-        description: 'Navegar al historial de pagos del usuario',
-        action: () {
-          _navigateToPaymentHistory();
         },
       ),
       NavigationStep(
@@ -369,119 +360,6 @@ class _AppBarTitleIntegrationTestScreenState extends ConsumerState<AppBarTitleIn
         },
       );
       _showError('Error al navegar a detalles de usuario: $e');
-    }
-  }
-
-  void _navigateToPaymentHistory() async {
-    AppLogger.logInfo(
-      'Iniciando navegación a historial de pagos',
-      className: 'AppBarTitleIntegrationTestScreen',
-      functionName: '_navigateToPaymentHistory',
-    );
-    
-    final currentAcademy = ref.read(currentAcademyProvider);
-    if (currentAcademy?.id == null) {
-      AppLogger.logError(
-        message: 'No hay academia seleccionada para navegar a historial de pagos',
-        className: 'AppBarTitleIntegrationTestScreen',
-        functionName: '_navigateToPaymentHistory',
-      );
-      _showError('No hay academia seleccionada');
-      return;
-    }
-
-    AppLogger.logInfo(
-      'Academia encontrada, obteniendo usuarios para historial de pagos',
-      className: 'AppBarTitleIntegrationTestScreen',
-      functionName: '_navigateToPaymentHistory',
-      params: {
-        'academyId': currentAcademy!.id,
-        'academyName': currentAcademy.name,
-      },
-    );
-
-    try {
-      // Obtener la lista de usuarios de la academia
-      final usersAsync = ref.read(academyUsersProvider(currentAcademy.id!));
-      
-      usersAsync.when(
-        data: (users) {
-          AppLogger.logInfo(
-            'Usuarios obtenidos para historial de pagos',
-            className: 'AppBarTitleIntegrationTestScreen',
-            functionName: '_navigateToPaymentHistory',
-            params: {
-              'usersCount': users.length,
-            },
-          );
-          
-          if (users.isNotEmpty) {
-            // Tomar el primer usuario para la prueba
-            final firstUser = users.first;
-            
-            AppLogger.logInfo(
-              'Navegando a historial de pagos del primer usuario',
-              className: 'AppBarTitleIntegrationTestScreen',
-              functionName: '_navigateToPaymentHistory',
-              params: {
-                'userId': firstUser.id,
-                'userName': firstUser.fullName,
-              },
-            );
-            
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => PaymentHistoryScreen(
-                  academyId: currentAcademy.id!,
-                  athleteId: firstUser.id,
-                  athleteName: firstUser.fullName,
-                ),
-              ),
-            );
-          } else {
-            AppLogger.logWarning(
-              'No hay usuarios en la academia para historial de pagos',
-              className: 'AppBarTitleIntegrationTestScreen',
-              functionName: '_navigateToPaymentHistory',
-              params: {
-                'academyId': currentAcademy.id,
-              },
-            );
-            _showError('No hay usuarios en la academia para probar');
-          }
-        },
-        loading: () {
-          AppLogger.logInfo(
-            'Cargando usuarios para historial de pagos',
-            className: 'AppBarTitleIntegrationTestScreen',
-            functionName: '_navigateToPaymentHistory',
-          );
-          _showError('Cargando usuarios...');
-        },
-        error: (error, _) {
-          AppLogger.logError(
-            message: 'Error al cargar usuarios para historial de pagos',
-            error: error,
-            className: 'AppBarTitleIntegrationTestScreen',
-            functionName: '_navigateToPaymentHistory',
-            params: {
-              'academyId': currentAcademy.id,
-            },
-          );
-          _showError('Error al cargar usuarios: $error');
-        },
-      );
-    } catch (e) {
-      AppLogger.logError(
-        message: 'Error crítico al navegar a historial de pagos',
-        error: e,
-        className: 'AppBarTitleIntegrationTestScreen',
-        functionName: '_navigateToPaymentHistory',
-        params: {
-          'academyId': currentAcademy.id,
-        },
-      );
-      _showError('Error al navegar a historial de pagos: $e');
     }
   }
 

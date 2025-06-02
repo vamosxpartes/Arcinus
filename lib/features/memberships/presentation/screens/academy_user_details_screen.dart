@@ -3,7 +3,7 @@ import 'package:arcinus/features/memberships/data/repositories/academy_users_rep
 import 'package:arcinus/features/subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/users/data/models/payment_status.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
-import 'package:arcinus/features/payments/presentation/screens/payment_history_screen.dart';
+import 'package:arcinus/features/payments/presentation/screens/register_payment_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/core/auth/roles.dart';
@@ -261,27 +261,104 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
 
   Widget _buildSubscriptionCard(BuildContext context, WidgetRef ref, AcademyUserModel user, AthleteCompleteInfo athleteInfo) {
     if (!athleteInfo.hasActivePlan) {
-      return const Card(
+      return Card(
+        color: AppTheme.mediumGray,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+          side: BorderSide(
+            color: AppTheme.lightGray.withAlpha(50),
+            width: 1,
+          ),
+        ),
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No hay información de suscripción disponible'),
+          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppTheme.spacingMd),
+                decoration: BoxDecoration(
+                  color: AppTheme.goldTrophy.withAlpha(20),
+                  borderRadius: BorderRadius.circular(AppTheme.spacingSm),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: AppTheme.goldTrophy,
+                      size: 24,
+                    ),
+                    const SizedBox(width: AppTheme.spacingSm),
+                    Expanded(
+                      child: Text(
+                        'Este atleta no tiene un plan de suscripción asignado',
+                        style: TextStyle(
+                          fontSize: AppTheme.bodySize,
+                          color: AppTheme.goldTrophy,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => RegisterPaymentScreen(
+                          athleteId: widget.userId,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_card, color: AppTheme.magnoliaWhite),
+                  label: const Text(
+                    'Asignar Plan y Registrar Pago',
+                    style: TextStyle(
+                      color: AppTheme.magnoliaWhite,
+                      fontSize: AppTheme.bodySize,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.bonfireRed,
+                    padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.spacingSm),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
     
     // Colores según estado de pago
     final Color statusColor;
+    final IconData statusIcon;
+    final String statusText;
+    
     switch (athleteInfo.clientUser.paymentStatus) {
       case PaymentStatus.active:
-        statusColor = Colors.green;
+        statusColor = AppTheme.courtGreen;
+        statusIcon = Icons.check_circle;
+        statusText = 'Activo';
         break;
       case PaymentStatus.overdue:
-        statusColor = Colors.orange;
+        statusColor = AppTheme.goldTrophy;
+        statusIcon = Icons.warning;
+        statusText = 'Próximo a vencer';
         break;
       case PaymentStatus.inactive:
-      // ignore: unreachable_switch_default
       default:
-        statusColor = Colors.grey;
+        statusColor = AppTheme.bonfireRed;
+        statusIcon = Icons.cancel;
+        statusText = 'Inactivo';
         break;
     }
 
@@ -294,76 +371,150 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
         : null;
 
     return Card(
+      color: AppTheme.mediumGray,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        side: BorderSide(
+          color: statusColor.withAlpha(50),
+          width: 1.5,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Encabezado
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              height: 100,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.payments, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Suscripción Actual',
-                    style: Theme.of(context).textTheme.titleLarge,
+          // Encabezado con gradiente
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [statusColor.withAlpha(30), statusColor.withAlpha(10)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppTheme.cardRadius),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingSm),
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(AppTheme.spacingSm),
                   ),
-                  const Spacer(),
-                  SizedBox(
-                    width: 150,
-                    height: 50,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.receipt_long),
-                      label: const Text('Ver pagos'),
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PaymentHistoryScreen(
-                              academyId: widget.academyId,
-                              athleteId: widget.userId,
-                              athleteName: user.fullName,
+                  child: Icon(
+                    Icons.credit_card,
+                    color: statusColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: AppTheme.spacingSm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gestión de Pagos',
+                        style: TextStyle(
+                          fontSize: AppTheme.subtitleSize,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.magnoliaWhite,
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spacingXs),
+                      Row(
+                        children: [
+                          Icon(
+                            statusIcon,
+                            color: statusColor,
+                            size: 16,
+                          ),
+                          const SizedBox(width: AppTheme.spacingXs),
+                          Text(
+                            'Estado: $statusText',
+                            style: TextStyle(
+                              fontSize: AppTheme.secondarySize,
+                              fontWeight: FontWeight.w500,
+                              color: statusColor,
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.bonfireRed,
+                    borderRadius: BorderRadius.circular(AppTheme.spacingSm),
+                  ),
+                  child: IconButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => RegisterPaymentScreen(
+                            athleteId: widget.userId,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.payment,
+                      color: AppTheme.magnoliaWhite,
+                      size: 20,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           
-          const Divider(height: 1),
-          
-          // Estado de pago
+          // Estado de pago detallado
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingMd, vertical: AppTheme.spacingSm),
             decoration: BoxDecoration(
-              color: statusColor.withAlpha(30),
+              color: statusColor.withAlpha(20),
             ),
             child: Row(
               children: [
                 Icon(
-                  athleteInfo.clientUser.paymentStatus == PaymentStatus.active
-                      ? Icons.check_circle
-                      : (athleteInfo.clientUser.paymentStatus == PaymentStatus.overdue
-                          ? Icons.warning
-                          : Icons.cancel),
+                  statusIcon,
                   color: statusColor,
-                  size: 24,
+                  size: 20,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.spacingSm),
                 Text(
-                  'Estado: ${athleteInfo.clientUser.paymentStatus.displayName}',
+                  'Estado de Suscripción: ${athleteInfo.clientUser.paymentStatus.displayName}',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppTheme.bodySize,
                     color: statusColor,
                   ),
                 ),
+                if (athleteInfo.remainingDays >= 0 && athleteInfo.clientUser.paymentStatus == PaymentStatus.active) ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingSm,
+                      vertical: AppTheme.spacingXs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withAlpha(30),
+                      borderRadius: BorderRadius.circular(AppTheme.spacingXs),
+                    ),
+                    child: Text(
+                      '${athleteInfo.remainingDays} días restantes',
+                      style: TextStyle(
+                        fontSize: AppTheme.captionSize,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -375,57 +526,146 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
                 if (currentPlan == null) return const SizedBox.shrink();
                 
                 return Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppTheme.spacingMd),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Plan: ${currentPlan.name}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Monto: ${currentPlan.amount} ${currentPlan.currency}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      Text(
-                        'Ciclo: ${currentPlan.billingCycle.displayName}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      if (currentPlan.benefits.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Beneficios:',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                      // Información del plan
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingSm),
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightGray.withAlpha(10),
+                          borderRadius: BorderRadius.circular(AppTheme.spacingSm),
+                          border: Border.all(
+                            color: AppTheme.lightGray.withAlpha(30),
+                            width: 1,
                           ),
                         ),
-                        ...currentPlan.benefits.map<Widget>((benefit) => 
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.stars,
+                                  color: AppTheme.goldTrophy,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: AppTheme.spacingXs),
+                                Text(
+                                  'Plan Actual',
+                                  style: TextStyle(
+                                    fontSize: AppTheme.secondarySize,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.lightGray,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppTheme.spacingXs),
+                            Text(
+                              currentPlan.name,
+                              style: TextStyle(
+                                fontSize: AppTheme.bodySize,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.magnoliaWhite,
+                              ),
+                            ),
+                            const SizedBox(height: AppTheme.spacingXs),
+                            Row(
+                              children: [
+                                Text(
+                                  'Monto: ',
+                                  style: TextStyle(
+                                    fontSize: AppTheme.secondarySize,
+                                    color: AppTheme.lightGray,
+                                  ),
+                                ),
+                                Text(
+                                  '${NumberFormat.currency(symbol: '\$', decimalDigits: 0).format(currentPlan.amount)} ${currentPlan.currency}',
+                                  style: TextStyle(
+                                    fontSize: AppTheme.secondarySize,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.magnoliaWhite,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingSm),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppTheme.spacingXs,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.courtGreen.withAlpha(30),
+                                    borderRadius: BorderRadius.circular(AppTheme.spacingXs),
+                                  ),
+                                  child: Text(
+                                    currentPlan.billingCycle.displayName,
+                                    style: TextStyle(
+                                      fontSize: AppTheme.captionSize,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppTheme.courtGreen,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      // Beneficios del plan (si existen)
+                      if (currentPlan.benefits.isNotEmpty) ...[
+                        const SizedBox(height: AppTheme.spacingSm),
+                        Text(
+                          'Beneficios Incluidos:',
+                          style: TextStyle(
+                            fontSize: AppTheme.secondarySize,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.lightGray,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingXs),
+                        ...currentPlan.benefits.take(3).map<Widget>((benefit) => 
                           Padding(
-                            padding: const EdgeInsets.only(left: 8, top: 4),
+                            padding: const EdgeInsets.only(bottom: AppTheme.spacingXs),
                             child: Row(
                               children: [
-                                const Icon(Icons.check, size: 14, color: Colors.green),
-                                const SizedBox(width: 4),
-                                Text(
-                                  benefit,
-                                  style: const TextStyle(fontSize: 14),
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: AppTheme.courtGreen,
+                                ),
+                                const SizedBox(width: AppTheme.spacingXs),
+                                Expanded(
+                                  child: Text(
+                                    benefit,
+                                    style: TextStyle(
+                                      fontSize: AppTheme.captionSize,
+                                      color: AppTheme.lightGray,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ),
+                        if (currentPlan.benefits.length > 3)
+                          Text(
+                            '+ ${currentPlan.benefits.length - 3} beneficios más',
+                            style: TextStyle(
+                              fontSize: AppTheme.captionSize,
+                              color: AppTheme.goldTrophy,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
                       ],
                     ],
                   ),
                 );
               },
               loading: () => const Padding(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(AppTheme.spacingMd),
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (_, __) => const SizedBox.shrink(),
@@ -434,36 +674,84 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
           // Información de fechas y progreso
           if (athleteInfo.nextPaymentDate != null && athleteInfo.lastPaymentDate != null)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Información de Pago:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  const Divider(color: AppTheme.lightGray),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        color: AppTheme.lightGray,
+                        size: 16,
+                      ),
+                      const SizedBox(width: AppTheme.spacingXs),
+                      Text(
+                        'Información de Pagos:',
+                        style: TextStyle(
+                          fontSize: AppTheme.secondarySize,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.lightGray,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Último pago: ${DateFormat('dd/MM/yyyy').format(athleteInfo.lastPaymentDate!)}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  Text(
-                    'Próximo pago: ${DateFormat('dd/MM/yyyy').format(athleteInfo.nextPaymentDate!)}',
-                    style: TextStyle(
-                      fontSize: 14, 
-                      fontWeight: FontWeight.bold,
-                      color: athleteInfo.remainingDays < 5
-                        ? Colors.red
-                        : AppTheme.darkGray,
-                    ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Último pago',
+                            style: TextStyle(
+                              fontSize: AppTheme.captionSize,
+                              color: AppTheme.lightGray,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(athleteInfo.lastPaymentDate!),
+                            style: TextStyle(
+                              fontSize: AppTheme.secondarySize,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.magnoliaWhite,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Próximo pago',
+                            style: TextStyle(
+                              fontSize: AppTheme.captionSize,
+                              color: AppTheme.lightGray,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(athleteInfo.nextPaymentDate!),
+                            style: TextStyle(
+                              fontSize: AppTheme.secondarySize,
+                              fontWeight: FontWeight.w700,
+                              color: athleteInfo.remainingDays < 5
+                                ? AppTheme.bonfireRed
+                                : AppTheme.magnoliaWhite,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   
                   // Barra de progreso
                   if (athleteInfo.remainingDays >= 0) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppTheme.spacingSm),
                     
                     // Cálculo para la barra de progreso
                     Builder(
@@ -489,11 +777,11 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
                           // Color según días restantes
                           final Color progressColor;
                           if (athleteInfo.remainingDays < 5) {
-                            progressColor = Colors.red;
+                            progressColor = AppTheme.bonfireRed;
                           } else if (athleteInfo.remainingDays < 15) {
-                            progressColor = Colors.orange;
+                            progressColor = AppTheme.goldTrophy;
                           } else {
-                            progressColor = Colors.green;
+                            progressColor = AppTheme.courtGreen;
                           }
                           
                           return Column(
@@ -504,49 +792,33 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Período actual:',
+                                    'Progreso del período:',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.darkGray,
+                                      fontSize: AppTheme.captionSize,
+                                      color: AppTheme.lightGray,
                                     ),
                                   ),
                                   Text(
                                     '${athleteInfo.remainingDays} días restantes',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: athleteInfo.remainingDays < 5 ? Colors.red : AppTheme.darkGray,
+                                      fontSize: AppTheme.captionSize,
+                                      fontWeight: FontWeight.w600,
+                                      color: athleteInfo.remainingDays < 5 ? AppTheme.bonfireRed : AppTheme.lightGray,
                                     ),
                                   ),
                                 ],
                               ),
                               
                               // Barra de progreso
-                              const SizedBox(height: 4),
+                              const SizedBox(height: AppTheme.spacingXs),
                               ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
+                                borderRadius: BorderRadius.circular(AppTheme.spacingXs),
                                 child: LinearProgressIndicator(
                                   value: clampedProgress,
-                                  backgroundColor: Colors.grey.withAlpha(60),
+                                  backgroundColor: AppTheme.lightGray.withAlpha(30),
                                   valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-                                  minHeight: 5,
+                                  minHeight: 6,
                                 ),
-                              ),
-                              
-                              // Fechas de inicio y fin
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    DateFormat('dd/MM/yyyy').format(lastPayment),
-                                    style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
-                                  ),
-                                  Text(
-                                    DateFormat('dd/MM/yyyy').format(nextPayment),
-                                    style: TextStyle(fontSize: 10, color: AppTheme.darkGray),
-                                  ),
-                                ],
                               ),
                             ],
                           );
@@ -556,6 +828,39 @@ class _AcademyUserDetailsScreenState extends ConsumerState<AcademyUserDetailsScr
                       }
                     ),
                   ],
+                  
+                  // Botón de acción principal
+                  const SizedBox(height: AppTheme.spacingMd),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => RegisterPaymentScreen(
+                              athleteId: widget.userId,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.payment, color: AppTheme.magnoliaWhite),
+                      label: const Text(
+                        'Gestionar Pagos y Períodos',
+                        style: TextStyle(
+                          color: AppTheme.magnoliaWhite,
+                          fontSize: AppTheme.bodySize,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.bonfireRed,
+                        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.spacingSm),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

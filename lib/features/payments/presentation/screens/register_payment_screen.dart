@@ -1,4 +1,3 @@
-import 'package:arcinus/features/payments/presentation/providers/payment_providers.dart';
 import 'package:arcinus/features/users/presentation/providers/client_user_provider.dart';
 import 'package:arcinus/features/academies/presentation/providers/current_academy_provider.dart';
 import 'package:arcinus/features/memberships/presentation/providers/academy_users_providers.dart';
@@ -62,6 +61,9 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   // Claves de formularios
   final _formKey = GlobalKey<FormState>();
 
+  // *** NUEVO: Controlador para manejar el estado del AddPeriodCardWidget ***
+  AddPeriodCardController? _addPeriodCardController;
+
   // Controladores de texto
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _conceptController = TextEditingController();
@@ -83,7 +85,6 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
 
   // Nuevas variables para la refactorización
   List<SubscriptionAssignmentModel> _existingPeriods = [];
-  int _totalRemainingDays = 0;
   bool _showPaymentForm = false;
   
   // Variables para nuevo período en configuración
@@ -105,6 +106,9 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // *** NUEVO: Inicializar controlador del AddPeriodCardWidget ***
+    _addPeriodCardController = AddPeriodCardController();
     
     AppLogger.logInfo(
       'Inicializando pantalla refactorizada de gestión de períodos',
@@ -135,6 +139,10 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     _amountController.dispose();
     _conceptController.dispose();
     _notesController.dispose();
+    
+    // *** NUEVO: Limpiar controlador ***
+    _addPeriodCardController = null;
+    
     super.dispose();
   }
 
@@ -241,7 +249,6 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       
       setState(() {
         _existingPeriods = activePeriods;
-        _totalRemainingDays = totalRemainingDays;
       });
       
       // Cargar nombres de planes para los períodos existentes
@@ -369,11 +376,14 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         _selectedAthleteId = athleteId;
         _isInitialized = false;
         _existingPeriods = [];
-        _totalRemainingDays = 0;
         _showPaymentForm = false;
         _newPeriodConfig = null;
         _planNamesCache = {};
       });
+      
+      // *** NUEVO: Resetear el AddPeriodCardWidget ***
+      _addPeriodCardController?.resetToInitial();
+      
       _initializeAsync();
     }
   }
@@ -413,10 +423,24 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       _showPaymentForm = false;
       _newPeriodConfig = null;
     });
+    
+    // *** NUEVO: Resetear el AddPeriodCardWidget al ocultar el formulario ***
+    _addPeriodCardController?.resetToInitial();
   }
 
   void _onPeriodCardTapped(SubscriptionAssignmentModel period) {
     _showPeriodDetailsBottomSheet(period);
+  }
+
+  // *** NUEVO: Callback para cambios de estado del AddPeriodCardWidget ***
+  void _onAddPeriodStateChanged() {
+    // Opcional: reaccionar a cambios de estado del widget
+    AppLogger.logInfo(
+      'Estado del AddPeriodCardWidget cambió',
+      className: 'RegisterPaymentScreenState',
+      functionName: '_onAddPeriodStateChanged',
+      params: {'newState': _addPeriodCardController?.currentState?.toString()},
+    );
   }
 
   void _showPeriodDetailsBottomSheet(SubscriptionAssignmentModel period) {
@@ -1137,7 +1161,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
     if (_selectedAthleteId == null) {
       return Column(
         children: [
-          UserHeaderWidget(), // Mostrará el prompt de selección
+          UserHeaderWidget(periodsInfo: null), // Sin atleta seleccionado
           const SizedBox(height: AppTheme.spacingMd),
           AthleteSelector(
             selectedAthleteId: _selectedAthleteId,
@@ -1148,7 +1172,7 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       );
     }
     
-    // Usar AthleteCompleteInfo si está disponible
+    // Usar únicamente AthleteCompleteInfo con información de períodos
     final academyId = ref.read(currentAcademyProvider)?.id;
     if (academyId != null) {
       final athleteInfoAsync = ref.watch(athleteCompleteInfoProvider((
@@ -1160,29 +1184,26 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         data: (athleteInfo) => UserHeaderWidget(
           clientUser: athleteInfo.clientUser,
           academyUser: _academyUser,
-          hasActivePlan: athleteInfo.hasActivePlan,
-          totalRemainingDays: athleteInfo.remainingDays,
+          periodsInfo: athleteInfo.periodsInfo, // Solo usar información de períodos
         ),
         loading: () => UserHeaderWidget(
           clientUser: _clientUser,
           academyUser: _academyUser,
-          hasActivePlan: _existingPeriods.isNotEmpty,
-          totalRemainingDays: _totalRemainingDays,
+          periodsInfo: null, // Cargando - sin información
         ),
         error: (error, stack) => UserHeaderWidget(
           clientUser: _clientUser,
           academyUser: _academyUser,
-          hasActivePlan: _existingPeriods.isNotEmpty,
-          totalRemainingDays: _totalRemainingDays,
+          periodsInfo: null, // Error - sin información
         ),
       );
     }
     
+    // Fallback cuando no hay academyId
     return UserHeaderWidget(
       clientUser: _clientUser,
       academyUser: _academyUser,
-      hasActivePlan: _existingPeriods.isNotEmpty,
-      totalRemainingDays: _totalRemainingDays,
+      periodsInfo: null, // Sin información de períodos
     );
   }
 
@@ -1253,8 +1274,10 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
             academyId: academyId,
             config: _paymentConfig,
             currency: _selectedCurrency,
+            controller: _addPeriodCardController,
             onPeriodConfigured: _onPeriodConfigured,
             onPaymentRequired: _onPaymentRequired,
+            onStateChanged: _onAddPeriodStateChanged,
           ),
         ),
         
@@ -1496,6 +1519,9 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         _isLoading = true;
       });
       
+      // *** NUEVO: Indicar al AddPeriodCardWidget que el pago está siendo procesado ***
+      _addPeriodCardController?.setPaymentPending();
+      
       AppLogger.logInfo(
         'Enviando pago para período configurado usando EnhancedPaymentService',
         className: 'RegisterPaymentScreenState',
@@ -1556,6 +1582,9 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       ),
     );
     
+    // *** NUEVO: Indicar al AddPeriodCardWidget que el pago fue exitoso ***
+    _addPeriodCardController?.setPaymentSuccess();
+    
     // Resetear estado
     setState(() {
       _showPaymentForm = false;
@@ -1582,6 +1611,12 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
         status: null
       )));
       
+      // *** NUEVO: Invalidar el provider completo del atleta ***
+      ref.invalidate(athleteCompleteInfoProvider((
+        academyId: academyId,
+        athleteId: _selectedAthleteId!,
+      )));
+      
       AppLogger.logInfo(
         'DIAGNÓSTICO: Providers invalidados inmediatamente tras pago exitoso',
         className: 'RegisterPaymentScreenState',
@@ -1596,9 +1631,23 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       // 2. Recargar períodos con múltiples intentos si es necesario
       _retryLoadExistingPeriods(academyId, maxAttempts: 3);
     }
+    
+    // *** NUEVO: Cerrar la pantalla con resultado exitoso después de un delay ***
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        Navigator.of(context).pop('payment_registered');
+      }
+    });
   }
 
   void _handlePaymentFailure(dynamic failure) {
+    // *** NUEVO: Indicar al AddPeriodCardWidget que hubo un error ***
+    _addPeriodCardController?.setPaymentError('Error al procesar el pago: ${failure.toString()}');
+    
+    setState(() {
+      _isLoading = false;
+    });
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Error al registrar el pago'),
@@ -1610,36 +1659,52 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
   void _invalidateProvidersAfterPayment() {
     final academyId = ref.read(currentAcademyProvider)?.id;
     
-    if (_selectedAthleteId != null) {
+    if (_selectedAthleteId != null && academyId != null) {
+      // *** CRÍTICO: Invalidar y refrescar INMEDIATAMENTE todos los providers del atleta ***
+      
+      // 1. Providers de usuario básico
       ref.invalidate(clientUserCachedProvider(_selectedAthleteId!));
       ref.invalidate(clientUserProvider(_selectedAthleteId!));
       
-      // *** CRÍTICO: Invalidar TODOS los providers de períodos ***
-      ref.invalidate(athleteActivePeriodsProvider((
-        academyId: academyId!, 
-        athleteId: _selectedAthleteId!
-      )));
-      
-      ref.invalidate(athleteCurrentPeriodProvider((
+      // 2. Providers de períodos - USAR REFRESH para actualización inmediata
+      ref.refresh(athleteActivePeriodsProvider((
         academyId: academyId, 
         athleteId: _selectedAthleteId!
       )));
       
-      ref.invalidate(athletePeriodsProvider((
+      ref.refresh(athleteCurrentPeriodProvider((
+        academyId: academyId, 
+        athleteId: _selectedAthleteId!
+      )));
+      
+      ref.refresh(athletePeriodsProvider((
         academyId: academyId, 
         athleteId: _selectedAthleteId!,
         status: null
       )));
+      
+      // 3. Provider completo del atleta - USAR REFRESH
+      ref.refresh(athleteCompleteInfoProvider((
+        academyId: academyId,
+        athleteId: _selectedAthleteId!,
+      )));
+      
+      // 4. Provider de usuarios de la academia
+      ref.refresh(academyUsersProvider(academyId));
       
       try {
         final notifier = ref.read(clientUserCachedProvider(_selectedAthleteId!).notifier);
         notifier.invalidateAfterPayment();
         
         AppLogger.logInfo(
-          'Providers invalidados correctamente incluyendo períodos',
+          'Providers invalidados y refrescados correctamente incluyendo períodos',
           className: 'RegisterPaymentScreenState',
           functionName: '_invalidateProvidersAfterPayment',
-          params: {'athleteId': _selectedAthleteId!}
+          params: {
+            'athleteId': _selectedAthleteId!,
+            'academyId': academyId,
+            'action': 'refresh_immediate'
+          }
         );
       } catch (e) {
         AppLogger.logWarning(
@@ -1651,8 +1716,28 @@ class RegisterPaymentScreenState extends ConsumerState<RegisterPaymentScreen> {
       }
     }
     
-    if (academyId != null) {
-      ref.invalidate(academyUsersProvider(academyId));
+    // *** NUEVO: Programar un refresh adicional para asegurar que los cambios se propaguen ***
+    if (academyId != null && _selectedAthleteId != null) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          ref.refresh(academyUsersProvider(academyId));
+          ref.refresh(athleteCompleteInfoProvider((
+            academyId: academyId,
+            athleteId: _selectedAthleteId!,
+          )));
+          
+          AppLogger.logInfo(
+            'Refresh adicional ejecutado para asegurar propagación de cambios',
+            className: 'RegisterPaymentScreenState',
+            functionName: '_invalidateProvidersAfterPayment',
+            params: {
+              'athleteId': _selectedAthleteId!,
+              'academyId': academyId,
+              'delayedRefresh': true
+            }
+          );
+        }
+      });
     }
   }
 

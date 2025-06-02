@@ -12,6 +12,7 @@ import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/features/subscriptions/presentation/providers/athlete_periods_info_provider.dart';
+import 'package:arcinus/features/subscriptions/domain/services/athlete_periods_helper.dart';
 
 class AcademyUserCard extends ConsumerStatefulWidget {
   final AcademyUserModel user;
@@ -158,7 +159,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
           _navigateToDetails(context);
         } else if (direction == DismissDirection.endToStart && isAthlete) {
           // Deslizar a la izquierda: ir a pagos (solo atletas)
-          _navigateToPayments(context);
+          await _navigateToPayments(context);
         }
         return false; // No eliminar el item
       },
@@ -190,7 +191,7 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
       child: Row(
         children: [
           // Avatar (optimizado con Hero widget)
-          _buildAvatarSection(userRole),
+          _buildAvatarSection(userRole, athleteCompleteInfoAsync),
           
           const SizedBox(width: 16),
           
@@ -232,15 +233,43 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
     );
   }
 
-  /// Construye la sección del avatar
-  Widget _buildAvatarSection(AppRole userRole) {
+  /// Construye la sección del avatar con información de períodos
+  Widget _buildAvatarSection(AppRole userRole, AsyncValue<AthleteCompleteInfo>? athleteCompleteInfoAsync) {
+    // Para atletas, usar únicamente información de períodos para determinar el color del borde
+    Color borderColor = RoleUtils.getRoleColor(userRole);
+    
+    if (userRole == AppRole.atleta && athleteCompleteInfoAsync != null) {
+      athleteCompleteInfoAsync.when(
+        data: (athleteInfo) {
+          // Determinar color basándose únicamente en información de períodos
+          if (athleteInfo.periodsInfo != null) {
+            final periodsInfo = athleteInfo.periodsInfo!;
+            if (periodsInfo.isExpired) {
+              borderColor = AppTheme.bonfireRed; // Vencido
+            } else if (periodsInfo.isNearExpiry) {
+              borderColor = AppTheme.goldTrophy; // Próximo a vencer
+            } else if (periodsInfo.hasActivePlan) {
+              borderColor = AppTheme.courtGreen; // Activo y saludable
+            } else {
+              borderColor = AppTheme.lightGray; // Sin plan
+            }
+          } else {
+            // Sin información de períodos - color neutral
+            borderColor = AppTheme.lightGray;
+          }
+        },
+        loading: () => borderColor = AppTheme.lightGray,
+        error: (_, __) => borderColor = AppTheme.lightGray,
+      );
+    }
+    
     return Hero(
       tag: 'user_avatar_${widget.user.id}',
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: RoleUtils.getRoleColor(userRole),
+            color: borderColor,
             width: 2,
           ),
         ),
@@ -294,16 +323,41 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
     );
   }
 
-  /// Construye el indicador de estado de pago
+  /// Construye el indicador de estado de pago usando únicamente información de períodos
   Widget _buildPaymentStatusIndicator(AsyncValue<AthleteCompleteInfo> athleteCompleteInfoAsync) {
     return athleteCompleteInfoAsync.when(
       data: (athleteInfo) {
-        // Determinar color y etiqueta según estado de pago
-        final (statusColor, statusText, statusIcon) = switch (athleteInfo.clientUser.paymentStatus) {
-          PaymentStatus.active => (AppTheme.courtGreen, 'Activo', Icons.check_circle),
-          PaymentStatus.overdue => (AppTheme.bonfireRed, 'En mora', Icons.warning_amber),
-          PaymentStatus.inactive || _ => (Colors.grey, 'Inactivo', Icons.cancel),
-        };
+        // Usar únicamente información de períodos
+        Color statusColor;
+        String statusText;
+        IconData statusIcon;
+        
+        if (athleteInfo.periodsInfo != null) {
+          final periodsInfo = athleteInfo.periodsInfo!;
+          
+          if (periodsInfo.isExpired) {
+            statusColor = AppTheme.bonfireRed;
+            statusText = 'Vencido';
+            statusIcon = Icons.error;
+          } else if (periodsInfo.isNearExpiry) {
+            statusColor = AppTheme.goldTrophy;
+            statusText = 'Por vencer';
+            statusIcon = Icons.warning_amber;
+          } else if (periodsInfo.hasActivePlan) {
+            statusColor = AppTheme.courtGreen;
+            statusText = 'Activo';
+            statusIcon = Icons.check_circle;
+          } else {
+            statusColor = Colors.grey;
+            statusText = 'Sin plan';
+            statusIcon = Icons.cancel;
+          }
+        } else {
+          // Sin información de períodos
+          statusColor = AppTheme.lightGray;
+          statusText = 'Cargando';
+          statusIcon = Icons.hourglass_empty;
+        }
         
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -333,8 +387,63 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
           ),
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      loading: () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppTheme.lightGray.withAlpha(30),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.lightGray.withAlpha(100), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.lightGray),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Cargando',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.lightGray,
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (_, __) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          color: AppTheme.bonfireRed.withAlpha(30),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.bonfireRed.withAlpha(100), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error,
+              color: AppTheme.bonfireRed,
+              size: 12,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Error',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.bonfireRed,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -475,13 +584,51 @@ class _AcademyUserCardState extends ConsumerState<AcademyUserCard> {
   }
 
   /// Navega a la pantalla de pagos
-  void _navigateToPayments(BuildContext context) {
-    Navigator.of(context).push(
+  Future<void> _navigateToPayments(BuildContext context) async {
+    AppLogger.logInfo(
+      'Navegando a pantalla de pagos',
+      className: 'AcademyUserCard',
+      params: {
+        'athleteId': widget.user.id,
+        'athleteName': widget.user.fullName,
+        'academyId': widget.academyId,
+      }
+    );
+    
+    final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => RegisterPaymentScreen(
           athleteId: widget.user.id,
         ),
       ),
     );
+    
+    // *** NUEVO: Si se registró un pago, forzar actualización inmediata ***
+    if (result == true || result == 'payment_registered') {
+      AppLogger.logInfo(
+        'Pago registrado exitosamente, invalidando providers del atleta',
+        className: 'AcademyUserCard',
+        params: {
+          'athleteId': widget.user.id,
+          'academyId': widget.academyId,
+          'result': result.toString(),
+        }
+      );
+      
+      // Invalidar inmediatamente los providers para este atleta específico
+      if (mounted) {
+        ref.invalidate(athleteCompleteInfoProvider((
+          academyId: widget.academyId,
+          athleteId: widget.user.id,
+        )));
+        
+        ref.invalidate(clientUserProvider(widget.user.id));
+        
+        // Forzar reconstrucción del widget
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    }
   }
 } 
