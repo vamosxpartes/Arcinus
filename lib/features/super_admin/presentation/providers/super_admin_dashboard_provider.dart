@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/features/super_admin/data/providers/dashboard_repository_provider.dart';
+import 'package:arcinus/features/super_admin/data/repositories/super_admin_dashboard_repository.dart';
 
 part 'super_admin_dashboard_provider.freezed.dart';
 
@@ -71,68 +73,96 @@ enum SystemAlertType {
 
 /// Notifier del Dashboard del SuperAdmin
 class SuperAdminDashboardNotifier extends StateNotifier<SuperAdminDashboardState> {
-  SuperAdminDashboardNotifier() : super(const SuperAdminDashboardState());
+  SuperAdminDashboardNotifier(this._repository) : super(const SuperAdminDashboardState());
 
-  /// Carga los datos del dashboard
+  final SuperAdminDashboardRepository _repository;
+
+  /// Carga los datos del dashboard desde Firestore
   Future<void> loadDashboardData() async {
     try {
       AppLogger.logInfo(
-        'Cargando datos del dashboard del SuperAdmin',
+        'Cargando datos del dashboard del SuperAdmin desde Firestore',
         className: 'SuperAdminDashboardNotifier',
         functionName: 'loadDashboardData',
       );
 
       state = state.copyWith(isLoading: true, hasError: false);
 
-      // Simular carga de datos - en producción sería desde repositorios reales
-      await Future.delayed(const Duration(seconds: 2));
+      // Obtener métricas del dashboard
+      final metricsResult = await _repository.getDashboardMetrics();
+      
+      await metricsResult.fold(
+        (failure) async {
+          AppLogger.logError(
+            message: 'Error al cargar métricas del dashboard',
+            error: failure,
+            className: 'SuperAdminDashboardNotifier',
+            functionName: 'loadDashboardData',
+          );
 
-      // Datos simulados
-      final newState = state.copyWith(
-        isLoading: false,
-        totalOwners: 1247,
-        pendingOwners: 23,
-        activeOwners: 1224,
-        totalAcademies: 89,
-        activeAcademies: 83,
-        inactiveAcademies: 6,
-        totalUsers: 15432,
-        activeUsers: 12890,
-        newUsersThisMonth: 234,
-        monthlyRevenue: 45680.0,
-        revenueGrowth: 12.5,
-        totalRevenue: 523456.78,
-        activeSessions: 456,
-        averageSessionTime: 24.5,
-        topFeatures: [
-          'Gestión de Miembros',
-          'Programación de Clases',
-          'Sistema de Pagos',
-          'Reportes',
-          'Comunicación'
-        ],
-        systemUptime: 99.8,
-        criticalErrors: 0,
-        systemAlerts: _generateSampleAlerts(),
-        lastUpdate: DateTime.now(),
-      );
+          state = state.copyWith(
+            isLoading: false,
+            hasError: true,
+            errorMessage: 'Error al cargar los datos del dashboard: ${failure.message}',
+          );
+        },
+        (metrics) async {
+          // Obtener alertas del sistema
+          final alertsResult = await _repository.getSystemAlerts();
+          
+          final alerts = alertsResult.fold(
+            (failure) {
+              AppLogger.logWarning(
+                'Error al cargar alertas del sistema',
+                className: 'SuperAdminDashboardNotifier',
+                functionName: 'loadDashboardData',
+                error: failure,
+              );
+              return <SystemAlert>[];
+            },
+            (alertsList) => alertsList,
+          );
 
-      state = newState;
+          // Actualizar estado con métricas reales
+          state = state.copyWith(
+            isLoading: false,
+            totalOwners: metrics.totalOwners,
+            pendingOwners: metrics.pendingOwners,
+            activeOwners: metrics.activeOwners,
+            totalAcademies: metrics.totalAcademies,
+            activeAcademies: metrics.activeAcademies,
+            inactiveAcademies: metrics.inactiveAcademies,
+            totalUsers: metrics.totalUsers,
+            activeUsers: metrics.activeUsers,
+            newUsersThisMonth: metrics.newUsersThisMonth,
+            monthlyRevenue: metrics.monthlyRevenue,
+            revenueGrowth: metrics.revenueGrowth,
+            totalRevenue: metrics.totalRevenue,
+            activeSessions: metrics.activeSessions,
+            averageSessionTime: metrics.averageSessionTime,
+            topFeatures: metrics.topFeatures,
+            systemUptime: metrics.systemUptime,
+            criticalErrors: metrics.criticalErrors,
+            systemAlerts: alerts,
+            lastUpdate: DateTime.now(),
+          );
 
-      AppLogger.logInfo(
-        'Datos del dashboard cargados exitosamente',
-        className: 'SuperAdminDashboardNotifier',
-        functionName: 'loadDashboardData',
-        params: {
-          'totalOwners': newState.totalOwners,
-          'totalAcademies': newState.totalAcademies,
-          'totalUsers': newState.totalUsers,
+          AppLogger.logInfo(
+            'Datos del dashboard cargados exitosamente desde Firestore',
+            className: 'SuperAdminDashboardNotifier',
+            functionName: 'loadDashboardData',
+            params: {
+              'totalOwners': metrics.totalOwners,
+              'totalAcademies': metrics.totalAcademies,
+              'totalUsers': metrics.totalUsers,
+              'monthlyRevenue': metrics.monthlyRevenue,
+            },
+          );
         },
       );
-
     } catch (error, stackTrace) {
       AppLogger.logError(
-        message: 'Error al cargar datos del dashboard',
+        message: 'Error inesperado al cargar datos del dashboard',
         error: error,
         stackTrace: stackTrace,
         className: 'SuperAdminDashboardNotifier',
@@ -142,7 +172,7 @@ class SuperAdminDashboardNotifier extends StateNotifier<SuperAdminDashboardState
       state = state.copyWith(
         isLoading: false,
         hasError: true,
-        errorMessage: 'Error al cargar los datos del dashboard',
+        errorMessage: 'Error inesperado al cargar los datos del dashboard',
       );
     }
   }
@@ -150,7 +180,7 @@ class SuperAdminDashboardNotifier extends StateNotifier<SuperAdminDashboardState
   /// Refresca los datos del dashboard
   Future<void> refreshDashboard() async {
     AppLogger.logInfo(
-      'Refrescando dashboard del SuperAdmin',
+      'Refrescando dashboard del SuperAdmin desde Firestore',
       className: 'SuperAdminDashboardNotifier',
       functionName: 'refreshDashboard',
     );
@@ -176,38 +206,10 @@ class SuperAdminDashboardNotifier extends StateNotifier<SuperAdminDashboardState
       params: {'alertId': alertId},
     );
   }
-
-  /// Genera alertas de ejemplo
-  List<SystemAlert> _generateSampleAlerts() {
-    return [
-      SystemAlert(
-        id: '1',
-        title: 'Suscripciones Vencidas',
-        message: '5 academias tienen suscripciones vencidas que requieren atención',
-        type: SystemAlertType.warning,
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        actionUrl: '/super-admin/subscriptions/expired',
-      ),
-      SystemAlert(
-        id: '2',
-        title: 'Nuevos Propietarios Pendientes',
-        message: '8 propietarios esperan aprobación de cuenta',
-        type: SystemAlertType.info,
-        timestamp: DateTime.now().subtract(const Duration(hours: 6)),
-        actionUrl: '/super-admin/owners/pending',
-      ),
-      SystemAlert(
-        id: '3',
-        title: 'Backup Completado',
-        message: 'Respaldo del sistema completado exitosamente',
-        type: SystemAlertType.success,
-        timestamp: DateTime.now().subtract(const Duration(hours: 12)),
-      ),
-    ];
-  }
 }
 
-/// Provider del Dashboard del SuperAdmin
+/// Provider del Dashboard del SuperAdmin con datos reales
 final superAdminDashboardProvider = StateNotifierProvider<SuperAdminDashboardNotifier, SuperAdminDashboardState>((ref) {
-  return SuperAdminDashboardNotifier();
+  final repository = ref.watch(superAdminDashboardRepositoryProvider);
+  return SuperAdminDashboardNotifier(repository);
 }); 

@@ -20,6 +20,7 @@ class UserModel with _$UserModel {
     String? photoUrl,
     // Rol principal del usuario en la app (obtenido de Custom Claims o Firestore)
     // Podría ser útil tenerlo aquí para acceso rápido.
+    @JsonKey(name: 'role')
     @Default(AppRole.desconocido) AppRole appRole,
     // Indica si el perfil inicial se ha completado
     @Default(false) bool profileCompleted,

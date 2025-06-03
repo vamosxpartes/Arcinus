@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:arcinus/features/super_admin/presentation/providers/super_admin_dashboard_provider.dart';
@@ -335,7 +336,7 @@ class _SuperAdminDashboardScreenState extends ConsumerState<SuperAdminDashboardS
       className: 'SuperAdminDashboardScreen',
       functionName: '_navigateToOwners',
     );
-    // TODO: Implementar navegación a SuperAdminRoutes.owners
+    context.go('/superadmin/owners');
   }
 
   void _navigateToAcademies() {

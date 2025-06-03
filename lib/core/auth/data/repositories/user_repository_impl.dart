@@ -150,7 +150,7 @@ class UserRepositoryImpl implements UserRepository {
           // 6. Si es propietario, actualizar el campo role en users
           if (managerType == AppRole.propietario && user.appRole != AppRole.propietario) {
             await _usersCollection.doc(userId).update({
-              'appRole': managerType.name,
+              'role': managerType.name,
             });
           }
           
@@ -207,7 +207,7 @@ class UserRepositoryImpl implements UserRepository {
           // 5. Actualizar el campo role en users si es necesario
           if (user.appRole != clientType) {
             await _usersCollection.doc(userId).update({
-              'appRole': clientType.name,
+              'role': clientType.name,
             });
           }
           

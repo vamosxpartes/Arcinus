@@ -38,6 +38,8 @@ import 'package:arcinus/features/academy_users/presentation/screens/profile_scre
 import 'package:arcinus/features/academy_users_subscriptions/presentation/screens/subscription_plans_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/manager_dashboard_screen.dart';
 import 'package:arcinus/features/super_admin/presentation/screens/super_admin_dashboard_screen.dart';
+import 'package:arcinus/features/super_admin/presentation/screens/owners_manage_screen.dart';
+import 'package:arcinus/features/super_admin/presentation/screens/owner_details_screen.dart';
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -773,12 +775,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                  GoRoute(
                    path: 'owners',
                    name: 'superAdminOwners',
-                   builder: (context, state) => ScreenUnderDevelopment(
-                     message: 'Gestión de Propietarios',
-                     icon: Icons.person_outline,
-                     primaryColor: Colors.deepPurple,
-                     description: 'Administración y aprobación de propietarios de academias',
-                   ),
+                   builder: (context, state) => const OwnersManageScreen(),
+                   routes: [
+                     GoRoute(
+                       path: ':ownerId',
+                       name: 'superAdminOwnerDetails',
+                       builder: (context, state) {
+                         final ownerId = state.pathParameters['ownerId']!;
+                         return OwnerDetailsScreen(ownerId: ownerId);
+                       },
+                     ),
+                   ],
                  ),
                  
                  // --- Gestión de Academias ---
