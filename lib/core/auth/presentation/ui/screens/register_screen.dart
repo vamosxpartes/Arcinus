@@ -1,5 +1,5 @@
 import 'package:arcinus/core/utils/constants/app_assets.dart';
-import 'package:arcinus/core/navigation/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/app_routes.dart';
 import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/core/auth/presentation/state/auth_state.dart';
 import 'package:arcinus/core/auth/presentation/ui/widgets/password_strength_meter.dart';
@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:reactive_forms/reactive_forms.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
+import 'package:arcinus/core/navigation/routes/auth_routes.dart';
 
 /// Pantalla para registrar un nuevo usuario con formulario por pasos.
 ///
@@ -458,7 +459,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     width: 200,
                     height: 60,
                     child: TextButton(
-                      onPressed: () => context.push(AppRoutes.login),
+                      onPressed: () => context.push(AuthRoutes.login),
                       child: const Text('Inicia sesión'),
                     ),
                   ),

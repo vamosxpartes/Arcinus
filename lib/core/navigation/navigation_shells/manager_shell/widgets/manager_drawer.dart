@@ -9,7 +9,8 @@ import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/core/auth/roles.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
-import 'package:arcinus/core/navigation/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/manager_routes.dart';
 
 const String _createNewAcademyValue = '__CREATE_NEW_ACADEMY__';
 
@@ -213,7 +214,7 @@ class ManagerDrawer extends ConsumerWidget {
                       ),
                       onPressed: () {
                         Navigator.pop(context);
-                        context.go(AppRoutes.managerCreateAcademy);
+                        context.go(ManagerRoutes.createAcademy);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.magnoliaWhite.withAlpha(60),
@@ -271,7 +272,7 @@ class ManagerDrawer extends ConsumerWidget {
                         if (newValue != null) {
                           if (newValue == _createNewAcademyValue) {
                             Navigator.pop(context); // Cerrar el drawer
-                            context.go(AppRoutes.managerCreateAcademy);
+                            context.go(ManagerRoutes.createAcademy);
                           } else {
                             // Buscar la academia completa por ID
                             final selectedAcademy = academies.firstWhere(
@@ -335,7 +336,7 @@ class ManagerDrawer extends ConsumerWidget {
         // --- Dashboard ---
         _buildDrawerItem(
           context,
-          AppRoutes.managerDashboard,
+          ManagerRoutes.dashboard,
           Icons.dashboard,
           'Dashboard',
           isActive: true,
@@ -384,7 +385,7 @@ class ManagerDrawer extends ConsumerWidget {
             Navigator.pop(context);
             final currentAcademy = ref.read(currentAcademyProvider);
             if (currentAcademy != null && currentAcademy.id != null && currentAcademy.id!.isNotEmpty) {
-              context.go(AppRoutes.managerAcademyMembers.replaceAll(':academyId', currentAcademy.id!));
+              context.go(ManagerRoutes.academyMembers.replaceAll(':academyId', currentAcademy.id!));
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Por favor, selecciona una academia para ver sus miembros.')),
@@ -554,7 +555,7 @@ class ManagerDrawer extends ConsumerWidget {
         // --- Perfil ---
         _buildDrawerItem(
           context,
-          AppRoutes.managerProfile,
+          ManagerRoutes.profile,
           Icons.person,
           'Mi Perfil',
           isActive: true,
@@ -563,7 +564,7 @@ class ManagerDrawer extends ConsumerWidget {
         // --- Ajustes ---
         _buildDrawerItem(
           context,
-          AppRoutes.managerSettings,
+          ManagerRoutes.settings,
           Icons.settings,
           'Configuración',
           isActive: true,
@@ -644,7 +645,7 @@ class ManagerDrawer extends ConsumerWidget {
   // Navegar a test de casos de uso
   void _navigateToUseCaseTest(BuildContext context) {
     Navigator.pop(context); // Cerrar el drawer
-    context.go(AppRoutes.managerUseCaseTest);
+    context.go(ManagerRoutes.useCaseTest);
     
     AppLogger.logInfo(
       'Navegando a test de casos de uso',

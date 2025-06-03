@@ -1,5 +1,5 @@
 // Needed for User type
-import 'package:arcinus/core/providers/firebase_providers.dart'; // Firestore provider
+import 'package:arcinus/core/utils/providers/firebase_providers.dart'; // Firestore provider
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academies/domain/repositories/academy_repository.dart'; // Interfaz Repo
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart'; // Provider del Repo

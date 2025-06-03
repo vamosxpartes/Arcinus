@@ -1,7 +1,7 @@
 import 'package:arcinus/core/utils/constants/app_assets.dart';
 import 'package:arcinus/core/auth/presentation/providers/auth_providers.dart';
 import 'package:arcinus/core/auth/presentation/ui/widgets/auth_error_message.dart';
-import 'package:arcinus/core/navigation/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -251,7 +251,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: TextButton(
                       onPressed: () {
                         // Navegar a la pantalla de registro
-                        context.push(AppRoutes.register);
+                        context.push(AuthRoutes.register);
                       },
                       child: const Text('Regístrate'),
                     ),

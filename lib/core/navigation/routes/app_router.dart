@@ -1,5 +1,5 @@
 import 'package:arcinus/core/auth/roles.dart';
-import 'package:arcinus/core/navigation/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/app_routes.dart';
 import 'package:arcinus/features/academies/presentation/providers/owner_academies_provider.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/create_academy_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/academy_screen.dart';
@@ -37,6 +37,7 @@ import 'package:arcinus/core/navigation/navigation_shells/super_admin_shell/supe
 import 'package:arcinus/features/academy_users/presentation/screens/profile_screen.dart';
 import 'package:arcinus/features/academy_users_subscriptions/presentation/screens/subscription_plans_screen.dart';
 import 'package:arcinus/features/academies/presentation/ui/screens/manager_dashboard_screen.dart';
+import 'package:arcinus/features/super_admin/presentation/screens/super_admin_dashboard_screen.dart';
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -104,10 +105,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         final publicRoutes = [
           AppRoutes.splash,
           AppRoutes.welcome,
-          AppRoutes.login,
-          AppRoutes.register,
-          AppRoutes.memberAccess,
-          AppRoutes.forgotPassword,
+          AuthRoutes.login,
+          AuthRoutes.register,
+          AuthRoutes.memberAccess,
+          AuthRoutes.forgotPassword,
         ];
 
         // --- Definir rutas intermedias post-login ---
@@ -257,7 +258,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   className: 'AppRouter',
                   functionName: 'redirect',
                 );
-                return AppRoutes.ownerRoot;
+                return OwnerRoutes.root;
             }
         }
 
@@ -299,18 +300,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         // --- Rutas de Autenticación (ahora nivel superior) ---
         GoRoute(
-          path: AppRoutes.login, // Usar path completo /auth/login
-          name: AppRoutes.login,
+          path: AuthRoutes.login, // Usar path completo /auth/login
+          name: AuthRoutes.login,
           builder: (context, state) => const LoginScreen(),
         ),
         GoRoute(
-          path: AppRoutes.register, // Usar path completo /auth/register
-          name: AppRoutes.register,
+          path: AuthRoutes.register, // Usar path completo /auth/register
+          name: AuthRoutes.register,
           builder: (context, state) => const RegisterScreen(),
         ),
         GoRoute(
-          path: AppRoutes.memberAccess, // Usar path completo /auth/member-access
-          name: AppRoutes.memberAccess,
+          path: AuthRoutes.memberAccess, // Usar path completo /auth/member-access
+          name: AuthRoutes.memberAccess,
           builder: (context, state) => const MemberAccessScreen(),
         ),
         // --- Rutas Intermedias ---
@@ -333,13 +334,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           routes: <RouteBase>[
             // Ruta raíz del Shell: /owner (puede mostrar el dashboard por defecto)
             GoRoute(
-              path: AppRoutes.ownerRoot,
+              path: OwnerRoutes.root,
               name: 'ownerRoot',
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Owner Dashboard'),
             ),
             // Ruta de Perfil del Propietario
             GoRoute(
-              path: AppRoutes.ownerProfileRoute, // Usar la nueva constante para el path completo
+              path: OwnerRoutes.profile, // Usar la nueva constante para el path completo
               name: 'ownerProfile', // Nombre de la ruta, puede ser el mismo que antes o uno nuevo si se prefiere
               builder: (context, state) {
                 AppLogger.logInfo(
@@ -353,7 +354,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             // --- Secciones Principales como hijas directas del ShellRoute ---
             GoRoute(
               path: '/owner/dashboard', // Path completo ahora
-              name: AppRoutes.ownerDashboard,
+              name: OwnerRoutes.dashboard,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Owner Dashboard'),
             ),
              GoRoute(
@@ -367,7 +368,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [ // Rutas anidadas de academia (edit, members, etc.) sí van aquí
                    GoRoute(
                       path: 'edit',
-                      name: AppRoutes.ownerEditAcademy,
+                      name: OwnerRoutes.editAcademy,
                       builder: (context, state) {
                          final academyId = state.pathParameters['academyId']!;
                          // Utilizar Consumer para obtener la academia real
@@ -400,14 +401,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                    ),
                                         GoRoute(
                       path: 'members',
-                      name: AppRoutes.ownerAcademyMembers,
+                      name: OwnerRoutes.academyMembers,
                        builder: (context, state) {
                          final academyId = state.pathParameters['academyId']!;
                          return AcademyMembersScreen(academyId: academyId);
                        },
                       routes: [
                          GoRoute(
-                            path: AppRoutes.ownerEditMemberPermissions.split('/').last, // 'permissions'
+                            path: OwnerRoutes.editMemberPermissions.split('/').last, // 'permissions'
                             name: 'ownerEditMemberPermissions',
                              builder: (context, state) {
                                final academyId = state.pathParameters['academyId']!;
@@ -513,107 +514,61 @@ final routerProvider = Provider<GoRouter>((ref) {
              ),
             GoRoute(
               path: '/owner/members', // Path completo
-              name: AppRoutes.ownerMembers,
+              name: OwnerRoutes.members,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Miembros de academia'),
             ),
             GoRoute(
               path: '/owner/schedule', // Path completo
-              name: AppRoutes.ownerSchedule,
+              name: OwnerRoutes.schedule,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Horarios'),
             ),
             GoRoute(
               path: '/owner/stats', // Path completo
-              name: AppRoutes.ownerStats,
+              name: OwnerRoutes.stats,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Estadísticas'),
             ),
             GoRoute(
               path: '/owner/more', // Path completo
-              name: AppRoutes.ownerMore,
+              name: OwnerRoutes.more,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Más opciones'),
             ),
             GoRoute(
               path: '/owner/groups', // Path completo
-              name: AppRoutes.ownerGroups,
+              name: OwnerRoutes.groups,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Gestión de Grupos/Equipos'),
             ),
             GoRoute(
               path: '/owner/trainings', // Path completo
-              name: AppRoutes.ownerTrainings,
+              name: OwnerRoutes.trainings,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Entrenamientos y Sesiones'),
             ),
             GoRoute(
               path: '/owner/academy_details', // Path completo
-              name: AppRoutes.ownerAcademyDetails,
+              name: OwnerRoutes.academyDetails,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Detalles de la Academia'),
             ),
             GoRoute(
               path: '/owner/settings', // Path completo
-              name: AppRoutes.ownerSettings,
+              name: OwnerRoutes.settings,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Configuración'),
             ),
             // Ruta de Pagos como hija directa del ShellRoute
             GoRoute(
               path: '/owner/payments', // Path completo
-              name: AppRoutes.ownerPayments,
-              builder: (context, state) {
-                return const ScreenUnderDevelopment(message: 'Gestión de Pagos');
-              },
-              routes: [ // Rutas anidadas de pagos (register, :paymentId) sí van aquí
-                  GoRoute(
-                    path: 'register',
-                    name: AppRoutes.ownerRegisterPayment,
-                    builder: (context, state) {
-                      // Obtener el ID del atleta desde los parámetros de consulta (si existe)
-                      final athleteId = state.uri.queryParameters['athleteId'];
-                      
-                      if (athleteId != null) {
-                        // Si se proporciona un ID de atleta, pasar como parámetro
-                        return RegisterPaymentScreen(
-                        );
-                      } else {
-                        // Mostrar pantalla de error o una alternativa
-                        return const ScreenUnderDevelopment(
-                          message: 'Para registrar un pago, debe seleccionar un atleta primero',
-                        );
-                      }
-                    },
-                  ),
-                  GoRoute(
-                    path: ':paymentId',
-                    name: AppRoutes.ownerPaymentDetails,
-                    builder: (context, state) {
-                      final paymentId = state.pathParameters['paymentId']!;
-                      return ScreenUnderDevelopment(message: 'Detalles del pago $paymentId');
-                    },
-                    routes: [
-                        GoRoute(
-                          path: 'edit',
-                          name: AppRoutes.ownerEditPayment,
-                          builder: (context, state) {
-                            final paymentId = state.pathParameters['paymentId']!;
-                            return ScreenUnderDevelopment(message: 'Editar pago $paymentId');
-                          },
-                        ),
-                    ],
-                  ),
-              ],
-            ),
-            GoRoute(
-              path: AppRoutes.payments,
-              name: AppRoutes.payments,
+              name: OwnerRoutes.payments,
               builder: (context, state) => const ScreenUnderDevelopment(message: 'Gestión de Pagos'),
             ),
           ],
         ),        
         
-        // --- Shell para Manager unificado (propietario y colaborador) ---
+        // --- Shell para Manager (Owner + Collaborator) ---
         ShellRoute(
-          navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'managerShell'),
+          navigatorKey: ownerShellNavigatorKey,
           builder: (context, state, child) => ManagerShell(child: child),
           routes: <RouteBase>[
             GoRoute(
-              path: '/manager',
-              builder: (_, __) => const ScreenUnderDevelopment(message: 'Manager Home'),
+              path: ManagerRoutes.root, // Ruta raíz del Shell: /manager
+              builder: (context, state) => const ManagerDashboardScreen(),
             ),
             GoRoute(
               path: '/manager/dashboard',
@@ -805,14 +760,111 @@ final routerProvider = Provider<GoRouter>((ref) {
           builder: (context, state, child) => SuperAdminShell(child: child),
           routes: <RouteBase>[
             GoRoute(
-              path: AppRoutes.superAdminRoot, // Ruta raíz del Shell: /superadmin
-              builder: (context, state) => const ScreenUnderDevelopment(message: 'SuperAdmin Dashboard'), // Placeholder
+              path: SuperAdminRoutes.root, // Ruta raíz del Shell: /superadmin
+              builder: (context, state) => const SuperAdminDashboardScreen(), // Usar el dashboard real
               routes: [
                  GoRoute(
-                    path: AppRoutes.superAdminDashboard, // -> /superadmin/dashboard
-                    name: AppRoutes.superAdminDashboard, // Nombre único
-                    builder: (context, state) => const ScreenUnderDevelopment(message: 'SuperAdmin Dashboard'), // <- Builder añadido
+                    path: SuperAdminRoutes.dashboard, // -> /superadmin/dashboard
+                    name: SuperAdminRoutes.dashboard, // Nombre único
+                    builder: (context, state) => const SuperAdminDashboardScreen(),
                  ),
+                 
+                 // --- Gestión de Propietarios ---
+                 GoRoute(
+                   path: 'owners',
+                   name: 'superAdminOwners',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Gestión de Propietarios',
+                     icon: Icons.person_outline,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Administración y aprobación de propietarios de academias',
+                   ),
+                 ),
+                 
+                 // --- Gestión de Academias ---
+                 GoRoute(
+                   path: 'academies',
+                   name: 'superAdminAcademies',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Gestión de Academias',
+                     icon: Icons.school_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Administración global de todas las academias del sistema',
+                   ),
+                 ),
+                 
+                 // --- Gestión de Suscripciones ---
+                 GoRoute(
+                   path: 'subscriptions',
+                   name: 'superAdminSubscriptions',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Gestión de Suscripciones',
+                     icon: Icons.subscriptions_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Control de planes de suscripción y facturación global',
+                   ),
+                 ),
+                 
+                 // --- Deportes Globales ---
+                 GoRoute(
+                   path: 'sports',
+                   name: 'superAdminSports',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Deportes Globales',
+                     icon: Icons.sports_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Configuración global de deportes y categorías del sistema',
+                   ),
+                 ),
+                 
+                 // --- Sistema - Respaldos ---
+                 GoRoute(
+                   path: 'system/backups',
+                   name: 'superAdminSystemBackups',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Sistema de Respaldos',
+                     icon: Icons.backup_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Gestión de backups y restauración del sistema',
+                   ),
+                 ),
+                 
+                 // --- Seguridad ---
+                 GoRoute(
+                   path: 'security',
+                   name: 'superAdminSecurity',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Seguridad y Auditoría',
+                     icon: Icons.security_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Control de seguridad, logs de auditoría y sesiones',
+                   ),
+                 ),
+                 
+                 // --- Analytics ---
+                 GoRoute(
+                   path: 'analytics',
+                   name: 'superAdminAnalytics',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Analytics y Métricas',
+                     icon: Icons.analytics_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Análisis de uso, rendimiento y métricas del sistema',
+                   ),
+                 ),
+                 
+                 // --- Configuración ---
+                 GoRoute(
+                   path: 'settings',
+                   name: 'superAdminSettings',
+                   builder: (context, state) => ScreenUnderDevelopment(
+                     message: 'Configuración Global',
+                     icon: Icons.settings_outlined,
+                     primaryColor: Colors.deepPurple,
+                     description: 'Configuración general del sistema y notificaciones',
+                   ),
+                 ),
+                 
                  // Otras rutas específicas para superadmins...
               ]
             ),
@@ -888,11 +940,11 @@ String _getRoleRootRoute(AppRole? role) {
     // Redirigir roles de gestión al shell unificado de Manager
     case AppRole.propietario: 
     case AppRole.colaborador:
-      return AppRoutes.managerRoot; 
+      return ManagerRoutes.root; 
     case AppRole.atleta: 
       return AppRoutes.athleteRoot;
     case AppRole.superAdmin: 
-      return AppRoutes.superAdminRoot;
+      return SuperAdminRoutes.root;
     case AppRole.padre: 
       return AppRoutes.parentRoot;
     default: 

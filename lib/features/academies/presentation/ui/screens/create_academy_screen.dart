@@ -5,10 +5,11 @@ import 'package:arcinus/features/academies/presentation/providers/state/create_a
 import 'package:arcinus/core/theme/ui/loading/loading_indicator.dart'; // Usar el mismo LoadingIndicator
 import 'package:arcinus/core/theme/ui/feedback/error_display.dart'; // Usar el mismo ErrorDisplay
 import 'package:go_router/go_router.dart'; // Importar GoRouter
-import 'package:arcinus/core/navigation/app_routes.dart'; // Importar rutas de la app
+import 'package:arcinus/core/navigation/routes/app_routes.dart'; // Importar rutas de la app
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:arcinus/core/navigation/routes/owner_routes.dart';
 
 class CreateAcademyScreen extends ConsumerStatefulWidget {
   const CreateAcademyScreen({super.key});
@@ -310,7 +311,7 @@ class _CreateAcademyScreenState extends ConsumerState<CreateAcademyScreen> {
           
           // Redirección manual al dashboard del propietario
           AppLogger.logInfo('Forzando redirección manual a la ruta del propietario');
-          context.go(AppRoutes.ownerRoot);
+          context.go(OwnerRoutes.root);
         },
         orElse: () {},
       );

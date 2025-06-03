@@ -1,5 +1,6 @@
 import 'package:arcinus/core/utils/constants/app_assets.dart';
-import 'package:arcinus/core/navigation/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/auth_routes.dart';
 import 'package:arcinus/core/theme/ux/arcinus_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -76,7 +77,7 @@ class WelcomeScreen extends ConsumerWidget {
                           backgroundColor: ArcinusColors.primaryBlue,
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: () => context.push(AppRoutes.login),
+                        onPressed: () => context.push(AuthRoutes.login),
                         child: const Text('SOY PROPIETARIO'),
                       ),
                     ),
@@ -91,7 +92,7 @@ class WelcomeScreen extends ConsumerWidget {
                           side: BorderSide(color: ArcinusColors.primaryBlue),
                           foregroundColor: ArcinusColors.primaryBlue,
                         ),
-                        onPressed: () => context.push(AppRoutes.memberAccess),
+                        onPressed: () => context.push(AuthRoutes.memberAccess),
                         child: const Text('SOY MIEMBRO'),
                       ),
                     ),

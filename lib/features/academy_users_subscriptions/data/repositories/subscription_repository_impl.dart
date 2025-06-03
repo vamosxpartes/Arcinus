@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
-import 'package:arcinus/core/providers/firebase_providers.dart';
+import 'package:arcinus/core/utils/providers/firebase_providers.dart';
 // Importar la implementación del dominio con un alias
 import 'package:arcinus/features/academy_users_subscriptions/domain/repositories/subscription_repository_impl.dart' as domain_repo;
 

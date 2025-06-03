@@ -1,5 +1,5 @@
 import 'package:arcinus/core/auth/data/models/user_model.dart';
-import 'package:arcinus/core/providers/firebase_providers.dart';
+import 'package:arcinus/core/utils/providers/firebase_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 

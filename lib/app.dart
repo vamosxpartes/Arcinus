@@ -1,5 +1,5 @@
-import 'package:arcinus/core/localization/app_localizations.dart';
-import 'package:arcinus/core/navigation/app_router.dart';
+import 'package:arcinus/core/utils/localization/app_localizations.dart';
+import 'package:arcinus/core/navigation/routes/app_router.dart';
 import 'package:arcinus/core/theme/ux/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

@@ -6,7 +6,7 @@ import 'package:arcinus/features/academy_users_payments/domain/repositories/acad
 import 'package:arcinus/features/academies/presentation/providers/academy_providers.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:arcinus/features/academy_users/data/models/member/academy_member_model.dart';
-import 'package:arcinus/core/providers/firebase_providers.dart';
+import 'package:arcinus/core/utils/providers/firebase_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';

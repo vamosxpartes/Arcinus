@@ -62,6 +62,30 @@ class SportsRepository {
           try {
             sportJson = sport.toJson();
             
+            // Asegurar que 'characteristics' sea un Map<String, dynamic>
+            if (sportJson.containsKey('characteristics') &&
+                sportJson['characteristics'] is SportCharacteristics) {
+              AppLogger.logWarning(
+                'El campo characteristics era una instancia de SportCharacteristics, convirtiendo a JSON manualmente.',
+                className: _className,
+                functionName: 'initializeSportsCollection',
+                params: {'sportCode': sport.code},
+              );
+              sportJson['characteristics'] =
+                  (sportJson['characteristics'] as SportCharacteristics).toJson();
+            } else if (sportJson.containsKey('characteristics') &&
+                       sportJson['characteristics'] is! Map<String, dynamic>) {
+              // Log si 'characteristics' existe pero no es ni SportCharacteristics ni Map
+              AppLogger.logError(
+                message: 'El campo characteristics no es un Map<String, dynamic> ni una instancia de SportCharacteristics después de sport.toJson(). Tipo real: ${sportJson['characteristics'].runtimeType}',
+                className: _className,
+                functionName: 'initializeSportsCollection',
+                params: {'sportCode': sport.code, 'type': sportJson['characteristics'].runtimeType.toString()},
+              );
+              // Considerar lanzar un error o usar un fallback si esto ocurre,
+              // ya que indica un problema más profundo en sport.toJson()
+            }
+            
             AppLogger.logInfo(
               'Deporte serializado a JSON exitosamente',
               className: _className,
@@ -70,6 +94,9 @@ class SportsRepository {
                 'sportCode': sport.code,
                 'jsonKeys': sportJson.keys.toList(),
                 'hasCharacteristics': sportJson.containsKey('characteristics'),
+                'characteristicsType': sportJson.containsKey('characteristics') 
+                                       ? sportJson['characteristics'].runtimeType.toString() 
+                                       : 'N/A',
               },
             );
           } catch (e, stackTrace) {

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 // Asumiendo que tienes un provider global para Firestore
-import 'package:arcinus/core/providers/firebase_providers.dart'; // Usar el provider centralizado
+import 'package:arcinus/core/utils/providers/firebase_providers.dart'; // Usar el provider centralizado
 import 'package:arcinus/features/academy_users_subscriptions/domain/repositories/subscription_repository_impl.dart'; // Nueva importación
 
 part 'subscription_repository_provider.g.dart';

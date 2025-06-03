@@ -1,4 +1,4 @@
-import 'package:arcinus/core/providers/firebase_providers.dart';
+import 'package:arcinus/core/utils/providers/firebase_providers.dart';
 import 'package:arcinus/features/academies/data/models/academy_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:arcinus/core/utils/app_logger.dart';

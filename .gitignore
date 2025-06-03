@@ -55,3 +55,36 @@ app.*.map.json
 
 # Ignorar config privada de Firebase
 /android/app/google-services.json
+
+# Herramientas Administrativas y Credenciales de Firebase
+service-account-key.json
+temp_super_admin_*.json
+super_admin_*.json
+test_write_permission.tmp
+
+# Variables de entorno sensibles
+.env.local
+.env.production
+.env.staging
+
+# Logs de Firebase
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Backups y archivos temporales de herramientas
+tools/backup_*.json
+tools/temp_*.json
+*.backup
+*.tmp
+
+# Certificados y claves privadas
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+
+# Datos de desarrollo local
+local_config.json
+dev_settings.json

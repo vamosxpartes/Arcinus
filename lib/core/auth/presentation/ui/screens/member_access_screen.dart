@@ -1,5 +1,6 @@
 import 'package:arcinus/core/utils/constants/app_assets.dart';
-import 'package:arcinus/core/navigation/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/app_routes.dart';
+import 'package:arcinus/core/navigation/routes/auth_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -96,7 +97,7 @@ class _MemberAccessScreenState extends ConsumerState<MemberAccessScreen> {
                             ? null
                             : () {
                                 // Para el MVP, simplemente navegamos a la pantalla de login
-                                context.push(AppRoutes.login);
+                                context.push(AuthRoutes.login);
                               },
                         child: _isLoading
                             ? const CircularProgressIndicator()
