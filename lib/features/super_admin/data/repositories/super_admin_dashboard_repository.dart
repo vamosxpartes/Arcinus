@@ -310,7 +310,6 @@ class SuperAdminDashboardRepositoryImpl implements SuperAdminDashboardRepository
   /// Obtiene métricas de usuarios
   Future<Either<Failure, Map<String, int>>> _getUsersMetrics() async {
     try {
-      final allUsersSnapshot = await _usersCollection.get();
       
       int total = 0;
       int active = 0;

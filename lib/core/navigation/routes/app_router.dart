@@ -40,6 +40,7 @@ import 'package:arcinus/features/academies/presentation/ui/screens/manager_dashb
 import 'package:arcinus/features/super_admin/presentation/screens/super_admin_dashboard_screen.dart';
 import 'package:arcinus/features/super_admin/presentation/screens/owners_manage_screen.dart';
 import 'package:arcinus/features/super_admin/presentation/screens/owner_details_screen.dart';
+import 'package:arcinus/features/super_admin/presentation/screens/global_subscription_plans_screen.dart';
 
 /// Provider que expone el router de la aplicación.
 final routerProvider = Provider<GoRouter>((ref) {
@@ -810,6 +811,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                      primaryColor: Colors.deepPurple,
                      description: 'Control de planes de suscripción y facturación global',
                    ),
+                   routes: [
+                     GoRoute(
+                       path: 'plans',
+                       name: 'superAdminGlobalPlans',
+                       builder: (context, state) => const GlobalSubscriptionPlansScreen(),
+                     ),
+                   ],
                  ),
                  
                  // --- Deportes Globales ---

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 
 /// Widget para mostrar acciones rápidas del SuperAdmin
@@ -187,13 +188,8 @@ class QuickActionsCard extends StatelessWidget {
       functionName: '_handleManagePlans',
     );
     
-    // TODO: Implementar navegación a SuperAdminRoutes.subscriptionPlans
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Navegando a gestión de planes...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    // Navegar a la pantalla de gestión de planes globales
+    context.go('/superadmin/subscriptions/plans');
   }
 
   void _handleManageSports(BuildContext context) {

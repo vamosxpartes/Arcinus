@@ -1,130 +1,270 @@
 import 'package:arcinus/features/academy_users_subscriptions/data/models/subscription_plan_model.dart';
 import 'package:arcinus/features/academy_users_subscriptions/data/models/app_subscription_model.dart';
 import 'package:arcinus/features/academy_users_subscriptions/data/repositories/app_subscription_repository_impl.dart';
+import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Utilidad para inicializar los planes de suscripción en Firestore
 class AppSubscriptionInitializer {
   final Ref _ref;
+  static const String _className = 'AppSubscriptionInitializer';
 
   AppSubscriptionInitializer(this._ref);
 
   /// Inicializa los planes de suscripción predeterminados si no existen
   Future<void> initializeDefaultPlans() async {
-    final appSubscriptionRepository = _ref.read(appSubscriptionRepositoryProvider);
+    try {
+      AppLogger.logInfo(
+        'Iniciando inicialización de planes predeterminados',
+        className: _className,
+        functionName: 'initializeDefaultPlans',
+      );
 
-    // Verificar si ya existen planes
-    final existingPlans = await appSubscriptionRepository.getAvailablePlans(
-      activeOnly: false,
-    );
+      final appSubscriptionRepository = _ref.read(appSubscriptionRepositoryProvider);
 
-    // Si ya hay planes creados, no hacer nada
-    if (existingPlans.isRight() && 
-        (existingPlans.getRight() as List<AppSubscriptionPlanModel>).isNotEmpty) {
-      return;
-    }
+      // Verificar si ya existen planes
+      final existingPlans = await appSubscriptionRepository.getAvailablePlans(
+        activeOnly: false,
+      );
 
-    // Crear planes predeterminados
-    final plans = _getDefaultPlans();
-    
-    // Guardar cada plan en Firestore
-    for (final plan in plans) {
-      await appSubscriptionRepository.createPlan(plan);
+      // Si ya hay planes creados, no hacer nada
+      final shouldSkip = existingPlans.fold(
+        (failure) {
+          AppLogger.logError(
+            message: 'Error al verificar planes existentes: ${failure.message}',
+            className: _className,
+            functionName: 'initializeDefaultPlans',
+          );
+          return false; // Continuar con la inicialización en caso de error
+        },
+        (plans) {
+          AppLogger.logInfo(
+            'Planes existentes encontrados: ${plans.length}',
+            className: _className,
+            functionName: 'initializeDefaultPlans',
+            params: {'existingPlansCount': plans.length},
+          );
+          return plans.isNotEmpty;
+        },
+      );
+
+      if (shouldSkip) {
+        AppLogger.logInfo(
+          'Saltando inicialización - planes ya existen',
+          className: _className,
+          functionName: 'initializeDefaultPlans',
+        );
+        return;
+      }
+
+      // Crear planes predeterminados
+      final plans = _getDefaultPlans();
+      
+      AppLogger.logInfo(
+        'Creando ${plans.length} planes predeterminados',
+        className: _className,
+        functionName: 'initializeDefaultPlans',
+        params: {'plansToCreate': plans.length},
+      );
+      
+      // Guardar cada plan en Firestore
+      int createdCount = 0;
+      for (final plan in plans) {
+        final result = await appSubscriptionRepository.createPlan(plan);
+        
+        result.fold(
+          (failure) {
+            AppLogger.logError(
+              message: 'Error al crear plan ${plan.name}: ${failure.message}',
+              className: _className,
+              functionName: 'initializeDefaultPlans',
+              params: {'planName': plan.name},
+            );
+          },
+          (createdPlan) {
+            createdCount++;
+            AppLogger.logInfo(
+              'Plan creado exitosamente: ${createdPlan.name}',
+              className: _className,
+              functionName: 'initializeDefaultPlans',
+              params: {'planId': createdPlan.id, 'planName': createdPlan.name},
+            );
+          },
+        );
+      }
+
+      AppLogger.logInfo(
+        'Inicialización completada - planes creados: $createdCount/${plans.length}',
+        className: _className,
+        functionName: 'initializeDefaultPlans',
+        params: {'createdCount': createdCount, 'totalCount': plans.length},
+      );
+    } catch (e, stackTrace) {
+      AppLogger.logError(
+        message: 'Error inesperado durante inicialización de planes: $e',
+        error: e,
+        stackTrace: stackTrace,
+        className: _className,
+        functionName: 'initializeDefaultPlans',
+      );
     }
   }
 
-  /// Devuelve los planes predeterminados
+  /// Devuelve los planes predeterminados de Arcinus
   List<AppSubscriptionPlanModel> _getDefaultPlans() {
     return [
-      // Plan Gratuito
-      AppSubscriptionPlanModel(
-        name: 'Plan Gratuito',
-        planType: AppSubscriptionPlanType.free,
-        price: 0,
+      // Plan de Prueba - Gratuito para evaluación
+      const AppSubscriptionPlanModel(
+        name: 'Plan de Prueba',
+        planType: AppSubscriptionPlanType.basic,
+        price: 0.0,
         currency: 'COP',
         billingCycle: BillingCycle.monthly,
         maxAcademies: 1,
         maxUsersPerAcademy: 10,
-        features: [
-          AppFeature.multipleAcademies,
-        ],
+        features: [],
         benefits: [
-          '1 academia',
-          'Máximo 10 usuarios',
-          'Funciones básicas',
+          'Plan de prueba - 30 días',
+          'Gestión básica de atletas',
+          'Hasta 10 usuarios',
+          'Soporte por email',
+          'Acceso completo por tiempo limitado',
         ],
+        isActive: true,
       ),
-
-      // Plan Básico
-      AppSubscriptionPlanModel(
+      
+      // Plan Básico - Para academias pequeñas
+      const AppSubscriptionPlanModel(
         name: 'Plan Básico',
         planType: AppSubscriptionPlanType.basic,
-        price: 50000,
+        price: 119900.0, // ~$30 USD en COP
         currency: 'COP',
         billingCycle: BillingCycle.monthly,
-        maxAcademies: 2,
-        maxUsersPerAcademy: 30,
-        features: [
-          AppFeature.multipleAcademies,
-          AppFeature.advancedStats,
-        ],
+        maxAcademies: 1,
+        maxUsersPerAcademy: 50,
+        features: [],
         benefits: [
-          'Hasta 2 academias',
-          'Máximo 30 usuarios por academia',
-          'Estadísticas avanzadas',
+          'Gestión básica de atletas',
+          'Estadísticas simples',
+          'Hasta 50 usuarios',
           'Soporte por email',
         ],
+        isActive: true,
       ),
-
-      // Plan Profesional
-      AppSubscriptionPlanModel(
+      
+      // Plan Profesional - Para academias medianas
+      const AppSubscriptionPlanModel(
         name: 'Plan Profesional',
         planType: AppSubscriptionPlanType.pro,
-        price: 120000,
+        price: 319900.0, // ~$80 USD en COP
         currency: 'COP',
         billingCycle: BillingCycle.monthly,
-        maxAcademies: 5,
-        maxUsersPerAcademy: 100,
+        maxAcademies: 3,
+        maxUsersPerAcademy: 200,
         features: [
-          AppFeature.multipleAcademies,
           AppFeature.advancedStats,
-          AppFeature.videoAnalysis,
         ],
         benefits: [
-          'Hasta 5 academias',
-          'Máximo 100 usuarios por academia',
-          'Análisis de video',
+          'Gestión avanzada de atletas',
           'Estadísticas avanzadas',
+          'Gestión de pagos',
+          'Hasta 3 academias',
+          'Hasta 200 usuarios por academia',
           'Soporte prioritario',
         ],
+        isActive: true,
       ),
-
-      // Plan Empresarial
-      AppSubscriptionPlanModel(
+      
+      // Plan Empresarial - Para organizaciones grandes
+      const AppSubscriptionPlanModel(
         name: 'Plan Empresarial',
         planType: AppSubscriptionPlanType.enterprise,
-        price: 300000,
+        price: 1199900.0, // ~$300 USD en COP
         currency: 'COP',
         billingCycle: BillingCycle.monthly,
-        maxAcademies: 10,
-        maxUsersPerAcademy: 500,
+        maxAcademies: 999,
+        maxUsersPerAcademy: 2000,
         features: [
-          AppFeature.multipleAcademies,
           AppFeature.advancedStats,
           AppFeature.videoAnalysis,
+          AppFeature.multipleAcademies,
           AppFeature.apiAccess,
           AppFeature.customization,
         ],
         benefits: [
-          'Hasta 10 academias',
-          'Usuarios ilimitados por academia',
-          'Todas las características disponibles',
-          'API para integraciones',
-          'Personalización de la plataforma',
-          'Soporte dedicado 24/7',
+          'Academias ilimitadas',
+          'Usuarios ilimitados',
+          'API completa',
+          'Personalización total',
+          'Análisis de video',
+          'Integración personalizada',
+          'Manager dedicado',
+          'SLA garantizado',
         ],
+        isActive: true,
+      ),
+      
+      // Plan Anual Básico - Con descuento
+      const AppSubscriptionPlanModel(
+        name: 'Plan Básico Anual',
+        planType: AppSubscriptionPlanType.basic,
+        price: 1199900.0, // 2 meses gratis - ~$300 USD en COP
+        currency: 'COP',
+        billingCycle: BillingCycle.annual,
+        maxAcademies: 1,
+        maxUsersPerAcademy: 50,
+        features: [],
+        benefits: [
+          'Gestión básica de atletas',
+          'Estadísticas simples',
+          'Hasta 50 usuarios',
+          'Soporte por email',
+          '17% de descuento (2 meses gratis)',
+        ],
+        isActive: true,
+      ),
+      
+      // Plan Anual Profesional - Con descuento
+      const AppSubscriptionPlanModel(
+        name: 'Plan Profesional Anual',
+        planType: AppSubscriptionPlanType.pro,
+        price: 3199900.0, // 2 meses gratis - ~$800 USD en COP
+        currency: 'COP',
+        billingCycle: BillingCycle.annual,
+        maxAcademies: 3,
+        maxUsersPerAcademy: 200,
+        features: [
+          AppFeature.advancedStats,
+        ],
+        benefits: [
+          'Gestión avanzada de atletas',
+          'Estadísticas avanzadas',
+          'Gestión de pagos',
+          'Hasta 3 academias',
+          'Hasta 200 usuarios por academia',
+          'Soporte prioritario',
+          '17% de descuento (2 meses gratis)',
+        ],
+        isActive: true,
       ),
     ];
+  }
+
+  /// Obtiene un plan específico por ID o crea uno de prueba
+  AppSubscriptionPlanModel getTestPlan() {
+    return const AppSubscriptionPlanModel(
+      id: 'test-plan',
+      name: 'Plan de Prueba',
+      planType: AppSubscriptionPlanType.basic,
+      price: 0.0,
+      currency: 'COP',
+      billingCycle: BillingCycle.monthly,
+      maxAcademies: 1,
+      maxUsersPerAcademy: 10,
+      features: [],
+      benefits: ['Plan de prueba - 30 días'],
+      isActive: true,
+    );
   }
 }
 

@@ -306,8 +306,16 @@ class _SuperAdminShellState extends ConsumerState<SuperAdminShell> {
           _buildDrawerItem(
             context,
             icon: Icons.subscriptions_outlined,
-            title: 'Suscripciones',
-            subtitle: 'Planes y facturación',
+            title: 'Gestión de Planes',
+            subtitle: 'Planes de suscripción globales',
+            onTap: () => _navigateTo(context, '/superadmin/subscriptions/plans'),
+          ),
+          
+          _buildDrawerItem(
+            context,
+            icon: Icons.payment_outlined,
+            title: 'Suscripciones Activas',
+            subtitle: 'Facturación y pagos',
             onTap: () => _navigateTo(context, SuperAdminRoutes.subscriptions),
           ),
           

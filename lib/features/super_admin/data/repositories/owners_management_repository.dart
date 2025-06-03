@@ -3,7 +3,6 @@ import 'package:fpdart/fpdart.dart';
 import 'package:arcinus/core/utils/error/failures.dart';
 import 'package:arcinus/core/utils/app_logger.dart';
 import 'package:arcinus/features/super_admin/data/models/owner_data_model.dart';
-import 'package:arcinus/features/academies/data/models/academy_model.dart';
 
 /// Repositorio para la gestión de propietarios en el SuperAdmin
 abstract class OwnersManagementRepository {

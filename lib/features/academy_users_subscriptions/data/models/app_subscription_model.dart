@@ -1,4 +1,3 @@
-
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:arcinus/core/utils/timestamp_converter.dart';
 
@@ -99,7 +98,7 @@ extension AppFeatureExtension on AppFeature {
 class AppSubscriptionPlanModel with _$AppSubscriptionPlanModel {
   @JsonSerializable(explicitToJson: true)
   const factory AppSubscriptionPlanModel({
-    @JsonKey(includeFromJson: false, includeToJson: false)
+    @JsonKey(includeToJson: false)  // Permitir fromJson pero no toJson
     String? id,
     required String name,
     @JsonKey(fromJson: AppSubscriptionPlanTypeExtension.fromJson)
@@ -125,7 +124,7 @@ class AppSubscriptionPlanModel with _$AppSubscriptionPlanModel {
 class AppSubscriptionModel with _$AppSubscriptionModel {
   @JsonSerializable(explicitToJson: true, converters: [TimestampConverter()])
   const factory AppSubscriptionModel({
-    @JsonKey(includeFromJson: false, includeToJson: false)
+    @JsonKey(includeToJson: false)  // Permitir fromJson pero no toJson
     String? id,
     required String ownerId,
     required String planId,
